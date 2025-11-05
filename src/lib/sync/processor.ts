@@ -140,7 +140,7 @@ async function generateSplits(
 
       // 计算分段时长
       const startTime = splitPoints[0].time
-      const endTime = splitPoints.at(-1).time
+      const endTime = splitPoints.at(-1)?.time
       const splitDuration = startTime && endTime ? (endTime.getTime() - startTime.getTime()) / 1000 : 0
 
       // 计算分段距离
