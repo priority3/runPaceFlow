@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss'
-import { withUIKit } from 'tailwindcss-uikit-colors'
+import withUIKit from 'tailwindcss-uikit-colors'
 
 const config: Config = withUIKit({
   content: [

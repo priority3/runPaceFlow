@@ -7,6 +7,7 @@
 'use client'
 
 import { Layer, Source } from 'react-map-gl/maplibre'
+
 import type { PaceSegment } from '@/lib/map/pace-utils'
 
 export interface PaceRouteLayerProps {

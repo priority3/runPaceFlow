@@ -1,16 +1,23 @@
 import type { RawActivity, SyncAdapter } from './base'
 
 /**
+ * Nike API 配置
+ */
+const NIKE_API_BASE = 'https://api.nike.com/plus/v3'
+const NIKE_TOKEN_REFRESH_URL = 'https://api.nike.com/idn/shim/oauth/2.0/token'
+
+/**
  * Nike Run Club 适配器
  * 用于同步 Nike Run Club 的跑步数据
  */
 export class NikeAdapter implements SyncAdapter {
   name = 'nike'
-  // @ts-expect-error - 将在实际 Nike API 集成时使用
-  private _accessToken: string
+  private accessToken: string
+  private refreshToken?: string
 
-  constructor(accessToken: string) {
-    this._accessToken = accessToken
+  constructor(accessToken: string, refreshToken?: string) {
+    this.accessToken = accessToken
+    this.refreshToken = refreshToken
   }
 
   /**
@@ -30,125 +37,386 @@ export class NikeAdapter implements SyncAdapter {
   }
 
   /**
-   * 获取活动列表
+   * 获取活动列表（支持分页）
+   * 使用 before_id 参数实现分页
    */
   async getActivities(
-    _options: {
+    options: {
       startDate?: Date
       endDate?: Date
       limit?: number
+      beforeId?: string // 分页标识
     } = {},
   ): Promise<RawActivity[]> {
-    // TODO: 替换为实际的 Nike API 端点
-    // const apiUrl = 'https://api.nike.com/sport/v3/me/activities'
+    const activities: RawActivity[] = []
+    let beforeId = options.beforeId || null
+    const pageLimit = options.limit || 30
 
-    // 示例：调用 Nike API
-    // const response = await fetch(apiUrl, {
-    //   headers: {
-    //     'Authorization': `Bearer ${this.accessToken}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    // })
+    try {
+      // 分页获取活动列表
+      while (true) {
+        const data = await this.getActivitiesPage(beforeId, pageLimit)
 
-    // if (!response.ok) {
-    //   throw new Error(`Nike API error: ${response.statusText}`)
-    // }
+        if (!data.activities || data.activities.length === 0) {
+          break
+        }
 
-    // const data = await response.json()
-    // return data.activities.map(this.transformActivity)
+        // 过滤 NTC (Nike Training Club) 记录
+        const runActivities = data.activities.filter((activity: any) => {
+          const appId = activity.app_id || ''
+          return !appId.includes('ntc') // 排除 NTC 训练记录
+        })
 
-    // 临时返回空数组（等待实际 API 集成）
-    console.warn('Nike adapter: getActivities not implemented yet')
-    return []
+        // 获取每个活动的详情
+        for (const activity of runActivities) {
+          try {
+            const detail = await this.getActivityDetail(activity.id)
+            activities.push(detail)
+          } catch (error) {
+            console.error(`Failed to fetch activity ${activity.id}:`, error)
+          }
+        }
+
+        // 检查是否有下一页
+        beforeId = data.paging?.before_id || null
+        if (!beforeId) {
+          break
+        }
+
+        // 如果设置了 limit，检查是否已经达到
+        if (options.limit && activities.length >= options.limit) {
+          break
+        }
+      }
+
+      return activities
+    } catch (error) {
+      console.error('Failed to fetch Nike activities:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 获取单页活动列表
+   */
+  private async getActivitiesPage(
+    beforeId: string | null,
+    limit: number,
+  ): Promise<{ activities: any[]; paging?: { before_id: string | null } }> {
+    const endpoint = beforeId ? `activities/before_id/v3/${beforeId}` : `activities/before_id/v3/0` // 初始请求使用 0
+
+    const url = `${NIKE_API_BASE}/${endpoint}?limit=${limit}&types=run%2Cjogging&include_deleted=false`
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      // 尝试刷新 token
+      if (response.status === 401 && this.refreshToken) {
+        await this.refreshAccessToken()
+        // 重试请求
+        return this.getActivitiesPage(beforeId, limit)
+      }
+      throw new Error(`Nike API error: ${response.statusText}`)
+    }
+
+    return await response.json()
   }
 
   /**
    * 获取活动详情
    */
-  async getActivityDetail(_id: string): Promise<RawActivity> {
-    // TODO: 替换为实际的 Nike API 端点
-    // const apiUrl = `https://api.nike.com/sport/v3/me/activity/${id}`
+  async getActivityDetail(id: string): Promise<RawActivity> {
+    const url = `${NIKE_API_BASE}/activity/${id}?metrics=ALL`
 
-    // const response = await fetch(apiUrl, {
-    //   headers: {
-    //     'Authorization': `Bearer ${this.accessToken}`,
-    //   },
-    // })
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
-    // if (!response.ok) {
-    //   throw new Error(`Nike API error: ${response.statusText}`)
-    // }
+    if (!response.ok) {
+      // 尝试刷新 token
+      if (response.status === 401 && this.refreshToken) {
+        await this.refreshAccessToken()
+        // 重试请求
+        return this.getActivityDetail(id)
+      }
+      throw new Error(`Nike API error: ${response.statusText}`)
+    }
 
-    // const data = await response.json()
-    // const gpxData = await this.downloadGPX(id)
+    const data = await response.json()
 
-    // return this.transformActivity(data, gpxData)
+    // 从 metrics 生成 GPX
+    const gpxData = await this.generateGPXFromMetrics(data)
 
-    throw new Error('Nike adapter: getActivityDetail not implemented yet')
+    return this.transformActivity(data, gpxData)
   }
 
   /**
-   * 下载 GPX 文件
+   * 下载/生成 GPX 文件
+   * Nike 没有提供 GPX 下载端点，需要从 metrics 数据生成
    */
-  async downloadGPX(_activityId: string): Promise<string> {
-    // TODO: 替换为实际的 Nike GPX 下载端点
-    // const apiUrl = `https://api.nike.com/sport/v3/me/activity/${activityId}/gps`
+  async downloadGPX(activityId: string): Promise<string> {
+    // 获取活动详情（包含 metrics）
+    const url = `${NIKE_API_BASE}/activity/${activityId}?metrics=ALL`
 
-    // const response = await fetch(apiUrl, {
-    //   headers: {
-    //     'Authorization': `Bearer ${this.accessToken}`,
-    //   },
-    // })
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+    })
 
-    // if (!response.ok) {
-    //   throw new Error(`Nike API error: ${response.statusText}`)
-    // }
+    if (!response.ok) {
+      throw new Error(`Nike API error: ${response.statusText}`)
+    }
 
-    // return await response.text()
+    const data = await response.json()
+    return this.generateGPXFromMetrics(data)
+  }
 
-    throw new Error('Nike adapter: downloadGPX not implemented yet')
+  /**
+   * 从 Nike metrics 数据生成 GPX XML
+   * Reason: Nike API 返回的是 metrics 数组，需要转换为 GPX 格式
+   */
+  private async generateGPXFromMetrics(activity: any): Promise<string> {
+    const metrics = activity.metrics || []
+
+    // 提取 GPS 数据
+    const latData = metrics.find((m: any) => m.type === 'latitude')?.values || []
+    const lonData = metrics.find((m: any) => m.type === 'longitude')?.values || []
+    const eleData = metrics.find((m: any) => m.type === 'elevation')?.values || []
+    const hrData = metrics.find((m: any) => m.type === 'heart_rate')?.values || []
+
+    // 如果没有 GPS 数据，返回空 GPX
+    if (latData.length === 0 || lonData.length === 0) {
+      return this.generateEmptyGPX(activity)
+    }
+
+    // 对齐 lat/lon 数据点
+    const trackPoints: Array<{
+      lat: number
+      lon: number
+      time: string
+      ele?: number
+      hr?: number
+    }> = []
+
+    for (const [i, lat] of latData.entries()) {
+      const lon = lonData[i]
+
+      // 确保 lat/lon 时间戳对齐
+      if (lat.start_epoch_ms !== lon.start_epoch_ms) {
+        console.warn('Latitude and longitude timestamps do not match')
+        continue
+      }
+
+      const point = {
+        lat: lat.value,
+        lon: lon.value,
+        time: new Date(lat.start_epoch_ms).toISOString(),
+      }
+
+      // 添加海拔数据（通过时间戳匹配）
+      const elePoint = eleData.find(
+        (e: any) => e.start_epoch_ms <= lat.start_epoch_ms && lat.start_epoch_ms < e.end_epoch_ms,
+      )
+      if (elePoint) {
+        Object.assign(point, { ele: elePoint.value })
+      }
+
+      // 添加心率数据（通过时间戳匹配）
+      const hrPoint = hrData.find(
+        (h: any) => h.start_epoch_ms <= lat.start_epoch_ms && lat.start_epoch_ms < h.end_epoch_ms,
+      )
+      if (hrPoint) {
+        Object.assign(point, { hr: Math.round(hrPoint.value) })
+      }
+
+      trackPoints.push(point)
+    }
+
+    // 生成 GPX XML
+    const activityName = activity.tags?.['com.nike.name'] || 'Nike Run'
+    const gpx = this.buildGPXXML(activityName, trackPoints)
+
+    return gpx
+  }
+
+  /**
+   * 构建 GPX XML 字符串
+   */
+  private buildGPXXML(
+    name: string,
+    points: Array<{ lat: number; lon: number; time: string; ele?: number; hr?: number }>,
+  ): string {
+    const trackPointsXML = points
+      .map((p) => {
+        let xml = `      <trkpt lat="${p.lat}" lon="${p.lon}">\n`
+        if (p.ele !== undefined) {
+          xml += `        <ele>${p.ele}</ele>\n`
+        }
+        xml += `        <time>${p.time}</time>\n`
+
+        // 添加心率扩展（Garmin TrackPointExtension）
+        if (p.hr !== undefined) {
+          xml += `        <extensions>\n`
+          xml += `          <gpxtpx:TrackPointExtension xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">\n`
+          xml += `            <gpxtpx:hr>${p.hr}</gpxtpx:hr>\n`
+          xml += `          </gpxtpx:TrackPointExtension>\n`
+          xml += `        </extensions>\n`
+        }
+
+        xml += `      </trkpt>`
+        return xml
+      })
+      .join('\n')
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Nike Run Club" xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
+  <trk>
+    <name>${this.escapeXML(name)}</name>
+    <type>running</type>
+    <trkseg>
+${trackPointsXML}
+    </trkseg>
+  </trk>
+</gpx>`
+  }
+
+  /**
+   * 生成空 GPX（用于没有 GPS 数据的活动，如跑步机）
+   */
+  private generateEmptyGPX(activity: any): string {
+    const activityName = activity.tags?.['com.nike.name'] || 'Nike Run'
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Nike Run Club" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>${this.escapeXML(activityName)}</name>
+    <type>running</type>
+    <trkseg>
+    </trkseg>
+  </trk>
+</gpx>`
+  }
+
+  /**
+   * XML 特殊字符转义
+   */
+  private escapeXML(str: string): string {
+    return str
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&apos;')
   }
 
   /**
    * 健康检查
    */
   async healthCheck(): Promise<boolean> {
-    // TODO: 替换为实际的 Nike API 健康检查端点
-    // try {
-    //   const response = await fetch('https://api.nike.com/sport/v3/me', {
-    //     headers: {
-    //       'Authorization': `Bearer ${this.accessToken}`,
-    //     },
-    //   })
-    //   return response.ok
-    // } catch {
-    //   return false
-    // }
+    try {
+      // 尝试获取第一页活动列表
+      const response = await fetch(
+        `${NIKE_API_BASE}/activities/before_id/v3/0?limit=1&types=run%2Cjogging&include_deleted=false`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+          },
+        },
+      )
+      return response.ok
+    } catch {
+      return false
+    }
+  }
 
-    // 临时返回 true（等待实际 API 集成）
-    return true
+  /**
+   * 刷新访问令牌
+   */
+  private async refreshAccessToken(): Promise<void> {
+    if (!this.refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    const response = await fetch(NIKE_TOKEN_REFRESH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: this.refreshToken,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to refresh access token')
+    }
+
+    const data = await response.json()
+    this.accessToken = data.access_token
+
+    // 更新 refresh token（如果返回了新的）
+    if (data.refresh_token) {
+      this.refreshToken = data.refresh_token
+    }
   }
 
   /**
    * 转换 Nike 数据格式到统一格式
    */
-  // @ts-expect-error - 将在实际 Nike API 集成时使用
-  private _transformActivity(raw: any, gpxData?: string): RawActivity {
-    // TODO: 根据实际的 Nike API 响应格式进行转换
+  private transformActivity(raw: any, gpxData?: string): RawActivity {
+    // 从 summaries 提取统计数据
+    const summaries = raw.summaries || []
+    const getSummary = (metric: string) => {
+      const summary = summaries.find((s: any) => s.metric === metric)
+      return summary?.value
+    }
+
+    const distance = getSummary('distance') // Nike 返回的单位是公里
+    const distanceInMeters = distance ? distance * 1000 : 0
+
+    // 计算配速（秒/米）
+    const durationMs = raw.active_duration_ms || 0
+    const durationSec = Math.floor(durationMs / 1000)
+    const averagePace = distanceInMeters > 0 ? durationSec / distanceInMeters : undefined
+
+    // 提取海拔增益
+    const elevationGain = getSummary('ascent') // Nike 返回的单位可能是米
+
+    // 提取心率数据
+    const averageHeartRate = getSummary('heart_rate')
+    const maxHeartRate = raw.metrics
+      ?.find((m: any) => m.type === 'heart_rate')
+      ?.values?.reduce((max: number, v: any) => Math.max(max, v.value), 0)
+
+    // 提取卡路里
+    const calories = getSummary('calories')
+
+    // 提取活动名称
+    const title = raw.tags?.['com.nike.name'] || '跑步'
+
     return {
       id: raw.id,
-      title: raw.name || '跑步',
+      title,
       type: this.mapActivityType(raw.type),
       startTime: new Date(raw.start_epoch_ms),
-      duration: Math.floor(raw.active_duration_ms / 1000), // 转换为秒
-      distance: raw.distance || 0, // Nike 返回的可能是米
+      duration: durationSec,
+      distance: distanceInMeters,
       gpxData,
-      averagePace: raw.average_pace,
-      bestPace: raw.best_pace,
-      elevationGain: raw.elevation_gain,
-      averageHeartRate: raw.average_heart_rate,
-      maxHeartRate: raw.max_heart_rate,
-      calories: raw.calories,
+      averagePace,
+      bestPace: undefined, // Nike 不直接提供最佳配速
+      elevationGain: elevationGain || undefined,
+      averageHeartRate: averageHeartRate ? Math.round(averageHeartRate) : undefined,
+      maxHeartRate: maxHeartRate ? Math.round(maxHeartRate) : undefined,
+      calories: calories ? Math.round(calories) : undefined,
       source: 'nike',
     }
   }

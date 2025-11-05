@@ -41,11 +41,7 @@ export interface KilometerMarker {
  * @param segmentLength 每段长度（米），默认 100 米
  * @returns 配速路线段数组
  */
-export function createPaceSegments(
-  trackPoints: TrackPoint[],
-  averagePace: number,
-  segmentLength = 100,
-): PaceSegment[] {
+export function createPaceSegments(trackPoints: TrackPoint[], averagePace: number, segmentLength = 100): PaceSegment[] {
   if (trackPoints.length < 2) return []
 
   const segments: PaceSegment[] = []
@@ -124,7 +120,7 @@ export function createKilometerMarkers(trackPoints: TrackPoint[]): KilometerMark
       // 计算该公里的配速（从上一公里到这一公里）
       const prevKmDistance = lastKm * 1000
       const prevIndex = trackPoints.findIndex((p) => p.distance >= prevKmDistance)
-      const prevPoint = prevIndex >= 0 ? trackPoints[prevIndex] : trackPoints[0]
+      const prevPoint = prevIndex !== -1 ? trackPoints[prevIndex] : trackPoints[0]
 
       const duration = (closestPoint.time.getTime() - prevPoint.time.getTime()) / 1000
       const distance = closestPoint.distance - prevPoint.distance

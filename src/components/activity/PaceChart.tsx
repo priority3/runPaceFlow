@@ -7,17 +7,18 @@
 'use client'
 
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
   CartesianGrid,
-  Tooltip,
+  Dot,
   Legend,
+  Line,
+  LineChart,
   ReferenceLine,
   ResponsiveContainer,
-  Dot,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
+
 import { formatPace } from '@/lib/pace/calculator'
 
 export interface Split {
@@ -33,6 +34,27 @@ export interface PaceChartProps {
   className?: string
 }
 
+// 自定义 Tooltip 组件 - 在组件外部定义避免重复创建
+const CustomTooltip = ({ active, payload, fastestKm }: any) => {
+  if (active && payload && payload.length > 0) {
+    const data = payload[0].payload
+    const isFastest = data.kilometer === fastestKm
+
+    return (
+      <div className="border-separator bg-secondarySystemBackground/95 rounded-lg border p-3 shadow-xl backdrop-blur-sm">
+        <p className="text-label mb-1 text-sm font-semibold">
+          第 {data.kilometer} 公里
+          {isFastest && <span className="bg-green/20 text-green ml-2 rounded px-2 py-0.5 text-xs">最快</span>}
+        </p>
+        <p className="text-secondaryLabel text-xs">
+          配速: <span className="text-label font-mono">{data.paceFormatted}</span>
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 /**
  * 配速折线图组件
  * 显示每公里配速、平均配速参考线、最快配速标记
@@ -40,7 +62,7 @@ export interface PaceChartProps {
 export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
   if (!splits || splits.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-lg border border-separator bg-secondarySystemBackground">
+      <div className="border-separator bg-secondarySystemBackground flex h-[300px] items-center justify-center rounded-lg border">
         <p className="text-secondaryLabel">暂无配速数据</p>
       </div>
     )
@@ -54,9 +76,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
   }))
 
   // 找出最快配速
-  const fastestSplit = splits.reduce((min, split) =>
-    split.pace < min.pace ? split : min,
-  )
+  const fastestSplit = splits.reduce((min, split) => (split.pace < min.pace ? split : min))
 
   // 自定义点样式（最快配速高亮）
   const customDot = (props: any) => {
@@ -84,38 +104,10 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  // 自定义 Tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      const isFastest = data.kilometer === fastestSplit.kilometer
-
-      return (
-        <div className="rounded-lg border border-separator bg-secondarySystemBackground/95 p-3 shadow-xl backdrop-blur-sm">
-          <p className="mb-1 text-sm font-semibold text-label">
-            第 {data.kilometer} 公里
-            {isFastest && (
-              <span className="ml-2 rounded bg-green/20 px-2 py-0.5 text-xs text-green">
-                最快
-              </span>
-            )}
-          </p>
-          <p className="text-xs text-secondaryLabel">
-            配速: <span className="font-mono text-label">{data.paceFormatted}</span>
-          </p>
-        </div>
-      )
-    }
-    return null
-  }
-
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart
-          data={chartData}
-          margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
-        >
+        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--separator))" opacity={0.5} />
 
           <XAxis
@@ -133,13 +125,11 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
             domain={['dataMin - 10', 'dataMax + 10']}
           />
 
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip fastestKm={fastestSplit.kilometer} />} />
 
           <Legend
             wrapperStyle={{ paddingTop: '10px' }}
-            formatter={(value) => (
-              <span style={{ color: 'hsl(var(--secondary-label))' }}>{value}</span>
-            )}
+            formatter={(value) => <span style={{ color: 'hsl(var(--secondary-label))' }}>{value}</span>}
           />
 
           {/* 平均配速参考线 */}
