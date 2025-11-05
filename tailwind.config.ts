@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
+import { withUIKit } from 'tailwindcss-uikit-colors'
 
-const config: Config = {
+const config: Config = withUIKit({
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -10,5 +11,6 @@ const config: Config = {
     extend: {},
   },
   plugins: [],
-}
+})
+
 export default config
