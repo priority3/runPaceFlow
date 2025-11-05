@@ -6,25 +6,27 @@
 
 'use client'
 
+import { useAtom } from 'jotai'
+import { ArrowLeft, Pause, Play } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Play, Pause } from 'lucide-react'
-import { useActivityWithSplits } from '@/hooks/use-activities'
-import { StatsCard } from '@/components/activity/StatsCard'
+import { useMemo } from 'react'
+
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
-import { RunMap } from '@/components/map/RunMap'
-import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
-import { KilometerMarkers } from '@/components/map/KilometerMarkers'
+import { StatsCard } from '@/components/activity/StatsCard'
 import { AnimatedRoute } from '@/components/map/AnimatedRoute'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
+import { KilometerMarkers } from '@/components/map/KilometerMarkers'
+import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
+import { RunMap } from '@/components/map/RunMap'
 import { Button } from '@/components/ui/button'
-import { formatDate, formatTime } from '@/lib/utils'
-import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import { useActivityWithSplits } from '@/hooks/use-activities'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
-import { createPaceSegments, createKilometerMarkers } from '@/lib/map/pace-utils'
-import { useMemo } from 'react'
-import { useAtom } from 'jotai'
-import { isPlayingAtom, animationProgressAtom } from '@/stores/map'
+import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
+import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import { formatDate, formatTime } from '@/lib/utils'
+import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
+import type { Split } from '@/types/activity'
 
 export default function ActivityDetailPage() {
   const params = useParams()
@@ -53,7 +55,7 @@ export default function ActivityDetailPage() {
 
   // Get current point for animation
   const currentPoint = useMemo(() => {
-    if (!trackPoints.length || animationProgress === 0) return undefined
+    if (trackPoints.length === 0 || animationProgress === 0) return
     const index = Math.floor((animationProgress / 100) * trackPoints.length)
     return trackPoints[Math.min(index, trackPoints.length - 1)]
   }, [trackPoints, animationProgress])
@@ -76,12 +78,12 @@ export default function ActivityDetailPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-systemBackground">
-        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-          <div className="h-12 w-32 animate-pulse rounded-lg bg-fill mb-6" />
+      <div className="bg-systemBackground min-h-screen">
+        <div className="container mx-auto max-w-screen-2xl px-4 py-6">
+          <div className="bg-fill mb-6 h-12 w-32 animate-pulse rounded-lg" />
           <div className="grid gap-6">
-            <div className="h-64 animate-pulse rounded-xl bg-fill" />
-            <div className="h-96 animate-pulse rounded-xl bg-fill" />
+            <div className="bg-fill h-64 animate-pulse rounded-xl" />
+            <div className="bg-fill h-96 animate-pulse rounded-xl" />
           </div>
         </div>
       </div>
@@ -91,21 +93,15 @@ export default function ActivityDetailPage() {
   // Error state
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-systemBackground">
-        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/')}
-            className="mb-6"
-          >
+      <div className="bg-systemBackground min-h-screen">
+        <div className="container mx-auto max-w-screen-2xl px-4 py-6">
+          <Button variant="ghost" onClick={() => router.push('/')} className="mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
             返回
           </Button>
-          <div className="rounded-lg border border-red bg-red/10 p-8 text-center">
-            <p className="text-lg font-medium text-red">加载失败</p>
-            <p className="mt-2 text-sm text-secondaryLabel">
-              {error?.message || '无法找到该活动'}
-            </p>
+          <div className="border-red bg-red/10 rounded-lg border p-8 text-center">
+            <p className="text-red text-lg font-medium">加载失败</p>
+            <p className="text-secondaryLabel mt-2 text-sm">{error?.message || '无法找到该活动'}</p>
           </div>
         </div>
       </div>
@@ -116,7 +112,7 @@ export default function ActivityDetailPage() {
   const typeEmoji = activity.type === 'running' ? '🏃' : activity.type === 'cycling' ? '🚴' : '🚶'
 
   // Convert database splits to chart format
-  const chartSplits = activitySplits.map((split) => ({
+  const chartSplits = activitySplits.map((split: Split) => ({
     kilometer: split.kilometer,
     pace: split.pace,
     distance: split.distance,
@@ -124,14 +120,14 @@ export default function ActivityDetailPage() {
   }))
 
   return (
-    <div className="min-h-screen bg-systemBackground">
-      <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
+    <div className="bg-systemBackground min-h-screen">
+      <div className="container mx-auto max-w-screen-2xl px-4 py-6">
         {/* Header */}
         <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => router.push('/')}
-            className="mb-4 text-secondaryLabel hover:text-label"
+            className="text-secondaryLabel hover:text-label mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             返回
@@ -139,20 +135,17 @@ export default function ActivityDetailPage() {
 
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-label">
+              <h1 className="text-label text-3xl font-bold">
                 {typeEmoji} {activity.title || '跑步活动'}
               </h1>
-              <p className="mt-2 text-secondaryLabel">
+              <p className="text-secondaryLabel mt-2">
                 {formatDate(activity.startTime)} {formatTime(activity.startTime)}
               </p>
             </div>
 
             {/* Playback controls */}
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handlePlayPause}
-                className="bg-blue text-white hover:bg-blue/90"
-              >
+              <Button onClick={handlePlayPause} className="bg-blue hover:bg-blue/90 text-white">
                 {isPlaying ? (
                   <>
                     <Pause className="mr-2 h-4 w-4" />
@@ -181,37 +174,19 @@ export default function ActivityDetailPage() {
         {/* Stats Cards */}
         <section className="mb-8">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatsCard
-              title="距离"
-              value={(activity.distance / 1000).toFixed(2)}
-              unit="km"
-            />
-            <StatsCard
-              title="时长"
-              value={formatDuration(activity.duration)}
-              unit=""
-            />
-            {activity.averagePace && (
-              <StatsCard
-                title="平均配速"
-                value={formatPace(activity.averagePace)}
-                unit="/km"
-              />
-            )}
+            <StatsCard title="距离" value={(activity.distance / 1000).toFixed(2)} unit="km" />
+            <StatsCard title="时长" value={formatDuration(activity.duration)} unit="" />
+            {activity.averagePace && <StatsCard title="平均配速" value={formatPace(activity.averagePace)} unit="/km" />}
             {activity.elevationGain !== null && activity.elevationGain > 0 && (
-              <StatsCard
-                title="爬升"
-                value={activity.elevationGain.toFixed(0)}
-                unit="m"
-              />
+              <StatsCard title="爬升" value={activity.elevationGain.toFixed(0)} unit="m" />
             )}
           </div>
         </section>
 
         {/* Map Section */}
         <section className="mb-8">
-          <h2 className="mb-4 text-2xl font-bold text-label">路线地图</h2>
-          <div className="relative h-[500px] overflow-hidden rounded-xl border border-separator">
+          <h2 className="text-label mb-4 text-2xl font-bold">路线地图</h2>
+          <div className="border-separator relative h-[500px] overflow-hidden rounded-xl border">
             <RunMap className="h-full w-full">
               {/* Static pace route or animated playback */}
               {isPlaying ? (
@@ -247,17 +222,17 @@ export default function ActivityDetailPage() {
         {/* Pace Analysis Section */}
         {chartSplits.length > 0 && (
           <section className="mb-8">
-            <h2 className="mb-4 text-2xl font-bold text-label">配速分析</h2>
+            <h2 className="text-label mb-4 text-2xl font-bold">配速分析</h2>
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Pace Chart */}
-              <div className="rounded-xl border border-separator bg-secondarySystemBackground p-6">
-                <h3 className="mb-4 text-lg font-semibold text-label">每公里配速</h3>
+              <div className="border-separator bg-secondarySystemBackground rounded-xl border p-6">
+                <h3 className="text-label mb-4 text-lg font-semibold">每公里配速</h3>
                 <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
               </div>
 
               {/* Splits Table */}
-              <div className="rounded-xl border border-separator bg-secondarySystemBackground p-6">
-                <h3 className="mb-4 text-lg font-semibold text-label">分段数据</h3>
+              <div className="border-separator bg-secondarySystemBackground rounded-xl border p-6">
+                <h3 className="text-label mb-4 text-lg font-semibold">分段数据</h3>
                 <SplitsTable splits={chartSplits} />
               </div>
             </div>
@@ -267,36 +242,16 @@ export default function ActivityDetailPage() {
         {/* Additional Stats (if available) */}
         {(activity.averageHeartRate || activity.calories) && (
           <section className="mb-8">
-            <h2 className="mb-4 text-2xl font-bold text-label">其他数据</h2>
+            <h2 className="text-label mb-4 text-2xl font-bold">其他数据</h2>
             <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
               {activity.averageHeartRate && (
-                <StatsCard
-                  title="平均心率"
-                  value={activity.averageHeartRate.toString()}
-                  unit="bpm"
-                />
+                <StatsCard title="平均心率" value={activity.averageHeartRate.toString()} unit="bpm" />
               )}
               {activity.maxHeartRate && (
-                <StatsCard
-                  title="最大心率"
-                  value={activity.maxHeartRate.toString()}
-                  unit="bpm"
-                />
+                <StatsCard title="最大心率" value={activity.maxHeartRate.toString()} unit="bpm" />
               )}
-              {activity.calories && (
-                <StatsCard
-                  title="卡路里"
-                  value={activity.calories.toString()}
-                  unit="kcal"
-                />
-              )}
-              {activity.bestPace && (
-                <StatsCard
-                  title="最佳配速"
-                  value={formatPace(activity.bestPace)}
-                  unit="/km"
-                />
-              )}
+              {activity.calories && <StatsCard title="卡路里" value={activity.calories.toString()} unit="kcal" />}
+              {activity.bestPace && <StatsCard title="最佳配速" value={formatPace(activity.bestPace)} unit="/km" />}
             </div>
           </section>
         )}

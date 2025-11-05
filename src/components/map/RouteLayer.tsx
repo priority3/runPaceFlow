@@ -7,6 +7,7 @@
 'use client'
 
 import { Layer, Source } from 'react-map-gl/maplibre'
+
 import type { RouteData } from '@/types/map'
 
 export interface RouteLayerProps {
@@ -26,20 +27,12 @@ export function RouteLayer({ routes }: RouteLayerProps) {
           properties: {},
           geometry: {
             type: 'LineString' as const,
-            coordinates: route.coordinates.map((coord) => [
-              coord.longitude,
-              coord.latitude,
-            ]),
+            coordinates: route.coordinates.map((coord) => [coord.longitude, coord.latitude]),
           },
         }
 
         return (
-          <Source
-            key={route.id}
-            id={`route-${route.id}`}
-            type="geojson"
-            data={geojson}
-          >
+          <Source key={route.id} id={`route-${route.id}`} type="geojson" data={geojson}>
             <Layer
               id={`route-line-${route.id}`}
               type="line"

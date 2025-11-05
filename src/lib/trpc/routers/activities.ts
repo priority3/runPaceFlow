@@ -4,10 +4,12 @@
  * Handles all activity-related API endpoints
  */
 
-import { z } from 'zod'
-import { createTRPCRouter, publicProcedure } from '../server'
-import { activities, splits } from '@/lib/db/schema'
 import { desc, eq } from 'drizzle-orm'
+import { z } from 'zod'
+
+import { activities, splits } from '@/lib/db/schema'
+
+import { createTRPCRouter, publicProcedure } from '../server'
 
 export const activitiesRouter = createTRPCRouter({
   /**
@@ -28,12 +30,7 @@ export const activitiesRouter = createTRPCRouter({
       const { limit = 20, offset = 0, type, source } = input || {}
 
       // Build the query
-      let query = ctx.db
-        .select()
-        .from(activities)
-        .orderBy(desc(activities.startTime))
-        .limit(limit)
-        .offset(offset)
+      let query = ctx.db.select().from(activities).orderBy(desc(activities.startTime)).limit(limit).offset(offset)
 
       // Apply filters
       const conditions = []
@@ -67,64 +64,50 @@ export const activitiesRouter = createTRPCRouter({
   /**
    * Get activity by ID with full details
    */
-  getById: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const activity = await ctx.db
-        .select()
-        .from(activities)
-        .where(eq(activities.id, input.id))
-        .limit(1)
+  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const activity = await ctx.db.select().from(activities).where(eq(activities.id, input.id)).limit(1)
 
-      if (!activity || activity.length === 0) {
-        throw new Error('Activity not found')
-      }
+    if (!activity || activity.length === 0) {
+      throw new Error('Activity not found')
+    }
 
-      return activity[0]
-    }),
+    return activity[0]
+  }),
 
   /**
    * Get splits for an activity
    */
-  getSplits: publicProcedure
-    .input(z.object({ activityId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const activitySplits = await ctx.db
-        .select()
-        .from(splits)
-        .where(eq(splits.activityId, input.activityId))
-        .orderBy(splits.kilometer)
+  getSplits: publicProcedure.input(z.object({ activityId: z.string() })).query(async ({ ctx, input }) => {
+    const activitySplits = await ctx.db
+      .select()
+      .from(splits)
+      .where(eq(splits.activityId, input.activityId))
+      .orderBy(splits.kilometer)
 
-      return activitySplits
-    }),
+    return activitySplits
+  }),
 
   /**
    * Get activity with splits (combined query)
    */
-  getWithSplits: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const activity = await ctx.db
-        .select()
-        .from(activities)
-        .where(eq(activities.id, input.id))
-        .limit(1)
+  getWithSplits: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const activity = await ctx.db.select().from(activities).where(eq(activities.id, input.id)).limit(1)
 
-      if (!activity || activity.length === 0) {
-        throw new Error('Activity not found')
-      }
+    if (!activity || activity.length === 0) {
+      throw new Error('Activity not found')
+    }
 
-      const activitySplits = await ctx.db
-        .select()
-        .from(splits)
-        .where(eq(splits.activityId, input.id))
-        .orderBy(splits.kilometer)
+    const activitySplits = await ctx.db
+      .select()
+      .from(splits)
+      .where(eq(splits.activityId, input.id))
+      .orderBy(splits.kilometer)
 
-      return {
-        activity: activity[0],
-        splits: activitySplits,
-      }
-    }),
+    return {
+      activity: activity[0],
+      splits: activitySplits,
+    }
+  }),
 
   /**
    * Get activity statistics
@@ -132,31 +115,17 @@ export const activitiesRouter = createTRPCRouter({
   getStats: publicProcedure.query(async ({ ctx }) => {
     const allActivities = await ctx.db.select().from(activities)
 
-    const totalDistance = allActivities.reduce(
-      (sum, activity) => sum + (activity.distance || 0),
-      0,
-    )
-    const totalDuration = allActivities.reduce(
-      (sum, activity) => sum + (activity.duration || 0),
-      0,
-    )
-    const totalElevation = allActivities.reduce(
-      (sum, activity) => sum + (activity.elevationGain || 0),
-      0,
-    )
+    const totalDistance = allActivities.reduce((sum, activity) => sum + (activity.distance || 0), 0)
+    const totalDuration = allActivities.reduce((sum, activity) => sum + (activity.duration || 0), 0)
+    const totalElevation = allActivities.reduce((sum, activity) => sum + (activity.elevationGain || 0), 0)
 
     // Calculate this week's stats
     const oneWeekAgo = new Date()
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
 
-    const thisWeekActivities = allActivities.filter(
-      (activity) => new Date(activity.startTime) > oneWeekAgo,
-    )
+    const thisWeekActivities = allActivities.filter((activity) => new Date(activity.startTime) > oneWeekAgo)
 
-    const thisWeekDistance = thisWeekActivities.reduce(
-      (sum, activity) => sum + (activity.distance || 0),
-      0,
-    )
+    const thisWeekDistance = thisWeekActivities.reduce((sum, activity) => sum + (activity.distance || 0), 0)
     const thisWeekCount = thisWeekActivities.length
 
     return {

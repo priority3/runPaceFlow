@@ -6,24 +6,26 @@
 
 'use client'
 
-import { Header } from '@/components/layout/Header'
-import { StatsCard } from '@/components/activity/StatsCard'
+import { useAtom } from 'jotai'
+import { useMemo, useState } from 'react'
+
 import { ActivityCard } from '@/components/activity/ActivityCard'
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
-import { RunMap } from '@/components/map/RunMap'
-import { RouteLayer } from '@/components/map/RouteLayer'
-import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
-import { KilometerMarkers } from '@/components/map/KilometerMarkers'
+import { StatsCard } from '@/components/activity/StatsCard'
+import { Header } from '@/components/layout/Header'
 import { AnimatedRoute } from '@/components/map/AnimatedRoute'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
+import { KilometerMarkers } from '@/components/map/KilometerMarkers'
+import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
+import { RouteLayer } from '@/components/map/RouteLayer'
+import { RunMap } from '@/components/map/RunMap'
 import { useActivities, useActivityStats } from '@/hooks/use-activities'
-import type { RouteData } from '@/types/map'
-import { useMemo, useState } from 'react'
-import { useAtom } from 'jotai'
-import { playingActivityIdAtom, isPlayingAtom, animationProgressAtom } from '@/stores/map'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
-import { createPaceSegments, createKilometerMarkers } from '@/lib/map/pace-utils'
+import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
+import { animationProgressAtom, isPlayingAtom, playingActivityIdAtom } from '@/stores/map'
+import type { Activity } from '@/types/activity'
+import type { RouteData } from '@/types/map'
 
 export default function HomePage() {
   const { data: stats, isLoading: statsLoading } = useActivityStats()
@@ -42,14 +44,14 @@ export default function HomePage() {
     if (!activitiesData?.activities) return []
 
     return activitiesData.activities
-      .filter((activity) => activity.gpxData)
-      .map((activity) => ({
+      .filter((activity: Activity) => activity.gpxData)
+      .map((activity: Activity) => ({
         id: activity.id,
         coordinates: parseGPXCoordinates(activity.gpxData || ''),
         color: '#3b82f6',
         width: 3,
       }))
-      .filter((route) => route.coordinates.length > 0)
+      .filter((route: RouteData) => route.coordinates.length > 0)
   }, [activitiesData])
 
   // 生成模拟配速数据用于演示
@@ -69,8 +71,8 @@ export default function HomePage() {
       return {
         kilometer: marker.kilometer,
         pace: marker.pace,
-        distance: distance,
-        duration: duration,
+        distance,
+        duration,
       }
     })
 
@@ -84,7 +86,7 @@ export default function HomePage() {
 
   // 获取当前回放点
   const currentPoint = useMemo(() => {
-    if (!trackPoints.length || animationProgress === 0) return undefined
+    if (trackPoints.length === 0 || animationProgress === 0) return
     const index = Math.floor((animationProgress / 100) * trackPoints.length)
     return trackPoints[Math.min(index, trackPoints.length - 1)]
   }, [trackPoints, animationProgress])
@@ -115,45 +117,30 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-systemBackground">
+    <div className="bg-systemBackground min-h-screen">
       <Header />
 
-      <main className="container mx-auto px-4 py-6 max-w-screen-2xl">
+      <main className="container mx-auto max-w-screen-2xl px-4 py-6">
         {/* Stats Section */}
         <section className="mb-8">
-          <h2 className="mb-4 text-2xl font-bold text-label">统计数据</h2>
+          <h2 className="text-label mb-4 text-2xl font-bold">统计数据</h2>
           {statsLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-32 animate-pulse rounded-xl bg-fill"
-                />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-fill h-32 animate-pulse rounded-xl" />
               ))}
             </div>
           ) : stats ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatsCard
-                title="总里程"
-                value={(stats.total.distance / 1000).toFixed(1)}
-                unit="km"
-              />
-              <StatsCard
-                title="总活动"
-                value={stats.total.activities}
-                unit="次"
-              />
+              <StatsCard title="总里程" value={(stats.total.distance / 1000).toFixed(1)} unit="km" />
+              <StatsCard title="总活动" value={stats.total.activities} unit="次" />
               <StatsCard
                 title="本周里程"
                 value={(stats.thisWeek.distance / 1000).toFixed(1)}
                 unit="km"
                 subtitle={`${stats.thisWeek.activities} 次活动`}
               />
-              <StatsCard
-                title="总时长"
-                value={(stats.total.duration / 3600).toFixed(1)}
-                unit="小时"
-              />
+              <StatsCard title="总时长" value={(stats.total.duration / 3600).toFixed(1)} unit="小时" />
             </div>
           ) : null}
         </section>
@@ -161,17 +148,17 @@ export default function HomePage() {
         {/* Pace Analysis Section */}
         {showPaceDemo && splits.length > 0 && (
           <section className="mb-8">
-            <h2 className="mb-4 text-2xl font-bold text-label">配速分析演示</h2>
+            <h2 className="text-label mb-4 text-2xl font-bold">配速分析演示</h2>
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Pace Chart */}
-              <div className="rounded-xl border border-separator bg-secondarySystemBackground p-6">
-                <h3 className="mb-4 text-lg font-semibold text-label">每公里配速</h3>
+              <div className="border-separator bg-secondarySystemBackground rounded-xl border p-6">
+                <h3 className="text-label mb-4 text-lg font-semibold">每公里配速</h3>
                 <PaceChart splits={splits} averagePace={360} />
               </div>
 
               {/* Splits Table */}
-              <div className="rounded-xl border border-separator bg-secondarySystemBackground p-6">
-                <h3 className="mb-4 text-lg font-semibold text-label">分段数据</h3>
+              <div className="border-separator bg-secondarySystemBackground rounded-xl border p-6">
+                <h3 className="text-label mb-4 text-lg font-semibold">分段数据</h3>
                 <SplitsTable splits={splits} />
               </div>
             </div>
@@ -182,11 +169,11 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Activities Section */}
           <section>
-            <h2 className="mb-4 text-2xl font-bold text-label">最近活动</h2>
+            <h2 className="text-label mb-4 text-2xl font-bold">最近活动</h2>
 
             {/* Error State */}
             {error && (
-              <div className="rounded-lg border border-red bg-red/10 p-4 text-red">
+              <div className="border-red bg-red/10 text-red rounded-lg border p-4">
                 <p className="font-medium">加载失败</p>
                 <p className="text-sm">{error.message}</p>
               </div>
@@ -195,11 +182,8 @@ export default function HomePage() {
             {/* Loading State */}
             {activitiesLoading && (
               <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-48 animate-pulse rounded-xl bg-fill"
-                  />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-fill h-48 animate-pulse rounded-xl" />
                 ))}
               </div>
             )}
@@ -208,15 +192,13 @@ export default function HomePage() {
             {activitiesData && !activitiesLoading && (
               <>
                 {activitiesData.activities.length === 0 ? (
-                  <div className="rounded-lg border border-separator bg-secondarySystemBackground p-8 text-center">
-                    <p className="text-lg text-secondaryLabel">还没有活动记录</p>
-                    <p className="mt-2 text-sm text-tertiaryLabel">
-                      同步 Nike Run Club 数据后，活动将显示在这里
-                    </p>
+                  <div className="border-separator bg-secondarySystemBackground rounded-lg border p-8 text-center">
+                    <p className="text-secondaryLabel text-lg">还没有活动记录</p>
+                    <p className="text-tertiaryLabel mt-2 text-sm">同步 Nike Run Club 数据后，活动将显示在这里</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {activitiesData.activities.map((activity) => (
+                    {activitiesData.activities.map((activity: Activity) => (
                       <ActivityCard
                         key={activity.id}
                         id={activity.id}
@@ -234,7 +216,7 @@ export default function HomePage() {
 
                 {/* Pagination Info */}
                 {activitiesData.pagination.total > 0 && (
-                  <div className="mt-6 text-center text-sm text-tertiaryLabel">
+                  <div className="text-tertiaryLabel mt-6 text-center text-sm">
                     显示 {activitiesData.activities.length} / {activitiesData.pagination.total} 个活动
                   </div>
                 )}
@@ -245,14 +227,14 @@ export default function HomePage() {
           {/* Map Section */}
           <section className="lg:sticky lg:top-20 lg:h-[calc(100vh-8rem)]">
             <div className="mb-4 flex items-center justify-between gap-2">
-              <h2 className="text-2xl font-bold text-label">路线地图</h2>
+              <h2 className="text-label text-2xl font-bold">路线地图</h2>
               <div className="flex items-center gap-2">
                 {/* 播放演示按钮 */}
                 {showPaceDemo && (
                   <button
                     type="button"
                     onClick={handlePlayPause}
-                    className="rounded-lg border border-separator bg-blue px-3 py-1.5 text-sm text-white transition-colors hover:bg-blue/90"
+                    className="border-separator bg-blue hover:bg-blue/90 rounded-lg border px-3 py-1.5 text-sm text-white transition-colors"
                   >
                     {playingActivityId === 'demo' && isPlaying ? '暂停演示' : '播放演示'}
                   </button>
@@ -262,7 +244,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={handleStopPlayback}
-                    className="rounded-lg border border-separator bg-fill px-3 py-1.5 text-sm text-secondaryLabel transition-colors hover:bg-secondaryFill"
+                    className="border-separator bg-fill text-secondaryLabel hover:bg-secondaryFill rounded-lg border px-3 py-1.5 text-sm transition-colors"
                   >
                     停止
                   </button>
@@ -274,13 +256,13 @@ export default function HomePage() {
                     setShowPaceDemo(!showPaceDemo)
                     if (showPaceDemo) handleStopPlayback()
                   }}
-                  className="rounded-lg border border-separator bg-fill px-3 py-1.5 text-sm text-secondaryLabel transition-colors hover:bg-secondaryFill"
+                  className="border-separator bg-fill text-secondaryLabel hover:bg-secondaryFill rounded-lg border px-3 py-1.5 text-sm transition-colors"
                 >
                   {showPaceDemo ? '隐藏演示' : '显示演示'}
                 </button>
               </div>
             </div>
-            <div className="relative h-[500px] overflow-hidden rounded-xl border border-separator lg:h-full">
+            <div className="border-separator relative h-[500px] overflow-hidden rounded-xl border lg:h-full">
               <RunMap className="h-full w-full">
                 {/* 显示普通路线 */}
                 {routes.length > 0 && !playingActivityId && <RouteLayer routes={routes} />}

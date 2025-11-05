@@ -6,8 +6,9 @@
 
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
+
 import type { PaceSegment } from '@/lib/map/pace-utils'
 
 export interface AnimatedRouteProps {

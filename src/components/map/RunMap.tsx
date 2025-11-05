@@ -6,12 +6,14 @@
 
 'use client'
 
+import 'maplibre-gl/dist/maplibre-gl.css'
+
+import { useAtom } from 'jotai'
 import { useEffect, useState } from 'react'
 import Map from 'react-map-gl/maplibre'
-import { useAtom } from 'jotai'
+
 import { mapViewportAtom } from '@/stores/map'
 import type { MapViewport } from '@/types/map'
-import 'maplibre-gl/dist/maplibre-gl.css'
 
 export interface RunMapProps {
   className?: string

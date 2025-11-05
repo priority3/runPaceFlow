@@ -6,8 +6,9 @@
  */
 
 import { initTRPC } from '@trpc/server'
-import { db } from '@/lib/db'
 import superjson from 'superjson'
+
+import { db } from '@/lib/db'
 
 /**
  * Create the tRPC context
