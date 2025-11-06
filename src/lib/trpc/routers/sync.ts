@@ -1,7 +1,7 @@
 /**
- * Nike Sync tRPC Router
+ * Activity Sync tRPC Router
  *
- * Handles Nike Run Club data synchronization
+ * Handles Nike Run Club and Strava data synchronization
  */
 
 // Helper import
@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { NikeAdapter } from '@/lib/sync/adapters/nike'
+import { StravaAdapter } from '@/lib/sync/adapters/strava'
 import { syncActivities } from '@/lib/sync/processor'
 
 import { createTRPCRouter, publicProcedure } from '../server'
@@ -64,6 +65,62 @@ export const syncRouter = createTRPCRouter({
     }),
 
   /**
+   * Sync Strava activities
+   */
+  syncStrava: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).optional().default(50),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const clientId = process.env.STRAVA_CLIENT_ID
+      const clientSecret = process.env.STRAVA_CLIENT_SECRET
+      const refreshToken = process.env.STRAVA_REFRESH_TOKEN
+
+      if (!clientId || !clientSecret || !refreshToken) {
+        throw new Error(
+          'Strava credentials not configured. Please set STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, and STRAVA_REFRESH_TOKEN in .env.local',
+        )
+      }
+
+      try {
+        // Create Strava adapter with OAuth credentials
+        const adapter = new StravaAdapter(clientId, clientSecret, refreshToken)
+
+        // Authenticate and verify credentials
+        const authenticated = await adapter.authenticate({})
+        if (!authenticated) {
+          throw new Error('Strava authentication failed. Please check your credentials.')
+        }
+
+        // Get activities with optional date filters
+        const rawActivities = await adapter.getActivities({
+          limit: input.limit,
+          startDate: input.startDate,
+          endDate: input.endDate,
+        })
+
+        // Sync to database
+        const syncedIds = await syncActivities(rawActivities)
+
+        return {
+          success: true,
+          count: syncedIds.length,
+          activityIds: syncedIds,
+          message: `Successfully synced ${syncedIds.length} activities from Strava`,
+        }
+      } catch (error) {
+        console.error('Strava sync error:', error)
+        throw new Error(
+          `Failed to sync Strava activities: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+      }
+    }),
+
+  /**
    * Get sync status
    */
   getSyncStatus: publicProcedure.query(async ({ ctx }) => {
@@ -71,17 +128,36 @@ export const syncRouter = createTRPCRouter({
     const { syncLogs } = await import('@/lib/db/schema')
     const { desc } = await import('drizzle-orm')
 
-    const latestLog = await ctx.db
+    // Get latest Nike sync log
+    const latestNikeLog = await ctx.db
       .select()
       .from(syncLogs)
       .where(eq(syncLogs.source, 'nike'))
       .orderBy(desc(syncLogs.startedAt))
       .limit(1)
 
+    // Get latest Strava sync log
+    const latestStravaLog = await ctx.db
+      .select()
+      .from(syncLogs)
+      .where(eq(syncLogs.source, 'strava'))
+      .orderBy(desc(syncLogs.startedAt))
+      .limit(1)
+
     return {
-      hasToken: !!(process.env.NIKE_REFRESH_TOKEN || process.env.NIKE_ACCESS_TOKEN),
-      hasRefreshToken: !!process.env.NIKE_REFRESH_TOKEN,
-      latestSync: latestLog[0] || null,
+      nike: {
+        hasToken: !!(process.env.NIKE_REFRESH_TOKEN || process.env.NIKE_ACCESS_TOKEN),
+        hasRefreshToken: !!process.env.NIKE_REFRESH_TOKEN,
+        latestSync: latestNikeLog[0] || null,
+      },
+      strava: {
+        hasCredentials: !!(
+          process.env.STRAVA_CLIENT_ID &&
+          process.env.STRAVA_CLIENT_SECRET &&
+          process.env.STRAVA_REFRESH_TOKEN
+        ),
+        latestSync: latestStravaLog[0] || null,
+      },
     }
   }),
 })

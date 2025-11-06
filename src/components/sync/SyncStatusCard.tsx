@@ -22,13 +22,13 @@ export function SyncStatusCard() {
   }
 
   // Token 配置状态
-  const tokenMode = syncStatus?.hasRefreshToken
+  const tokenMode = syncStatus?.nike.hasRefreshToken
     ? '自动刷新模式（Refresh Token）'
-    : syncStatus?.hasToken
+    : syncStatus?.nike.hasToken
       ? '手动模式（Access Token）'
       : '未配置'
 
-  if (!syncStatus?.latestSync) {
+  if (!syncStatus?.nike.latestSync) {
     return (
       <div className="border-separator bg-secondarySystemBackground rounded-lg border p-4">
         <div className="flex items-start justify-between">
@@ -45,7 +45,7 @@ export function SyncStatusCard() {
     )
   }
 
-  const { latestSync, hasRefreshToken } = syncStatus
+  const { latestSync, hasRefreshToken } = syncStatus.nike
   const isSuccess = latestSync.status === 'success'
   const isFailed = latestSync.status === 'failed'
   const isRunning = latestSync.status === 'running'
