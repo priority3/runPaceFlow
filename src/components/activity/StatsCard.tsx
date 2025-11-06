@@ -20,12 +20,12 @@ export function StatsCard({ title, value, unit, subtitle, className }: StatsCard
     <Card className={cn('', className)}>
       <CardContent className="p-6">
         <div className="flex flex-col gap-2">
-          <p className="text-secondaryLabel text-sm font-medium">{title}</p>
+          <p className="text-placeholder-text text-sm font-medium">{title}</p>
           <div className="flex items-baseline gap-1">
-            <span className="text-label text-3xl font-bold">{value}</span>
-            {unit && <span className="text-secondaryLabel text-sm">{unit}</span>}
+            <span className="text-text text-3xl font-bold">{value}</span>
+            {unit && <span className="text-placeholder-text text-sm">{unit}</span>}
           </div>
-          {subtitle && <p className="text-tertiaryLabel text-xs">{subtitle}</p>}
+          {subtitle && <p className="text-placeholder-text text-xs opacity-70">{subtitle}</p>}
         </div>
       </CardContent>
     </Card>

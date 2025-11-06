@@ -80,12 +80,12 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
 
   // 自定义点样式（最快配速高亮）
   const customDot = (props: any) => {
-    const { cx, cy, payload } = props
+    const { cx, cy, payload, key, ...rest } = props
     const isFastest = payload.kilometer === fastestSplit.kilometer
 
     if (isFastest) {
       return (
-        <g>
+        <g key={key}>
           {/* 外圈光晕 */}
           <circle cx={cx} cy={cy} r={8} fill="#22c55e" opacity={0.3} />
           {/* 内圈实心 */}
@@ -94,7 +94,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
       )
     }
 
-    return <Dot {...props} r={3} />
+    return <Dot key={key} {...rest} r={3} />
   }
 
   // 格式化 Y 轴（配速）
