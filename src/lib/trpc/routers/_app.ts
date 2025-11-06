@@ -6,6 +6,7 @@
 
 import { createTRPCRouter } from '../server'
 import { activitiesRouter } from './activities'
+import { syncRouter } from './sync'
 
 /**
  * Main tRPC router
@@ -13,8 +14,8 @@ import { activitiesRouter } from './activities'
  */
 export const appRouter = createTRPCRouter({
   activities: activitiesRouter,
+  sync: syncRouter,
   // Future routers can be added here:
-  // sync: syncRouter,
   // user: userRouter,
 })
 

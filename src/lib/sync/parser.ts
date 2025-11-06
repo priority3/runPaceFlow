@@ -1,3 +1,5 @@
+import { XMLParser } from 'fast-xml-parser'
+
 /**
  * GPX 坐标点
  */
@@ -37,8 +39,6 @@ export interface GPXData {
  */
 export function parseGPX(gpxString: string): GPXData {
   // Use fast-xml-parser to parse GPX XML
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, unicorn/prefer-module
-  const { XMLParser } = require('fast-xml-parser')
 
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -260,7 +260,7 @@ export function simplifyTrack(points: GPXPoint[], tolerance = 0.0001): GPXPoint[
 
   // 递归简化
   function douglasPeucker(points: GPXPoint[], start: number, end: number, tolerance: number): boolean[] {
-    const keep = Array.from({ length: points.length }).fill(false)
+    const keep = Array.from({ length: points.length }, () => false)
     keep[start] = true
     keep[end] = true
 

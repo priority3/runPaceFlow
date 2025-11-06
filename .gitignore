@@ -76,3 +76,6 @@ logs
 
 # OS
 Thumbs.db
+
+.playwright-mcp/
+.serena/
