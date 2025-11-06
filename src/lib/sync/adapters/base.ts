@@ -54,7 +54,7 @@ export interface RawActivity {
   /** 活动标题 */
   title: string
   /** 活动类型 */
-  type: 'running' | 'cycling' | 'walking'
+  type: 'running' | 'cycling' | 'walking' | 'swimming' | 'other'
   /** 开始时间 */
   startTime: Date
   /** 持续时间（秒） */

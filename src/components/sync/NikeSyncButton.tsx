@@ -57,7 +57,7 @@ export function NikeSyncButton({ onSyncComplete, className = '' }: NikeSyncButto
   }
 
   const isSyncing = isManualSync || syncMutation.isPending
-  const hasToken = syncStatus?.hasToken
+  const hasToken = syncStatus?.nike.hasToken
 
   // Reset success/error states when not syncing
   useEffect(() => {
