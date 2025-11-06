@@ -176,7 +176,9 @@ export default function ActivityDetailPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatsCard title="距离" value={(activity.distance / 1000).toFixed(2)} unit="km" />
             <StatsCard title="时长" value={formatDuration(activity.duration)} unit="" />
-            {activity.averagePace && <StatsCard title="平均配速" value={formatPace(activity.averagePace)} unit="/km" />}
+            {activity.averagePace && (
+              <StatsCard title="平均配速" value={formatPace(activity.averagePace)} unit="/km" />
+            )}
             {activity.elevationGain !== null && activity.elevationGain > 0 && (
               <StatsCard title="爬升" value={activity.elevationGain.toFixed(0)} unit="m" />
             )}
@@ -245,13 +247,21 @@ export default function ActivityDetailPage() {
             <h2 className="text-label mb-4 text-2xl font-bold">其他数据</h2>
             <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
               {activity.averageHeartRate && (
-                <StatsCard title="平均心率" value={activity.averageHeartRate.toString()} unit="bpm" />
+                <StatsCard
+                  title="平均心率"
+                  value={activity.averageHeartRate.toString()}
+                  unit="bpm"
+                />
               )}
               {activity.maxHeartRate && (
                 <StatsCard title="最大心率" value={activity.maxHeartRate.toString()} unit="bpm" />
               )}
-              {activity.calories && <StatsCard title="卡路里" value={activity.calories.toString()} unit="kcal" />}
-              {activity.bestPace && <StatsCard title="最佳配速" value={formatPace(activity.bestPace)} unit="/km" />}
+              {activity.calories && (
+                <StatsCard title="卡路里" value={activity.calories.toString()} unit="kcal" />
+              )}
+              {activity.bestPace && (
+                <StatsCard title="最佳配速" value={formatPace(activity.bestPace)} unit="/km" />
+              )}
             </div>
           </section>
         )}

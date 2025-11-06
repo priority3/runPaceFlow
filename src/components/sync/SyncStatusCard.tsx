@@ -25,8 +25,8 @@ export function SyncStatusCard() {
   const tokenMode = syncStatus?.hasRefreshToken
     ? '自动刷新模式（Refresh Token）'
     : syncStatus?.hasToken
-    ? '手动模式（Access Token）'
-    : '未配置'
+      ? '手动模式（Access Token）'
+      : '未配置'
 
   if (!syncStatus?.latestSync) {
     return (
@@ -39,9 +39,7 @@ export function SyncStatusCard() {
               <p className="text-secondaryLabel text-xs">还未进行过数据同步</p>
             </div>
           </div>
-          <div className="text-xs text-tertiaryLabel">
-            {tokenMode}
-          </div>
+          <div className="text-tertiaryLabel text-xs">{tokenMode}</div>
         </div>
       </div>
     )
@@ -55,9 +53,7 @@ export function SyncStatusCard() {
   const Icon = isSuccess ? CheckCircle2 : isFailed ? AlertCircle : Clock
   const iconColor = isSuccess ? 'text-green' : isFailed ? 'text-red' : 'text-orange'
 
-  const syncTokenMode = hasRefreshToken
-    ? '🔄 自动刷新（30天）'
-    : '⏰ 手动更新（1-2小时）'
+  const syncTokenMode = hasRefreshToken ? '🔄 自动刷新（30天）' : '⏰ 手动更新（1-2小时）'
 
   return (
     <div className="border-separator bg-secondarySystemBackground rounded-lg border p-4">
@@ -82,11 +78,7 @@ export function SyncStatusCard() {
                 同步失败: {latestSync.errorMessage || '未知错误'}
               </p>
             )}
-            {isRunning && (
-              <p className="text-orange mt-1 text-xs">
-                同步进行中...
-              </p>
-            )}
+            {isRunning && <p className="text-orange mt-1 text-xs">同步进行中...</p>}
           </div>
         </div>
       </div>

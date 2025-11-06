@@ -52,7 +52,7 @@ export default function HomePage() {
           {statsLoading ? (
             <div className="grid grid-cols-4 gap-8">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-28 animate-pulse rounded-2xl bg-fill" />
+                <div key={i} className="bg-fill h-28 animate-pulse rounded-2xl" />
               ))}
             </div>
           ) : stats ? (
@@ -63,12 +63,7 @@ export default function HomePage() {
                 unit="km"
                 delay={0}
               />
-              <StatsCard
-                title="活动"
-                value={stats.total.activities}
-                unit="次"
-                delay={0.1}
-              />
+              <StatsCard title="活动" value={stats.total.activities} unit="次" delay={0.1} />
               <StatsCard
                 title="本周里程"
                 value={(stats.thisWeek.distance / 1000).toFixed(1)}
@@ -102,16 +97,14 @@ export default function HomePage() {
 
           {/* Error State */}
           {error && (
-            <div className="mb-8 rounded-2xl border border-red/20 bg-red/10 p-6 text-red">
+            <div className="border-red/20 bg-red/10 text-red mb-8 rounded-2xl border p-6">
               <p className="font-semibold">加载失败</p>
               <p className="mt-1 text-sm opacity-80">{error.message}</p>
             </div>
           )}
 
           {/* Loading State */}
-          {activitiesLoading && (
-            <div className="h-96 animate-pulse rounded-2xl bg-fill" />
-          )}
+          {activitiesLoading && <div className="bg-fill h-96 animate-pulse rounded-2xl" />}
 
           {/* Activities Table */}
           {activitiesData && !activitiesLoading && (

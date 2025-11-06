@@ -6,7 +6,12 @@ import { calculatePace } from '@/lib/pace/calculator'
 import { generateId } from '@/lib/utils'
 
 import type { RawActivity } from './adapters/base'
-import { calculateDistance, calculateElevationGain, calculateTrackDistance, parseGPX } from './parser'
+import {
+  calculateDistance,
+  calculateElevationGain,
+  calculateTrackDistance,
+  parseGPX,
+} from './parser'
 
 /**
  * 数据处理器
@@ -21,7 +26,11 @@ import { calculateDistance, calculateElevationGain, calculateTrackDistance, pars
 export async function syncActivity(rawActivity: RawActivity): Promise<string> {
   try {
     // 检查活动是否已存在
-    const existing = await db.select().from(activities).where(eq(activities.sourceId, rawActivity.id)).limit(1)
+    const existing = await db
+      .select()
+      .from(activities)
+      .where(eq(activities.sourceId, rawActivity.id))
+      .limit(1)
 
     if (existing.length > 0) {
       console.info(`Activity ${rawActivity.id} already exists, skipping...`)
@@ -43,7 +52,8 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
     // 计算活动的基础数据
     const distance = rawActivity.distance || 0
     const duration = rawActivity.duration || 0
-    const averagePace = rawActivity.averagePace || (distance > 0 ? calculatePace(distance, duration) : 0)
+    const averagePace =
+      rawActivity.averagePace || (distance > 0 ? calculatePace(distance, duration) : 0)
 
     // 创建活动记录
     const activityId = generateId('act')
@@ -141,7 +151,8 @@ async function generateSplits(
       // 计算分段时长
       const startTime = splitPoints[0].time
       const endTime = splitPoints.at(-1)?.time
-      const splitDuration = startTime && endTime ? (endTime.getTime() - startTime.getTime()) / 1000 : 0
+      const splitDuration =
+        startTime && endTime ? (endTime.getTime() - startTime.getTime()) / 1000 : 0
 
       // 计算分段距离
       const splitDistance = calculateTrackDistance(splitPoints)
@@ -155,7 +166,9 @@ async function generateSplits(
       // 计算平均心率
       const heartRates = splitPoints.map((p) => p.hr).filter((hr) => hr != null)
       const avgHeartRate =
-        heartRates.length > 0 ? Math.round(heartRates.reduce((sum, hr) => sum + hr, 0) / heartRates.length) : undefined
+        heartRates.length > 0
+          ? Math.round(heartRates.reduce((sum, hr) => sum + hr, 0) / heartRates.length)
+          : undefined
 
       splitRecords.push({
         id: generateId('split'),

@@ -41,7 +41,11 @@ export interface KilometerMarker {
  * @param segmentLength 每段长度（米），默认 100 米
  * @returns 配速路线段数组
  */
-export function createPaceSegments(trackPoints: TrackPoint[], averagePace: number, segmentLength = 100): PaceSegment[] {
+export function createPaceSegments(
+  trackPoints: TrackPoint[],
+  averagePace: number,
+  segmentLength = 100,
+): PaceSegment[] {
   if (trackPoints.length < 2) return []
 
   const segments: PaceSegment[] = []

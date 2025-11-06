@@ -347,10 +347,7 @@ export const slideInFromBottom: Variants = {
  * Helper function to create reduced motion variants
  * Respects user's accessibility preferences
  */
-export function getAccessibleVariants(
-  variants: Variants,
-  prefersReducedMotion: boolean
-): Variants {
+export function getAccessibleVariants(variants: Variants, prefersReducedMotion: boolean): Variants {
   if (prefersReducedMotion) {
     // Return simplified variants with only opacity changes
     return {
@@ -368,4 +365,3 @@ export function getAccessibleVariants(
 export function getStaggerDelay(index: number, baseDelay = 0, increment = 0.05): number {
   return baseDelay + index * increment
 }
-

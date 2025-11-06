@@ -29,7 +29,9 @@ export const syncRouter = createTRPCRouter({
       const accessToken = process.env.NIKE_ACCESS_TOKEN
 
       if (!refreshToken && !accessToken) {
-        throw new Error('Nike token not configured. Please set NIKE_REFRESH_TOKEN or NIKE_ACCESS_TOKEN in .env.local')
+        throw new Error(
+          'Nike token not configured. Please set NIKE_REFRESH_TOKEN or NIKE_ACCESS_TOKEN in .env.local',
+        )
       }
 
       try {
@@ -55,7 +57,9 @@ export const syncRouter = createTRPCRouter({
         }
       } catch (error) {
         console.error('Nike sync error:', error)
-        throw new Error(`Failed to sync Nike activities: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        throw new Error(
+          `Failed to sync Nike activities: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
       }
     }),
 

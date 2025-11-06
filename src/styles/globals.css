@@ -25,7 +25,7 @@
 
 /* MapLibre Popup Styles */
 .maplibregl-popup-content {
-  @apply rounded-lg border border-separator bg-secondarySystemBackground shadow-lg;
+  @apply border-separator bg-secondarySystemBackground rounded-lg border shadow-lg;
   padding: 0 !important;
 }
 

@@ -28,14 +28,16 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
         <p className="text-placeholder-text text-lg">还没有活动记录</p>
-        <p className="text-placeholder-text/70 mt-2 text-sm">同步 Nike Run Club 数据后，活动将显示在这里</p>
+        <p className="text-placeholder-text/70 mt-2 text-sm">
+          同步 Nike Run Club 数据后，活动将显示在这里
+        </p>
       </motion.div>
     )
   }
 
   return (
     <motion.div
-      className={`overflow-hidden rounded-3xl border border-separator ${className}`}
+      className={`border-separator overflow-hidden rounded-3xl border ${className}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -46,8 +48,10 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.3 }}
         >
-          <tr className="bg-fill border-b border-separator">
-            <th className="text-placeholder-text px-8 py-5 text-left text-sm font-medium">活动名称</th>
+          <tr className="bg-fill border-separator border-b">
+            <th className="text-placeholder-text px-8 py-5 text-left text-sm font-medium">
+              活动名称
+            </th>
             <th className="text-placeholder-text px-8 py-5 text-right text-sm font-medium">距离</th>
             <th className="text-placeholder-text px-8 py-5 text-right text-sm font-medium">用时</th>
             <th className="text-placeholder-text px-8 py-5 text-right text-sm font-medium">爬升</th>
@@ -55,7 +59,7 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
           </tr>
         </motion.thead>
         <motion.tbody
-          className="bg-background divide-y divide-separator/50"
+          className="bg-background divide-separator/50 divide-y"
           variants={staggerContainerVariants}
           initial="hidden"
           animate="visible"

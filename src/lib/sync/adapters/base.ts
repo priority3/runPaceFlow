@@ -18,7 +18,11 @@ export interface SyncAdapter {
    * @param options 查询选项
    * @returns 原始活动数据列表
    */
-  getActivities: (options?: { startDate?: Date; endDate?: Date; limit?: number }) => Promise<RawActivity[]>
+  getActivities: (options?: {
+    startDate?: Date
+    endDate?: Date
+    limit?: number
+  }) => Promise<RawActivity[]>
 
   /**
    * 获取单个活动详情（包含 GPX 数据）
