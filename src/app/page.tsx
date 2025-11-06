@@ -1,7 +1,7 @@
 /**
  * Home Page - Modern Activity Dashboard
  *
- * Clean, modern design inspired by cyc.earth
+ * Clean, modern design inspired by cyc.earth with smooth animations
  */
 
 'use client'
@@ -9,6 +9,7 @@
 import { useMemo } from 'react'
 
 import { ActivityTable } from '@/components/activity/ActivityTable'
+import { StatsCard } from '@/components/activity/StatsCard'
 import { Header } from '@/components/layout/Header'
 import { RouteLayer } from '@/components/map/RouteLayer'
 import { RunMap } from '@/components/map/RunMap'
@@ -46,7 +47,7 @@ export default function HomePage() {
           <NikeSyncButton onSyncComplete={() => window.location.reload()} />
         </div>
 
-        {/* Stats Grid - Minimal Design */}
+        {/* Stats Grid - Animated Design */}
         <section className="mb-12">
           {statsLoading ? (
             <div className="grid grid-cols-4 gap-8">
@@ -56,13 +57,30 @@ export default function HomePage() {
             </div>
           ) : stats ? (
             <div className="grid grid-cols-4 gap-8">
-              <StatCard label="总里程" value={`${(stats.total.distance / 1000).toFixed(1)} km`} />
-              <StatCard label="活动" value={`${stats.total.activities} 次`} />
-              <StatCard
-                label="本周里程"
-                value={`${(stats.thisWeek.distance / 1000).toFixed(1)} km`}
+              <StatsCard
+                title="总里程"
+                value={(stats.total.distance / 1000).toFixed(1)}
+                unit="km"
+                delay={0}
               />
-              <StatCard label="总时长" value={`${(stats.total.duration / 3600).toFixed(1)} 小时`} />
+              <StatsCard
+                title="活动"
+                value={stats.total.activities}
+                unit="次"
+                delay={0.1}
+              />
+              <StatsCard
+                title="本周里程"
+                value={(stats.thisWeek.distance / 1000).toFixed(1)}
+                unit="km"
+                delay={0.2}
+              />
+              <StatsCard
+                title="总时长"
+                value={(stats.total.duration / 3600).toFixed(1)}
+                unit="小时"
+                delay={0.3}
+              />
             </div>
           ) : null}
         </section>
@@ -110,18 +128,6 @@ export default function HomePage() {
           )}
         </section>
       </main>
-    </div>
-  )
-}
-
-/**
- * Minimal Stat Card Component
- */
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-separator bg-fill p-6">
-      <p className="text-placeholder-text mb-2 text-sm">{label}</p>
-      <p className="text-text text-2xl font-semibold">{value}</p>
     </div>
   )
 }
