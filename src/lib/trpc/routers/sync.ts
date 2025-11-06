@@ -4,6 +4,8 @@
  * Handles Nike Run Club data synchronization
  */
 
+// Helper import
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { NikeAdapter } from '@/lib/sync/adapters/nike'
@@ -79,6 +81,3 @@ export const syncRouter = createTRPCRouter({
     }
   }),
 })
-
-// Helper import
-import { eq } from 'drizzle-orm'

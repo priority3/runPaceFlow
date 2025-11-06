@@ -1,21 +1,66 @@
+'use client'
+
+import { motion } from 'framer-motion'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  ref?: React.RefObject<HTMLDivElement | null>
+  /**
+   * Enable hover animation
+   * @default false
+   */
+  animated?: boolean
+  /**
+   * Enable entrance animation
+   * @default false
+   */
+  fadeIn?: boolean
+}
+
 const Card = ({
   ref,
   className,
+  animated = false,
+  fadeIn = false,
+  onAnimationStart,
+  onAnimationEnd,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { ref?: React.RefObject<HTMLDivElement | null> }) => (
-  <div
-    ref={ref}
-    className={cn(
-      'border-separator bg-fill text-text rounded-2xl border shadow-sm',
-      className,
-    )}
-    {...props}
-  />
-)
+}: CardProps) => {
+  if (animated || fadeIn) {
+    return (
+      <motion.div
+        ref={ref}
+        initial={fadeIn ? { opacity: 0, y: 20 } : undefined}
+        animate={fadeIn ? { opacity: 1, y: 0 } : undefined}
+        whileHover={animated ? { y: -2, scale: 1.005 } : undefined}
+        whileTap={animated ? { scale: 0.995 } : undefined}
+        transition={{
+          type: 'spring',
+          stiffness: 300,
+          damping: 30,
+        }}
+        className={cn(
+          'border-separator bg-fill text-text rounded-2xl border shadow-sm',
+          className,
+        )}
+        {...(props as any)}
+      />
+    )
+  }
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'border-separator bg-fill text-text rounded-2xl border shadow-sm',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
 Card.displayName = 'Card'
 
 const CardHeader = ({

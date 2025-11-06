@@ -2,16 +2,19 @@
  * ActivityCard Component
  *
  * Display activity information with play button for route animation
+ * Enhanced with Framer Motion for smooth interactions
  */
 
 'use client'
 
+import { motion } from 'framer-motion'
 import { useSetAtom } from 'jotai'
 import { Play } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cardVariants, springs } from '@/lib/animation/variants'
 import { formatDuration, formatPace } from '@/lib/pace/calculator'
 import { formatDate, formatTime } from '@/lib/utils'
 import { playingActivityIdAtom } from '@/stores/map'
@@ -26,6 +29,11 @@ export interface ActivityCardProps {
   averagePace?: number // seconds/km
   elevationGain?: number // meters
   onClick?: () => void
+  /**
+   * Animation delay for staggered list animations
+   * @default 0
+   */
+  delay?: number
 }
 
 export function ActivityCard({
@@ -38,6 +46,7 @@ export function ActivityCard({
   averagePace,
   elevationGain,
   onClick,
+  delay = 0,
 }: ActivityCardProps) {
   const setPlayingActivityId = useSetAtom(playingActivityIdAtom)
   const router = useRouter()
@@ -60,44 +69,95 @@ export function ActivityCard({
   const typeEmoji = type === 'running' ? '🏃' : type === 'cycling' ? '🚴' : '🚶'
 
   return (
-    <Card className="hover:bg-fill/50 cursor-pointer transition-colors" onClick={handleCardClick}>
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      whileTap="tap"
+      transition={{
+        ...springs.smooth,
+        delay,
+      }}
+      onClick={handleCardClick}
+      className="cursor-pointer"
+    >
+      <Card animated fadeIn>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-lg">
-            {typeEmoji} {title}
-          </CardTitle>
-          <Button variant="ghost" size="icon" onClick={handlePlay} className="text-blue hover:bg-blue/10 h-8 w-8">
-            <Play className="h-4 w-4" />
-          </Button>
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: delay + 0.1, ...springs.smooth }}
+          >
+            <CardTitle className="text-lg">
+              {typeEmoji} {title}
+            </CardTitle>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: delay + 0.2, ...springs.bouncy }}
+          >
+            <Button variant="ghost" size="icon" onClick={handlePlay} className="text-blue hover:bg-blue/10 h-8 w-8">
+              <Play className="h-4 w-4" />
+            </Button>
+          </motion.div>
         </div>
-        <p className="text-secondaryLabel text-sm">
+        <motion.p
+          className="text-secondaryLabel text-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: delay + 0.15 }}
+        >
           {formatDate(startTime)} {formatTime(startTime)}
-        </p>
+        </motion.p>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div className="flex flex-col">
+          <motion.div
+            className="flex flex-col"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: delay + 0.25, ...springs.smooth }}
+          >
             <span className="text-tertiaryLabel text-xs">距离</span>
             <span className="text-label text-lg font-semibold">{distanceKm} km</span>
-          </div>
-          <div className="flex flex-col">
+          </motion.div>
+          <motion.div
+            className="flex flex-col"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: delay + 0.3, ...springs.smooth }}
+          >
             <span className="text-tertiaryLabel text-xs">时长</span>
             <span className="text-label text-lg font-semibold">{formatDuration(duration)}</span>
-          </div>
+          </motion.div>
           {averagePace && (
-            <div className="flex flex-col">
+            <motion.div
+              className="flex flex-col"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: delay + 0.35, ...springs.smooth }}
+            >
               <span className="text-tertiaryLabel text-xs">配速</span>
               <span className="text-label text-lg font-semibold">{formatPace(averagePace)}</span>
-            </div>
+            </motion.div>
           )}
           {elevationGain !== undefined && elevationGain > 0 && (
-            <div className="flex flex-col">
+            <motion.div
+              className="flex flex-col"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: delay + 0.4, ...springs.smooth }}
+            >
               <span className="text-tertiaryLabel text-xs">爬升</span>
               <span className="text-label text-lg font-semibold">{elevationGain.toFixed(0)} m</span>
-            </div>
+            </motion.div>
           )}
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   )
 }
