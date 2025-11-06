@@ -44,7 +44,9 @@ const CustomTooltip = ({ active, payload, fastestKm }: any) => {
       <div className="border-separator bg-secondarySystemBackground/95 rounded-lg border p-3 shadow-xl backdrop-blur-sm">
         <p className="text-label mb-1 text-sm font-semibold">
           第 {data.kilometer} 公里
-          {isFastest && <span className="bg-green/20 text-green ml-2 rounded px-2 py-0.5 text-xs">最快</span>}
+          {isFastest && (
+            <span className="bg-green/20 text-green ml-2 rounded px-2 py-0.5 text-xs">最快</span>
+          )}
         </p>
         <p className="text-secondaryLabel text-xs">
           配速: <span className="text-label font-mono">{data.paceFormatted}</span>
@@ -129,7 +131,9 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
 
           <Legend
             wrapperStyle={{ paddingTop: '10px' }}
-            formatter={(value) => <span style={{ color: 'hsl(var(--secondary-label))' }}>{value}</span>}
+            formatter={(value) => (
+              <span style={{ color: 'hsl(var(--secondary-label))' }}>{value}</span>
+            )}
           />
 
           {/* 平均配速参考线 */}

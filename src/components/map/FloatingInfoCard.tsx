@@ -66,14 +66,18 @@ export function FloatingInfoCard({
           {/* 距离 */}
           <div>
             <div className="text-tertiaryLabel text-xs">距离</div>
-            <div className="text-label text-lg font-bold">{(currentPoint.distance / 1000).toFixed(2)}</div>
+            <div className="text-label text-lg font-bold">
+              {(currentPoint.distance / 1000).toFixed(2)}
+            </div>
             <div className="text-tertiaryLabel text-xs">km</div>
           </div>
 
           {/* 配速 */}
           <div>
             <div className="text-tertiaryLabel text-xs">配速</div>
-            <div className="text-label text-lg font-bold">{formatPace(currentPace).replace('/km', '')}</div>
+            <div className="text-label text-lg font-bold">
+              {formatPace(currentPace).replace('/km', '')}
+            </div>
             <div className="text-tertiaryLabel text-xs">/km</div>
           </div>
 
@@ -92,7 +96,10 @@ export function FloatingInfoCard({
 
         {/* 进度条 */}
         <div className="bg-fill mt-3 h-1 w-full overflow-hidden rounded-full">
-          <div className="bg-blue h-full transition-all duration-100" style={{ width: `${progress}%` }} />
+          <div
+            className="bg-blue h-full transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
     </div>

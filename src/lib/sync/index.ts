@@ -16,4 +16,10 @@ export { NikeAdapter } from './adapters/nike'
 
 // GPX 解析
 export type { GPXData, GPXPoint, GPXTrack } from './parser'
-export { calculateDistance, calculateElevationGain, calculateTrackDistance, parseGPX, simplifyTrack } from './parser'
+export {
+  calculateDistance,
+  calculateElevationGain,
+  calculateTrackDistance,
+  parseGPX,
+  simplifyTrack,
+} from './parser'

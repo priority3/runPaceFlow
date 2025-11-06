@@ -64,32 +64,41 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
               <th className="text-label px-4 py-3 text-left font-semibold">公里</th>
               <th className="text-label px-4 py-3 text-right font-semibold">配速</th>
               <th className="text-label px-4 py-3 text-right font-semibold">时长</th>
-              <th className="text-label hidden px-4 py-3 text-right font-semibold sm:table-cell">累计距离</th>
-              <th className="text-label hidden px-4 py-3 text-right font-semibold sm:table-cell">累计时间</th>
+              <th className="text-label hidden px-4 py-3 text-right font-semibold sm:table-cell">
+                累计距离
+              </th>
+              <th className="text-label hidden px-4 py-3 text-right font-semibold sm:table-cell">
+                累计时间
+              </th>
             </tr>
           </thead>
           <tbody>
             {tableData.map((data, index) => (
               <tr
                 key={data.kilometer}
-                className={`
-                  border-separator hover:bg-fill/50 border-b transition-colors
-                  ${data.isFastest ? 'bg-green/10' : index % 2 === 0 ? 'bg-secondarySystemBackground' : 'bg-tertiarySystemBackground'}
-                `}
+                className={`border-separator hover:bg-fill/50 border-b transition-colors ${data.isFastest ? 'bg-green/10' : index % 2 === 0 ? 'bg-secondarySystemBackground' : 'bg-tertiarySystemBackground'} `}
               >
                 {/* 公里数 */}
                 <td className="text-label px-4 py-3 font-medium">
                   <div className="flex items-center gap-2">
                     <span>第 {data.kilometer} km</span>
-                    {data.isFastest && <span className="bg-green/20 text-green rounded px-2 py-0.5 text-xs">最快</span>}
+                    {data.isFastest && (
+                      <span className="bg-green/20 text-green rounded px-2 py-0.5 text-xs">
+                        最快
+                      </span>
+                    )}
                   </div>
                 </td>
 
                 {/* 配速 */}
-                <td className="text-label px-4 py-3 text-right font-mono">{formatPace(data.pace)}</td>
+                <td className="text-label px-4 py-3 text-right font-mono">
+                  {formatPace(data.pace)}
+                </td>
 
                 {/* 时长 */}
-                <td className="text-secondaryLabel px-4 py-3 text-right font-mono">{formatDuration(data.duration)}</td>
+                <td className="text-secondaryLabel px-4 py-3 text-right font-mono">
+                  {formatDuration(data.duration)}
+                </td>
 
                 {/* 累计距离（桌面端） */}
                 <td className="text-secondaryLabel hidden px-4 py-3 text-right font-mono sm:table-cell">

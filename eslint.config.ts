@@ -1,4 +1,3 @@
-// @ts-check
 import { defineConfig } from 'eslint-config-hyoban'
 
 const hyobanConfig = await defineConfig(
@@ -55,7 +54,7 @@ const hyobanConfig = await defineConfig(
 
   // Disable type checking for config files
   {
-    files: ['*.config.js', '*.config.mjs', '*.config.ts', '.prettierrc.mjs'],
+    files: ['*.config.js', '*.config.mjs', '*.config.ts'],
     languageOptions: {
       parserOptions: {
         project: null,

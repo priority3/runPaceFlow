@@ -119,7 +119,10 @@ export function parseGPX(gpxString: string): GPXData {
           if (pt.extensions) {
             const ext = pt.extensions
             // Handle various namespace variations
-            const tpx = ext['gpxtpx:TrackPointExtension'] || ext.TrackPointExtension || ext['ns3:TrackPointExtension']
+            const tpx =
+              ext['gpxtpx:TrackPointExtension'] ||
+              ext.TrackPointExtension ||
+              ext['ns3:TrackPointExtension']
 
             if (tpx) {
               const hr = tpx['gpxtpx:hr'] || tpx.hr || tpx['ns3:hr']
@@ -186,14 +189,19 @@ export function parseGPX(gpxString: string): GPXData {
  * 计算两个坐标点之间的距离（米）
  * 使用 Haversine 公式
  */
-export function calculateDistance(point1: { lat: number; lon: number }, point2: { lat: number; lon: number }): number {
+export function calculateDistance(
+  point1: { lat: number; lon: number },
+  point2: { lat: number; lon: number },
+): number {
   const R = 6371e3 // 地球半径（米）
   const φ1 = (point1.lat * Math.PI) / 180
   const φ2 = (point2.lat * Math.PI) / 180
   const Δφ = ((point2.lat - point1.lat) * Math.PI) / 180
   const Δλ = ((point2.lon - point1.lon) * Math.PI) / 180
 
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
@@ -259,7 +267,12 @@ export function simplifyTrack(points: GPXPoint[], tolerance = 0.0001): GPXPoint[
   }
 
   // 递归简化
-  function douglasPeucker(points: GPXPoint[], start: number, end: number, tolerance: number): boolean[] {
+  function douglasPeucker(
+    points: GPXPoint[],
+    start: number,
+    end: number,
+    tolerance: number,
+  ): boolean[] {
     const keep = Array.from({ length: points.length }, () => false)
     keep[start] = true
     keep[end] = true

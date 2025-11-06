@@ -1,7 +1,7 @@
 /**
  * @type {import('prettier').Config}
  */
-export default {
+const config = {
   semi: false,
   singleQuote: true,
   tabWidth: 2,
@@ -11,3 +11,5 @@ export default {
   endOfLine: 'lf',
   plugins: ['prettier-plugin-tailwindcss'],
 }
+
+export default config
