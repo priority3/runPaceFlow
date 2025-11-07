@@ -213,7 +213,7 @@ export class StravaAdapter implements SyncAdapter {
     let streams: Record<string, StravaStream> = {}
     try {
       const streamsResponse = await fetch(
-        `${STRAVA_API_BASE}/activities/${activityId}/streams?keys=latlng,time,altitude,heartrate,distance&key_by_type=true`,
+        `${STRAVA_API_BASE}/activities/${activityId}/streams?keys=latlng,time,altitude,heartrate,distance`,
         {
           headers: {
             Authorization: `Bearer ${this.accessToken}`,
@@ -223,10 +223,23 @@ export class StravaAdapter implements SyncAdapter {
 
       if (streamsResponse.ok) {
         const streamsList: StravaStream[] = await streamsResponse.json()
-        streams = streamsList.reduce((acc, stream) => {
-          acc[stream.type] = stream
-          return acc
-        }, {} as Record<string, StravaStream>)
+        // Check if response is an array
+        if (Array.isArray(streamsList)) {
+          console.info(`✅ Fetched ${streamsList.length} streams for activity ${activityId}`)
+          streams = streamsList.reduce(
+            (acc, stream) => {
+              acc[stream.type] = stream
+              return acc
+            },
+            {} as Record<string, StravaStream>,
+          )
+        } else {
+          console.warn(`Unexpected streams response format for activity ${activityId}`)
+        }
+      } else {
+        console.warn(
+          `Failed to fetch streams for activity ${activityId}: ${streamsResponse.status} ${streamsResponse.statusText}`,
+        )
       }
     } catch (error) {
       console.error(`Failed to fetch streams for activity ${activityId}:`, error)
@@ -275,10 +288,13 @@ export class StravaAdapter implements SyncAdapter {
 
       if (streamsResponse.ok) {
         const streamsList: StravaStream[] = await streamsResponse.json()
-        streams = streamsList.reduce((acc, stream) => {
-          acc[stream.type] = stream
-          return acc
-        }, {} as Record<string, StravaStream>)
+        streams = streamsList.reduce(
+          (acc, stream) => {
+            acc[stream.type] = stream
+            return acc
+          },
+          {} as Record<string, StravaStream>,
+        )
       }
     } catch (error) {
       console.error(`Failed to fetch streams for activity ${activityId}:`, error)
@@ -402,8 +418,7 @@ export class StravaAdapter implements SyncAdapter {
     const trackPoints = latlng
       .map((point: any, index: number) => {
         const [lat, lon] = point
-        const timestamp = new Date(startTime.getTime() + (time[index] || 0) * 1000)
-          .toISOString()
+        const timestamp = new Date(startTime.getTime() + (time[index] || 0) * 1000).toISOString()
         const ele = altitude[index] !== undefined ? altitude[index] : 0
         const hr = heartrate[index]
 

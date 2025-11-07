@@ -13,7 +13,7 @@ import { StatsCard } from '@/components/activity/StatsCard'
 import { Header } from '@/components/layout/Header'
 import { RouteLayer } from '@/components/map/RouteLayer'
 import { RunMap } from '@/components/map/RunMap'
-import { NikeSyncButton } from '@/components/sync/NikeSyncButton'
+import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
 import { useActivities, useActivityStats } from '@/hooks/use-activities'
 import type { Activity } from '@/types/activity'
 import type { RouteData } from '@/types/map'
@@ -42,9 +42,9 @@ export default function HomePage() {
       <Header />
 
       <main className="container mx-auto max-w-[1600px] px-8 py-10">
-        {/* User Profile Section */}
-        <div className="mb-12 flex items-center justify-between">
-          <NikeSyncButton onSyncComplete={() => window.location.reload()} />
+        {/* Sync Status Section */}
+        <div className="mb-8">
+          <SyncStatusCard />
         </div>
 
         {/* Stats Grid - Animated Design */}

@@ -36,6 +36,7 @@ const hyobanConfig = await defineConfig(
       'unicorn/prefer-math-trunc': 'off',
       'unicorn/no-static-only-class': 'off',
       'unicorn/no-array-callback-reference': 'off',
+      'unicorn/no-document-cookie': 'off', // Disable due to toReversed() compatibility issue
 
       // React
       '@eslint-react/no-clone-element': 'off',
