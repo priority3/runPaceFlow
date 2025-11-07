@@ -1,7 +1,8 @@
 /**
  * Sync Status Card Component
  *
- * Displays last sync information and status
+ * Displays last sync information and status for multiple providers
+ * Priority: Strava > Nike
  */
 
 'use client'
@@ -21,14 +22,24 @@ export function SyncStatusCard() {
     )
   }
 
-  // Token 配置状态
-  const tokenMode = syncStatus?.nike.hasRefreshToken
-    ? '自动刷新模式（Refresh Token）'
-    : syncStatus?.nike.hasToken
-      ? '手动模式（Access Token）'
-      : '未配置'
+  // Determine active provider (Priority: Strava > Nike)
+  const activeProvider = syncStatus?.strava.hasCredentials ? 'strava' : 'nike'
+  const providerData = activeProvider === 'strava' ? syncStatus?.strava : syncStatus?.nike
+  const providerName = activeProvider === 'strava' ? 'Strava' : 'Nike Run Club'
 
-  if (!syncStatus?.nike.latestSync) {
+  // Get configuration status
+  let configStatus = '未配置'
+  if (activeProvider === 'strava') {
+    configStatus = syncStatus?.strava.hasCredentials ? '✓ OAuth 认证' : '未配置'
+  } else {
+    configStatus = syncStatus?.nike.hasRefreshToken
+      ? '🔄 自动刷新（30天）'
+      : syncStatus?.nike.hasToken
+        ? '⏰ 手动更新（1-2小时）'
+        : '未配置'
+  }
+
+  if (!providerData?.latestSync) {
     return (
       <div className="border-separator bg-secondarySystemBackground rounded-lg border p-4">
         <div className="flex items-start justify-between">
@@ -36,24 +47,22 @@ export function SyncStatusCard() {
             <Clock className="text-secondaryLabel size-5" />
             <div>
               <h3 className="text-label text-sm font-medium">同步状态</h3>
-              <p className="text-secondaryLabel text-xs">还未进行过数据同步</p>
+              <p className="text-secondaryLabel text-xs">还未进行过数据同步 ({providerName})</p>
             </div>
           </div>
-          <div className="text-tertiaryLabel text-xs">{tokenMode}</div>
+          <div className="text-tertiaryLabel text-xs">{configStatus}</div>
         </div>
       </div>
     )
   }
 
-  const { latestSync, hasRefreshToken } = syncStatus.nike
+  const { latestSync } = providerData
   const isSuccess = latestSync.status === 'success'
   const isFailed = latestSync.status === 'failed'
   const isRunning = latestSync.status === 'running'
 
   const Icon = isSuccess ? CheckCircle2 : isFailed ? AlertCircle : Clock
   const iconColor = isSuccess ? 'text-green' : isFailed ? 'text-red' : 'text-orange'
-
-  const syncTokenMode = hasRefreshToken ? '🔄 自动刷新（30天）' : '⏰ 手动更新（1-2小时）'
 
   return (
     <div className="border-separator bg-secondarySystemBackground rounded-lg border p-4">
@@ -62,8 +71,8 @@ export function SyncStatusCard() {
           <Icon className={`size-5 ${iconColor}`} />
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-label text-sm font-medium">最近同步</h3>
-              <span className="text-tertiaryLabel text-xs">{syncTokenMode}</span>
+              <h3 className="text-label text-sm font-medium">最近同步 ({providerName})</h3>
+              <span className="text-tertiaryLabel text-xs">{configStatus}</span>
             </div>
             <p className="text-secondaryLabel mt-1 text-xs">
               {new Date(latestSync.startedAt).toLocaleString('zh-CN')}
