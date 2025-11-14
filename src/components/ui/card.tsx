@@ -41,7 +41,10 @@ const Card = ({
           stiffness: 300,
           damping: 30,
         }}
-        className={cn('border-separator bg-fill text-text rounded-2xl border shadow-sm', className)}
+        className={cn(
+          'border-separator bg-secondary-system-background text-label rounded-2xl border shadow-sm',
+          className,
+        )}
         {...(props as any)}
       />
     )
@@ -50,7 +53,10 @@ const Card = ({
   return (
     <div
       ref={ref}
-      className={cn('border-separator bg-fill text-text rounded-2xl border shadow-sm', className)}
+      className={cn(
+        'border-separator bg-secondary-system-background text-label rounded-2xl border shadow-sm',
+        className,
+      )}
       {...props}
     />
   )
@@ -75,7 +81,7 @@ const CardTitle = ({
 }) => (
   <h3
     ref={ref}
-    className={cn('text-text text-lg leading-none font-semibold tracking-tight', className)}
+    className={cn('text-label text-lg leading-none font-semibold tracking-tight', className)}
     {...props}
   />
 )
@@ -87,7 +93,7 @@ const CardDescription = ({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement> & {
   ref?: React.RefObject<HTMLParagraphElement | null>
-}) => <p ref={ref} className={cn('text-placeholder-text text-sm', className)} {...props} />
+}) => <p ref={ref} className={cn('text-secondary-label text-sm', className)} {...props} />
 CardDescription.displayName = 'CardDescription'
 
 const CardContent = ({

@@ -38,7 +38,7 @@ export function FloatingInfoCard({
 
   return (
     <div className="pointer-events-none absolute top-4 left-4 z-10">
-      <div className="border-separator bg-secondarySystemBackground/95 pointer-events-auto rounded-xl border p-4 shadow-xl backdrop-blur-sm">
+      <div className="border-separator bg-secondary-system-background/95 pointer-events-auto rounded-xl border p-4 shadow-xl backdrop-blur-sm">
         {/* 播放/暂停按钮 */}
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-label text-sm font-semibold">实时数据</h3>
@@ -65,31 +65,31 @@ export function FloatingInfoCard({
         <div className="grid grid-cols-2 gap-3">
           {/* 距离 */}
           <div>
-            <div className="text-tertiaryLabel text-xs">距离</div>
+            <div className="text-tertiary-label text-xs">距离</div>
             <div className="text-label text-lg font-bold">
               {(currentPoint.distance / 1000).toFixed(2)}
             </div>
-            <div className="text-tertiaryLabel text-xs">km</div>
+            <div className="text-tertiary-label text-xs">km</div>
           </div>
 
           {/* 配速 */}
           <div>
-            <div className="text-tertiaryLabel text-xs">配速</div>
+            <div className="text-tertiary-label text-xs">配速</div>
             <div className="text-label text-lg font-bold">
               {formatPace(currentPace).replace('/km', '')}
             </div>
-            <div className="text-tertiaryLabel text-xs">/km</div>
+            <div className="text-tertiary-label text-xs">/km</div>
           </div>
 
           {/* 用时 */}
           <div>
-            <div className="text-tertiaryLabel text-xs">用时</div>
+            <div className="text-tertiary-label text-xs">用时</div>
             <div className="text-label text-lg font-bold">{formatDuration(elapsedTime)}</div>
           </div>
 
           {/* 进度 */}
           <div>
-            <div className="text-tertiaryLabel text-xs">进度</div>
+            <div className="text-tertiary-label text-xs">进度</div>
             <div className="text-label text-lg font-bold">{progress.toFixed(0)}%</div>
           </div>
         </div>

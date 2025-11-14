@@ -78,7 +78,7 @@ export default function ActivityDetailPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="bg-systemBackground min-h-screen">
+      <div className="bg-system-background min-h-screen">
         <div className="container mx-auto max-w-screen-2xl px-4 py-6">
           <div className="bg-fill mb-6 h-12 w-32 animate-pulse rounded-lg" />
           <div className="grid gap-6">
@@ -93,7 +93,7 @@ export default function ActivityDetailPage() {
   // Error state
   if (error || !data) {
     return (
-      <div className="bg-systemBackground min-h-screen">
+      <div className="bg-system-background min-h-screen">
         <div className="container mx-auto max-w-screen-2xl px-4 py-6">
           <Button variant="ghost" onClick={() => router.push('/')} className="mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -101,7 +101,9 @@ export default function ActivityDetailPage() {
           </Button>
           <div className="border-red bg-red/10 rounded-lg border p-8 text-center">
             <p className="text-red text-lg font-medium">加载失败</p>
-            <p className="text-secondaryLabel mt-2 text-sm">{error?.message || '无法找到该活动'}</p>
+            <p className="text-secondary-label mt-2 text-sm">
+              {error?.message || '无法找到该活动'}
+            </p>
           </div>
         </div>
       </div>
@@ -120,14 +122,14 @@ export default function ActivityDetailPage() {
   }))
 
   return (
-    <div className="bg-systemBackground min-h-screen">
+    <div className="bg-system-background min-h-screen">
       <div className="container mx-auto max-w-screen-2xl px-4 py-6">
         {/* Header */}
         <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => router.push('/')}
-            className="text-secondaryLabel hover:text-label mb-4"
+            className="text-secondary-label hover:text-label mb-4"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             返回
@@ -138,7 +140,7 @@ export default function ActivityDetailPage() {
               <h1 className="text-label text-3xl font-bold">
                 {typeEmoji} {activity.title || '跑步活动'}
               </h1>
-              <p className="text-secondaryLabel mt-2">
+              <p className="text-secondary-label mt-2">
                 {formatDate(activity.startTime)} {formatTime(activity.startTime)}
               </p>
             </div>
@@ -162,7 +164,7 @@ export default function ActivityDetailPage() {
                 <Button
                   variant="outline"
                   onClick={handleStopPlayback}
-                  className="border-separator text-secondaryLabel hover:bg-fill"
+                  className="hover:bg-fill border-separator text-secondary-label"
                 >
                   停止
                 </Button>
@@ -227,13 +229,13 @@ export default function ActivityDetailPage() {
             <h2 className="text-label mb-4 text-2xl font-bold">配速分析</h2>
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Pace Chart */}
-              <div className="border-separator bg-secondarySystemBackground rounded-xl border p-6">
+              <div className="border-separator bg-secondary-system-background rounded-xl border p-6">
                 <h3 className="text-label mb-4 text-lg font-semibold">每公里配速</h3>
                 <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
               </div>
 
               {/* Splits Table */}
-              <div className="border-separator bg-secondarySystemBackground rounded-xl border p-6">
+              <div className="border-separator bg-secondary-system-background rounded-xl border p-6">
                 <h3 className="text-label mb-4 text-lg font-semibold">分段数据</h3>
                 <SplitsTable splits={chartSplits} />
               </div>

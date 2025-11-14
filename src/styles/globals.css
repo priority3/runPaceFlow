@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'tailwindcss-uikit-colors/selector.css';
 
 @layer base {
   * {
@@ -8,7 +7,7 @@
   }
 
   body {
-    @apply bg-systemBackground text-label antialiased;
+    @apply bg-system-background text-label antialiased;
   }
 }
 
@@ -25,12 +24,12 @@
 
 /* MapLibre Popup Styles */
 .maplibregl-popup-content {
-  @apply border-separator bg-secondarySystemBackground rounded-lg border shadow-lg;
+  @apply border-separator bg-secondary-system-background rounded-lg border shadow-lg;
   padding: 0 !important;
 }
 
 .maplibregl-popup-close-button {
-  @apply text-secondaryLabel hover:text-label;
+  @apply text-secondary-label hover:text-label;
   font-size: 20px;
   padding: 4px 8px;
 }

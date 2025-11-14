@@ -22,8 +22,8 @@ export interface SplitsTableProps {
 export function SplitsTable({ splits, className }: SplitsTableProps) {
   if (!splits || splits.length === 0) {
     return (
-      <div className="border-separator bg-secondarySystemBackground flex min-h-[200px] items-center justify-center rounded-lg border">
-        <p className="text-secondaryLabel">暂无分段数据</p>
+      <div className="border-separator bg-secondary-system-background flex min-h-[200px] items-center justify-center rounded-lg border">
+        <p className="text-secondary-label">暂无分段数据</p>
       </div>
     )
   }
@@ -60,7 +60,7 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
       <div className="border-separator overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-separator bg-fill border-b">
+            <tr className="bg-fill border-separator border-b">
               <th className="text-label px-4 py-3 text-left font-semibold">公里</th>
               <th className="text-label px-4 py-3 text-right font-semibold">配速</th>
               <th className="text-label px-4 py-3 text-right font-semibold">时长</th>
@@ -76,7 +76,7 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
             {tableData.map((data, index) => (
               <tr
                 key={data.kilometer}
-                className={`border-separator hover:bg-fill/50 border-b transition-colors ${data.isFastest ? 'bg-green/10' : index % 2 === 0 ? 'bg-secondarySystemBackground' : 'bg-tertiarySystemBackground'} `}
+                className={`hover:bg-fill/50 border-separator border-b transition-colors ${data.isFastest ? 'bg-green/10' : index % 2 === 0 ? 'bg-secondary-system-background' : 'bg-tertiary-system-background'} `}
               >
                 {/* 公里数 */}
                 <td className="text-label px-4 py-3 font-medium">
@@ -96,17 +96,17 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
                 </td>
 
                 {/* 时长 */}
-                <td className="text-secondaryLabel px-4 py-3 text-right font-mono">
+                <td className="text-secondary-label px-4 py-3 text-right font-mono">
                   {formatDuration(data.duration)}
                 </td>
 
                 {/* 累计距离（桌面端） */}
-                <td className="text-secondaryLabel hidden px-4 py-3 text-right font-mono sm:table-cell">
+                <td className="text-secondary-label hidden px-4 py-3 text-right font-mono sm:table-cell">
                   {(data.cumulativeDistance / 1000).toFixed(2)} km
                 </td>
 
                 {/* 累计时间（桌面端） */}
-                <td className="text-secondaryLabel hidden px-4 py-3 text-right font-mono sm:table-cell">
+                <td className="text-secondary-label hidden px-4 py-3 text-right font-mono sm:table-cell">
                   {formatDuration(data.cumulativeTime)}
                 </td>
               </tr>
@@ -115,7 +115,7 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
 
           {/* 总结行 */}
           <tfoot>
-            <tr className="border-separator bg-fill border-t-2 font-semibold">
+            <tr className="bg-fill border-separator border-t-2 font-semibold">
               <td className="text-label px-4 py-3">总计</td>
               <td className="text-label px-4 py-3 text-right font-mono">
                 {formatPace(splits.reduce((sum, s) => sum + s.pace, 0) / splits.length)}

@@ -41,14 +41,14 @@ const CustomTooltip = ({ active, payload, fastestKm }: any) => {
     const isFastest = data.kilometer === fastestKm
 
     return (
-      <div className="border-separator bg-secondarySystemBackground/95 rounded-lg border p-3 shadow-xl backdrop-blur-sm">
+      <div className="border-separator bg-secondary-system-background/95 rounded-lg border p-3 shadow-xl backdrop-blur-sm">
         <p className="text-label mb-1 text-sm font-semibold">
           第 {data.kilometer} 公里
           {isFastest && (
             <span className="bg-green/20 text-green ml-2 rounded px-2 py-0.5 text-xs">最快</span>
           )}
         </p>
-        <p className="text-secondaryLabel text-xs">
+        <p className="text-secondary-label text-xs">
           配速: <span className="text-label font-mono">{data.paceFormatted}</span>
         </p>
       </div>
@@ -64,8 +64,8 @@ const CustomTooltip = ({ active, payload, fastestKm }: any) => {
 export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
   if (!splits || splits.length === 0) {
     return (
-      <div className="border-separator bg-secondarySystemBackground flex h-[300px] items-center justify-center rounded-lg border">
-        <p className="text-secondaryLabel">暂无配速数据</p>
+      <div className="border-separator bg-secondary-system-background flex h-[300px] items-center justify-center rounded-lg border">
+        <p className="text-secondary-label">暂无配速数据</p>
       </div>
     )
   }

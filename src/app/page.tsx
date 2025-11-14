@@ -38,25 +38,41 @@ export default function HomePage() {
   }, [activitiesData])
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-system-background min-h-screen">
       <Header />
 
-      <main className="container mx-auto max-w-[1600px] px-8 py-10">
-        {/* Sync Status Section */}
-        <div className="mb-8">
-          <SyncStatusCard />
-        </div>
+      <main className="container mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        {/* Hero Section with Sync Status */}
+        <section className="mb-8 lg:mb-12">
+          <div className="flex flex-col gap-6">
+            {/* Page Title */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-label text-3xl font-bold tracking-tight sm:text-4xl">
+                  RunPaceFlow
+                </h1>
+                <p className="text-secondary-label mt-1 text-sm sm:text-base">跑步数据分析平台</p>
+              </div>
+            </div>
 
-        {/* Stats Grid - Animated Design */}
-        <section className="mb-12">
+            {/* Sync Status - Enhanced Design */}
+            <SyncStatusCard />
+          </div>
+        </section>
+
+        {/* Stats Grid - Enhanced with Progress Bars */}
+        <section className="mb-8 lg:mb-12">
           {statsLoading ? (
-            <div className="grid grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-fill h-28 animate-pulse rounded-2xl" />
+                <div
+                  key={i}
+                  className="bg-secondary-system-fill h-28 animate-pulse rounded-2xl sm:h-32"
+                />
               ))}
             </div>
           ) : stats ? (
-            <div className="grid grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
               <StatsCard
                 title="总里程"
                 value={(stats.total.distance / 1000).toFixed(1)}
@@ -80,44 +96,49 @@ export default function HomePage() {
           ) : null}
         </section>
 
-        {/* Large Map Section */}
-        <section className="mb-12">
-          <div className="relative h-[65vh] min-h-[600px] overflow-hidden rounded-3xl">
+        {/* Map Section - Enhanced with Shadow */}
+        <section className="mb-8 lg:mb-12">
+          <div className="relative h-[50vh] min-h-[400px] overflow-hidden rounded-2xl shadow-lg sm:h-[60vh] sm:min-h-[500px] lg:h-[65vh] lg:min-h-[600px] lg:rounded-3xl">
             <RunMap className="h-full w-full">
               {routes.length > 0 && <RouteLayer routes={routes} />}
             </RunMap>
           </div>
         </section>
 
-        {/* Activities Table */}
+        {/* Activities Section - Card Layout */}
         <section>
-          <div className="mb-8">
-            <h2 className="text-text text-2xl font-semibold">活动名称</h2>
+          <div className="mb-6 flex items-center justify-between lg:mb-8">
+            <div>
+              <h2 className="text-label text-xl font-semibold sm:text-2xl">最近活动</h2>
+              <p className="text-secondary-label mt-1 text-sm">查看你的跑步记录</p>
+            </div>
+            {activitiesData && activitiesData.pagination.total > 0 && (
+              <div className="text-tertiary-label text-xs sm:text-sm">
+                {activitiesData.activities.length} / {activitiesData.pagination.total}
+              </div>
+            )}
           </div>
 
           {/* Error State */}
           {error && (
-            <div className="border-red/20 bg-red/10 text-red mb-8 rounded-2xl border p-6">
+            <div className="border-red/20 bg-red/10 text-red mb-6 rounded-2xl border p-6 lg:mb-8">
               <p className="font-semibold">加载失败</p>
               <p className="mt-1 text-sm opacity-80">{error.message}</p>
             </div>
           )}
 
           {/* Loading State */}
-          {activitiesLoading && <div className="bg-fill h-96 animate-pulse rounded-2xl" />}
+          {activitiesLoading && (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-secondary-system-fill h-32 animate-pulse rounded-2xl" />
+              ))}
+            </div>
+          )}
 
           {/* Activities Table */}
           {activitiesData && !activitiesLoading && (
-            <>
-              <ActivityTable activities={activitiesData.activities} />
-
-              {/* Pagination Info */}
-              {activitiesData.pagination.total > 0 && (
-                <div className="text-placeholder-text mt-8 text-center text-sm">
-                  显示 {activitiesData.activities.length} / {activitiesData.pagination.total} 个活动
-                </div>
-              )}
-            </>
+            <ActivityTable activities={activitiesData.activities} />
           )}
         </section>
       </main>

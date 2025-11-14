@@ -110,7 +110,7 @@ export function ActivityCard({
             </motion.div>
           </div>
           <motion.p
-            className="text-secondaryLabel text-sm"
+            className="text-secondary-label text-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: delay + 0.15 }}
@@ -126,7 +126,7 @@ export function ActivityCard({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: delay + 0.25, ...springs.smooth }}
             >
-              <span className="text-tertiaryLabel text-xs">距离</span>
+              <span className="text-tertiary-label text-xs">距离</span>
               <span className="text-label text-lg font-semibold">{distanceKm} km</span>
             </motion.div>
             <motion.div
@@ -135,7 +135,7 @@ export function ActivityCard({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: delay + 0.3, ...springs.smooth }}
             >
-              <span className="text-tertiaryLabel text-xs">时长</span>
+              <span className="text-tertiary-label text-xs">时长</span>
               <span className="text-label text-lg font-semibold">{formatDuration(duration)}</span>
             </motion.div>
             {averagePace && (
@@ -145,7 +145,7 @@ export function ActivityCard({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: delay + 0.35, ...springs.smooth }}
               >
-                <span className="text-tertiaryLabel text-xs">配速</span>
+                <span className="text-tertiary-label text-xs">配速</span>
                 <span className="text-label text-lg font-semibold">{formatPace(averagePace)}</span>
               </motion.div>
             )}
@@ -156,7 +156,7 @@ export function ActivityCard({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: delay + 0.4, ...springs.smooth }}
               >
-                <span className="text-tertiaryLabel text-xs">爬升</span>
+                <span className="text-tertiary-label text-xs">爬升</span>
                 <span className="text-label text-lg font-semibold">
                   {elevationGain.toFixed(0)} m
                 </span>
