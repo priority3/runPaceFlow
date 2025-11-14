@@ -74,18 +74,18 @@ export function StatsCard({
             ease: [0.16, 1, 0.3, 1],
           }}
         >
-          <p className="text-placeholder-text text-sm font-medium">{title}</p>
+          <p className="text-secondary-label text-sm font-medium">{title}</p>
           <div className="flex items-baseline gap-1">
             {isNumeric && animateNumber ? (
-              <motion.span className="text-text text-3xl font-bold tabular-nums">
+              <motion.span className="text-label text-3xl font-bold tabular-nums">
                 <motion.span>{rounded}</motion.span>
               </motion.span>
             ) : (
-              <span className="text-text text-3xl font-bold">{value}</span>
+              <span className="text-label text-3xl font-bold">{value}</span>
             )}
             {unit && (
               <motion.span
-                className="text-placeholder-text text-sm"
+                className="text-secondary-label text-sm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: delay + 1.5 }}
@@ -96,7 +96,7 @@ export function StatsCard({
           </div>
           {subtitle && (
             <motion.p
-              className="text-placeholder-text text-xs opacity-70"
+              className="text-tertiary-label text-xs opacity-70"
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.7 }}
               transition={{ delay: delay + 1.6 }}

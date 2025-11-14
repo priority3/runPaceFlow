@@ -65,10 +65,10 @@ export function KilometerMarkers({ markers }: KilometerMarkersProps) {
             <div className="text-label mb-1 text-sm font-bold">
               第 {selectedMarker.kilometer} 公里
             </div>
-            <div className="text-secondaryLabel text-xs">
+            <div className="text-secondary-label text-xs">
               配速: {formatPace(selectedMarker.pace)}
             </div>
-            <div className="text-tertiaryLabel text-xs">
+            <div className="text-tertiary-label text-xs">
               累计: {(selectedMarker.distance / 1000).toFixed(2)} km
             </div>
           </div>
