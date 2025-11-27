@@ -47,28 +47,6 @@ export default function HomePage() {
       <Header />
 
       <main className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        {/* Hero Section */}
-        <motion.section
-          className="mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="mb-8">
-            <h1 className="text-label text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              你的运动
-              <br />
-              数据概览
-            </h1>
-            <p className="text-secondary-label mt-4 max-w-lg text-lg">
-              追踪每一次跑步，记录每一公里的进步
-            </p>
-          </div>
-
-          {/* Sync Status */}
-          <SyncStatusCard />
-        </motion.section>
-
         {/* Stats Grid */}
         <section className="mb-12">
           {statsLoading ? (
