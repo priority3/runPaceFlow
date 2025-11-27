@@ -67,7 +67,7 @@ export function SyncStatusCard() {
         </div>
       </div>
 
-      {isSuccess && latestSync && latestSync.activitiesCount > 0 && (
+      {isSuccess && latestSync && (latestSync.activitiesCount ?? 0) > 0 && (
         <span className="text-label/60 text-sm">+{latestSync.activitiesCount}</span>
       )}
     </motion.div>
