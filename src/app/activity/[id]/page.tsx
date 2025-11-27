@@ -1,13 +1,14 @@
 /**
  * Activity Detail Page
  *
- * Displays full details of a single activity with map, charts, and splits
+ * Glassmorphic design with seamless depth transitions
  */
 
 'use client'
 
+import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
-import { ArrowLeft, Pause, Play } from 'lucide-react'
+import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 
@@ -19,7 +20,6 @@ import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
 import { KilometerMarkers } from '@/components/map/KilometerMarkers'
 import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
 import { RunMap } from '@/components/map/RunMap'
-import { Button } from '@/components/ui/button'
 import { useActivityWithSplits } from '@/hooks/use-activities'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
@@ -79,11 +79,17 @@ export default function ActivityDetailPage() {
   if (isLoading) {
     return (
       <div className="bg-system-background min-h-screen">
-        <div className="container mx-auto max-w-screen-2xl px-4 py-6">
-          <div className="bg-fill mb-6 h-12 w-32 animate-pulse rounded-lg" />
-          <div className="grid gap-6">
-            <div className="bg-fill h-64 animate-pulse rounded-xl" />
-            <div className="bg-fill h-96 animate-pulse rounded-xl" />
+        <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
+        <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-6 h-10 w-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
+          <div className="mb-8 h-32 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-28 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20"
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -94,17 +100,26 @@ export default function ActivityDetailPage() {
   if (error || !data) {
     return (
       <div className="bg-system-background min-h-screen">
-        <div className="container mx-auto max-w-screen-2xl px-4 py-6">
-          <Button variant="ghost" onClick={() => router.push('/')} className="mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            返回
-          </Button>
-          <div className="border-red bg-red/10 rounded-lg border p-8 text-center">
-            <p className="text-red text-lg font-medium">加载失败</p>
-            <p className="text-secondary-label mt-2 text-sm">
+        <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
+        <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <button
+            onClick={() => router.push('/')}
+            className="text-label/60 hover:text-label mb-6 flex items-center gap-2 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>返回</span>
+          </button>
+          <motion.div
+            className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/50 py-16 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <p className="text-label text-lg font-medium">加载失败</p>
+            <p className="text-label/50 mt-2 text-center text-sm">
               {error?.message || '无法找到该活动'}
             </p>
-          </div>
+          </motion.div>
         </div>
       </div>
     )
@@ -123,59 +138,79 @@ export default function ActivityDetailPage() {
 
   return (
     <div className="bg-system-background min-h-screen">
-      <div className="container mx-auto max-w-screen-2xl px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/')}
-            className="text-secondary-label hover:text-label mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            返回
-          </Button>
+      {/* Subtle gradient overlay for glassmorphic depth */}
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
 
-          <div className="flex items-start justify-between">
+      <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <button
+            onClick={() => router.push('/')}
+            className="text-label/60 hover:text-label mb-6 flex items-center gap-2 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>返回</span>
+          </button>
+
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-label text-3xl font-bold">
+              <h1 className="text-label text-2xl font-semibold sm:text-3xl">
                 {typeEmoji} {activity.title || '跑步活动'}
               </h1>
-              <p className="text-secondary-label mt-2">
+              <p className="text-label/50 mt-2 text-sm">
                 {formatDate(activity.startTime)} {formatTime(activity.startTime)}
               </p>
             </div>
 
             {/* Playback controls */}
             <div className="flex items-center gap-2">
-              <Button onClick={handlePlayPause} className="bg-blue hover:bg-blue/90 text-white">
+              <motion.button
+                onClick={handlePlayPause}
+                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2.5 text-sm font-medium backdrop-blur-xl transition-all hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 {isPlaying ? (
                   <>
-                    <Pause className="mr-2 h-4 w-4" />
-                    暂停回放
+                    <Pause className="h-4 w-4" />
+                    <span className="hidden sm:inline">暂停</span>
                   </>
                 ) : (
                   <>
-                    <Play className="mr-2 h-4 w-4" />
-                    播放回放
+                    <Play className="h-4 w-4" />
+                    <span className="hidden sm:inline">回放</span>
                   </>
                 )}
-              </Button>
+              </motion.button>
               {animationProgress > 0 && (
-                <Button
-                  variant="outline"
+                <motion.button
                   onClick={handleStopPlayback}
-                  className="hover:bg-fill border-separator text-secondary-label"
+                  className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2.5 text-sm backdrop-blur-xl transition-all hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  停止
-                </Button>
+                  <Square className="h-3.5 w-3.5" />
+                </motion.button>
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
-        <section className="mb-8">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <motion.section
+          className="mb-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatsCard title="距离" value={(activity.distance / 1000).toFixed(2)} unit="km" />
             <StatsCard title="时长" value={formatDuration(activity.duration)} unit="" />
             {activity.averagePace && (
@@ -185,69 +220,92 @@ export default function ActivityDetailPage() {
               <StatsCard title="爬升" value={activity.elevationGain.toFixed(0)} unit="m" />
             )}
           </div>
-        </section>
+        </motion.section>
 
         {/* Map Section */}
-        <section className="mb-8">
-          <h2 className="text-label mb-4 text-2xl font-bold">路线地图</h2>
-          <div className="border-separator relative h-[500px] overflow-hidden rounded-xl border">
-            <RunMap className="h-full w-full">
-              {/* Static pace route or animated playback */}
-              {isPlaying ? (
-                <AnimatedRoute
-                  segments={paceSegments}
-                  activityId={activityId}
-                  isPlaying={isPlaying}
-                  onProgressChange={setAnimationProgress}
-                  onAnimationComplete={handleAnimationComplete}
-                  speed={1.5}
-                />
-              ) : (
-                <>
-                  <PaceRouteLayer segments={paceSegments} activityId={activityId} />
-                  <KilometerMarkers markers={kmMarkers} />
-                </>
-              )}
-            </RunMap>
-
-            {/* Floating info card during playback */}
-            {isPlaying && currentPoint && (
-              <FloatingInfoCard
-                currentPoint={currentPoint}
-                averagePace={activity.averagePace || 360}
-                isPlaying={isPlaying}
-                progress={animationProgress}
-                onPlayPause={handlePlayPause}
-              />
-            )}
+        <motion.section
+          className="mb-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-label text-lg font-semibold">路线地图</h2>
           </div>
-        </section>
+          <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-gray-100 shadow-sm dark:border-white/10 dark:bg-gray-900">
+            <div className="h-[400px] sm:h-[500px]">
+              <RunMap className="h-full w-full">
+                {/* Static pace route or animated playback */}
+                {isPlaying ? (
+                  <AnimatedRoute
+                    segments={paceSegments}
+                    activityId={activityId}
+                    isPlaying={isPlaying}
+                    onProgressChange={setAnimationProgress}
+                    onAnimationComplete={handleAnimationComplete}
+                    speed={1.5}
+                  />
+                ) : (
+                  <>
+                    <PaceRouteLayer segments={paceSegments} activityId={activityId} />
+                    <KilometerMarkers markers={kmMarkers} />
+                  </>
+                )}
+              </RunMap>
+
+              {/* Floating info card during playback */}
+              {isPlaying && currentPoint && (
+                <FloatingInfoCard
+                  currentPoint={currentPoint}
+                  averagePace={activity.averagePace || 360}
+                  isPlaying={isPlaying}
+                  progress={animationProgress}
+                  onPlayPause={handlePlayPause}
+                />
+              )}
+            </div>
+          </div>
+        </motion.section>
 
         {/* Pace Analysis Section */}
         {chartSplits.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-label mb-4 text-2xl font-bold">配速分析</h2>
+          <motion.section
+            className="mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <div className="mb-4">
+              <h2 className="text-label text-lg font-semibold">配速分析</h2>
+            </div>
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Pace Chart */}
-              <div className="border-separator bg-secondary-system-background rounded-xl border p-6">
-                <h3 className="text-label mb-4 text-lg font-semibold">每公里配速</h3>
+              <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                <h3 className="text-label/80 mb-4 text-sm font-medium">每公里配速</h3>
                 <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
               </div>
 
               {/* Splits Table */}
-              <div className="border-separator bg-secondary-system-background rounded-xl border p-6">
-                <h3 className="text-label mb-4 text-lg font-semibold">分段数据</h3>
+              <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
                 <SplitsTable splits={chartSplits} />
               </div>
             </div>
-          </section>
+          </motion.section>
         )}
 
         {/* Additional Stats (if available) */}
         {(activity.averageHeartRate || activity.calories) && (
-          <section className="mb-8">
-            <h2 className="text-label mb-4 text-2xl font-bold">其他数据</h2>
-            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <motion.section
+            className="mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <div className="mb-4">
+              <h2 className="text-label text-lg font-semibold">其他数据</h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {activity.averageHeartRate && (
                 <StatsCard
                   title="平均心率"
@@ -265,7 +323,7 @@ export default function ActivityDetailPage() {
                 <StatsCard title="最佳配速" value={formatPace(activity.bestPace)} unit="/km" />
               )}
             </div>
-          </section>
+          </motion.section>
         )}
       </div>
     </div>

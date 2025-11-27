@@ -1,7 +1,7 @@
 /**
  * RouteLayer Component
  *
- * Displays running routes on the map
+ * Displays running routes on the map with glassmorphic styling
  */
 
 'use client'
@@ -22,11 +22,16 @@ export function RouteLayer({ routes }: RouteLayerProps) {
   return (
     <>
       {routes.map((route) => {
-        const geojson = {
-          type: 'Feature' as const,
+        // Skip routes with no coordinates
+        if (!route.coordinates || route.coordinates.length < 2) {
+          return null
+        }
+
+        const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
+          type: 'Feature',
           properties: {},
           geometry: {
-            type: 'LineString' as const,
+            type: 'LineString',
             coordinates: route.coordinates.map((coord) => [coord.longitude, coord.latitude]),
           },
         }
@@ -37,9 +42,9 @@ export function RouteLayer({ routes }: RouteLayerProps) {
               id={`route-line-${route.id}`}
               type="line"
               paint={{
-                'line-color': route.color || '#3b82f6',
+                'line-color': route.color || '#374151', // Dark gray for better visibility
                 'line-width': route.width || 3,
-                'line-opacity': 0.8,
+                'line-opacity': 0.85,
               }}
               layout={{
                 'line-join': 'round',

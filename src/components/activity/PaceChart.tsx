@@ -1,7 +1,7 @@
 /**
  * PaceChart Component
  *
- * Displays pace analysis with line chart
+ * Glassmorphic design with subtle color gradation
  */
 
 'use client'
@@ -34,22 +34,24 @@ export interface PaceChartProps {
   className?: string
 }
 
-// 自定义 Tooltip 组件 - 在组件外部定义避免重复创建
+// Custom Tooltip component - glassmorphic style
 const CustomTooltip = ({ active, payload, fastestKm }: any) => {
   if (active && payload && payload.length > 0) {
     const data = payload[0].payload
     const isFastest = data.kilometer === fastestKm
 
     return (
-      <div className="border-separator bg-secondary-system-background/95 rounded-lg border p-3 shadow-xl backdrop-blur-sm">
-        <p className="text-label mb-1 text-sm font-semibold">
+      <div className="rounded-xl border border-white/30 bg-white/80 p-3 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black/60">
+        <p className="text-label mb-1 text-sm font-medium">
           第 {data.kilometer} 公里
           {isFastest && (
-            <span className="bg-green/20 text-green ml-2 rounded px-2 py-0.5 text-xs">最快</span>
+            <span className="ml-2 rounded-full bg-gray-200/60 px-2 py-0.5 text-xs dark:bg-white/10">
+              最快
+            </span>
           )}
         </p>
-        <p className="text-secondary-label text-xs">
-          配速: <span className="text-label font-mono">{data.paceFormatted}</span>
+        <p className="text-label/60 text-xs">
+          配速: <span className="text-label/80 font-mono">{data.paceFormatted}</span>
         </p>
       </div>
     )
@@ -58,29 +60,28 @@ const CustomTooltip = ({ active, payload, fastestKm }: any) => {
 }
 
 /**
- * 配速折线图组件
- * 显示每公里配速、平均配速参考线、最快配速标记
+ * Pace line chart component with glassmorphic styling
  */
 export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
   if (!splits || splits.length === 0) {
     return (
-      <div className="border-separator bg-secondary-system-background flex h-[300px] items-center justify-center rounded-lg border">
-        <p className="text-secondary-label">暂无配速数据</p>
+      <div className="flex h-[300px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
+        <p className="text-label/50">暂无配速数据</p>
       </div>
     )
   }
 
-  // 准备图表数据
+  // Prepare chart data
   const chartData = splits.map((split) => ({
     kilometer: split.kilometer,
     pace: split.pace,
     paceFormatted: formatPace(split.pace),
   }))
 
-  // 找出最快配速
+  // Find fastest split
   const fastestSplit = splits.reduce((min, split) => (split.pace < min.pace ? split : min))
 
-  // 自定义点样式（最快配速高亮）
+  // Custom dot style (highlight fastest)
   const customDot = (props: any) => {
     const { cx, cy, payload, key, ...rest } = props
     const isFastest = payload.kilometer === fastestSplit.kilometer
@@ -88,18 +89,18 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
     if (isFastest) {
       return (
         <g key={key}>
-          {/* 外圈光晕 */}
-          <circle cx={cx} cy={cy} r={8} fill="#22c55e" opacity={0.3} />
-          {/* 内圈实心 */}
-          <circle cx={cx} cy={cy} r={4} fill="#22c55e" stroke="#fff" strokeWidth={2} />
+          {/* Outer glow */}
+          <circle cx={cx} cy={cy} r={8} fill="rgba(107, 114, 128, 0.3)" />
+          {/* Inner solid */}
+          <circle cx={cx} cy={cy} r={4} fill="#6b7280" stroke="#fff" strokeWidth={2} />
         </g>
       )
     }
 
-    return <Dot key={key} {...rest} r={3} />
+    return <Dot key={key} {...rest} r={3} fill="rgba(107, 114, 128, 0.6)" />
   }
 
-  // 格式化 Y 轴（配速）
+  // Format Y axis (pace)
   const formatYAxis = (value: number) => {
     const minutes = Math.floor(value / 60)
     const seconds = Math.floor(value % 60)
@@ -110,20 +111,32 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
     <div className={className}>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--separator))" opacity={0.5} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(156, 163, 175, 0.2)" />
 
           <XAxis
             dataKey="kilometer"
-            label={{ value: '公里', position: 'insideBottom', offset: -5 }}
-            tick={{ fill: 'hsl(var(--secondary-label))' }}
-            axisLine={{ stroke: 'hsl(var(--separator))' }}
+            label={{
+              value: '公里',
+              position: 'insideBottom',
+              offset: -5,
+              style: { fill: 'rgba(107, 114, 128, 0.6)' },
+            }}
+            tick={{ fill: 'rgba(107, 114, 128, 0.6)', fontSize: 12 }}
+            axisLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
+            tickLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
           />
 
           <YAxis
             tickFormatter={formatYAxis}
-            label={{ value: '配速', angle: -90, position: 'insideLeft' }}
-            tick={{ fill: 'hsl(var(--secondary-label))' }}
-            axisLine={{ stroke: 'hsl(var(--separator))' }}
+            label={{
+              value: '配速',
+              angle: -90,
+              position: 'insideLeft',
+              style: { fill: 'rgba(107, 114, 128, 0.6)' },
+            }}
+            tick={{ fill: 'rgba(107, 114, 128, 0.6)', fontSize: 12 }}
+            axisLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
+            tickLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
             domain={['dataMin - 10', 'dataMax + 10']}
           />
 
@@ -131,32 +144,30 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
 
           <Legend
             wrapperStyle={{ paddingTop: '10px' }}
-            formatter={(value) => (
-              <span style={{ color: 'hsl(var(--secondary-label))' }}>{value}</span>
-            )}
+            formatter={() => <span style={{ color: 'rgba(107, 114, 128, 0.8)' }}>配速</span>}
           />
 
-          {/* 平均配速参考线 */}
+          {/* Average pace reference line */}
           <ReferenceLine
             y={averagePace}
-            stroke="hsl(var(--blue))"
+            stroke="rgba(107, 114, 128, 0.5)"
             strokeDasharray="5 5"
             label={{
               value: `平均 ${formatPace(averagePace)}`,
               position: 'right',
-              fill: 'hsl(var(--blue))',
-              fontSize: 12,
+              fill: 'rgba(107, 114, 128, 0.6)',
+              fontSize: 11,
             }}
           />
 
-          {/* 配速折线 */}
+          {/* Pace line */}
           <Line
             type="monotone"
             dataKey="pace"
-            stroke="hsl(var(--blue))"
+            stroke="rgba(107, 114, 128, 0.7)"
             strokeWidth={2}
             dot={customDot}
-            activeDot={{ r: 6 }}
+            activeDot={{ r: 6, fill: '#6b7280' }}
             name="配速"
           />
         </LineChart>

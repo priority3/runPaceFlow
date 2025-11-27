@@ -7,8 +7,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useSetAtom } from 'jotai'
 import { Activity, Calendar, Clock, MapPin } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { ActivityTable } from '@/components/activity/ActivityTable'
 import { StatsCard } from '@/components/activity/StatsCard'
@@ -16,12 +17,14 @@ import { Header } from '@/components/layout/Header'
 import { RouteLayer } from '@/components/map/RouteLayer'
 import { RunMap } from '@/components/map/RunMap'
 import { useActivities, useActivityStats } from '@/hooks/use-activities'
+import { mapViewportAtom } from '@/stores/map'
 import type { Activity as ActivityType } from '@/types/activity'
 import type { RouteData } from '@/types/map'
 
 export default function HomePage() {
   const { data: stats, isLoading: statsLoading } = useActivityStats()
   const { data: activitiesData, isLoading: activitiesLoading, error } = useActivities({ limit: 20 })
+  const setViewport = useSetAtom(mapViewportAtom)
 
   // Parse GPX data to routes for map display
   const routes: RouteData[] = useMemo(() => {
@@ -32,11 +35,54 @@ export default function HomePage() {
       .map((activity: ActivityType) => ({
         id: activity.id,
         coordinates: parseGPXCoordinates(activity.gpxData || ''),
-        color: '#3b82f6',
+        color: '#1f2937', // Dark gray for better visibility on light map
         width: 3,
       }))
       .filter((route: RouteData) => route.coordinates.length > 0)
   }, [activitiesData])
+
+  // Auto-center map on routes when they load
+  useEffect(() => {
+    if (routes.length === 0) return
+
+    // Collect all coordinates from all routes
+    const allCoords = routes.flatMap((route) => route.coordinates)
+    if (allCoords.length === 0) return
+
+    // Calculate bounding box
+    const lats = allCoords.map((c) => c.latitude)
+    const lons = allCoords.map((c) => c.longitude)
+
+    const minLat = Math.min(...lats)
+    const maxLat = Math.max(...lats)
+    const minLon = Math.min(...lons)
+    const maxLon = Math.max(...lons)
+
+    // Calculate center
+    const centerLat = (minLat + maxLat) / 2
+    const centerLon = (minLon + maxLon) / 2
+
+    // Calculate appropriate zoom level based on bounds
+    const latDiff = maxLat - minLat
+    const lonDiff = maxLon - minLon
+    const maxDiff = Math.max(latDiff, lonDiff)
+
+    // Rough zoom calculation (adjust as needed)
+    let zoom = 12
+    if (maxDiff > 0.5) zoom = 10
+    else if (maxDiff > 0.2) zoom = 11
+    else if (maxDiff > 0.1) zoom = 12
+    else if (maxDiff > 0.05) zoom = 13
+    else zoom = 14
+
+    setViewport({
+      longitude: centerLon,
+      latitude: centerLat,
+      zoom,
+      pitch: 0,
+      bearing: 0,
+    })
+  }, [routes, setViewport])
 
   return (
     <div className="bg-system-background min-h-screen">
@@ -162,8 +208,49 @@ export default function HomePage() {
 }
 
 /**
- * Parse GPX data to extract coordinates
+ * Parse GPX XML data to extract coordinates for map display
  */
-function parseGPXCoordinates(_gpxData: string): Array<{ longitude: number; latitude: number }> {
-  return []
+function parseGPXCoordinates(gpxData: string): Array<{ longitude: number; latitude: number }> {
+  if (!gpxData || gpxData.trim() === '') return []
+
+  try {
+    // Simple regex-based parsing for GPX trackpoints
+    // Matches: <trkpt lat="39.123" lon="116.456">
+    const trkptRegex = /<trkpt[^>]+lat=["']([^"']+)["'][^>]+lon=["']([^"']+)["']/gi
+    const coordinates: Array<{ longitude: number; latitude: number }> = []
+
+    let match
+    while ((match = trkptRegex.exec(gpxData)) !== null) {
+      const lat = Number.parseFloat(match[1])
+      const lon = Number.parseFloat(match[2])
+
+      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+        coordinates.push({ latitude: lat, longitude: lon })
+      }
+    }
+
+    // If no trkpt found, try alternative format (lon before lat)
+    if (coordinates.length === 0) {
+      const altRegex = /<trkpt[^>]+lon=["']([^"']+)["'][^>]+lat=["']([^"']+)["']/gi
+      while ((match = altRegex.exec(gpxData)) !== null) {
+        const lon = Number.parseFloat(match[1])
+        const lat = Number.parseFloat(match[2])
+
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+          coordinates.push({ latitude: lat, longitude: lon })
+        }
+      }
+    }
+
+    // Simplify the route if too many points (keep every nth point for performance)
+    if (coordinates.length > 500) {
+      const step = Math.ceil(coordinates.length / 500)
+      return coordinates.filter((_, index) => index % step === 0)
+    }
+
+    return coordinates
+  } catch (error) {
+    console.error('Failed to parse GPX coordinates:', error)
+    return []
+  }
 }
