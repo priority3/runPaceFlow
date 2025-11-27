@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import 'tailwindcss-uikit-colors/v4/ios.css';
 @import 'tailwindcss-uikit-colors/selector.css';
 
 @layer base {

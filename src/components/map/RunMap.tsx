@@ -20,6 +20,11 @@ export interface RunMapProps {
   children?: React.ReactNode
 }
 
+// Use environment variable or fallback to a clean, minimal style
+const MAP_STYLE =
+  process.env.NEXT_PUBLIC_MAP_STYLE ||
+  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+
 const INITIAL_VIEW_STATE = {
   longitude: 116.397428, // Beijing
   latitude: 39.90923,
@@ -57,7 +62,7 @@ export function RunMap({ className, children }: RunMapProps) {
         onMove={handleMove}
         onLoad={() => setMapReady(true)}
         style={{ width: '100%', height: '100%' }}
-        mapStyle="https://demotiles.maplibre.org/style.json"
+        mapStyle={MAP_STYLE}
         attributionControl={false}
       >
         {mapReady && children}

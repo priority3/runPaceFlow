@@ -1,11 +1,13 @@
 /**
  * Home Page - Modern Activity Dashboard
  *
- * Clean, modern design inspired by cyc.earth with smooth animations
+ * Minimalist design inspired by Apple Fitness+
  */
 
 'use client'
 
+import { motion } from 'framer-motion'
+import { Activity, Calendar, Clock, MapPin } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { ActivityTable } from '@/components/activity/ActivityTable'
@@ -15,7 +17,7 @@ import { RouteLayer } from '@/components/map/RouteLayer'
 import { RunMap } from '@/components/map/RunMap'
 import { SyncStatusCard } from '@/components/sync/SyncStatusCard'
 import { useActivities, useActivityStats } from '@/hooks/use-activities'
-import type { Activity } from '@/types/activity'
+import type { Activity as ActivityType } from '@/types/activity'
 import type { RouteData } from '@/types/map'
 
 export default function HomePage() {
@@ -27,8 +29,8 @@ export default function HomePage() {
     if (!activitiesData?.activities) return []
 
     return activitiesData.activities
-      .filter((activity: Activity) => activity.gpxData)
-      .map((activity: Activity) => ({
+      .filter((activity: ActivityType) => activity.gpxData)
+      .map((activity: ActivityType) => ({
         id: activity.id,
         coordinates: parseGPXCoordinates(activity.gpxData || ''),
         color: '#3b82f6',
@@ -39,99 +41,135 @@ export default function HomePage() {
 
   return (
     <div className="bg-system-background min-h-screen">
+      {/* Subtle gradient overlay for glassmorphic depth */}
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
+
       <Header />
 
-      <main className="container mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        {/* Hero Section with Sync Status */}
-        <section className="mb-8 lg:mb-12">
-          <div className="flex flex-col gap-6">
-            {/* Page Title */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-label text-3xl font-bold tracking-tight sm:text-4xl">
-                  RunPaceFlow
-                </h1>
-                <p className="text-secondary-label mt-1 text-sm sm:text-base">跑步数据分析平台</p>
-              </div>
-            </div>
-
-            {/* Sync Status - Enhanced Design */}
-            <SyncStatusCard />
+      <main className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        {/* Hero Section */}
+        <motion.section
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="mb-8">
+            <h1 className="text-label text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+              你的运动
+              <br />
+              数据概览
+            </h1>
+            <p className="text-secondary-label mt-4 max-w-lg text-lg">
+              追踪每一次跑步，记录每一公里的进步
+            </p>
           </div>
-        </section>
 
-        {/* Stats Grid - Enhanced with Progress Bars */}
-        <section className="mb-8 lg:mb-12">
+          {/* Sync Status */}
+          <SyncStatusCard />
+        </motion.section>
+
+        {/* Stats Grid */}
+        <section className="mb-12">
           {statsLoading ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="bg-secondary-system-fill h-28 animate-pulse rounded-2xl sm:h-32"
+                  className="bg-secondary-system-background/50 h-32 animate-pulse rounded-2xl"
                 />
               ))}
             </div>
           ) : stats ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <StatsCard
                 title="总里程"
                 value={(stats.total.distance / 1000).toFixed(1)}
                 unit="km"
-                delay={0}
+                icon={<MapPin className="h-4 w-4" />}
+                delay={1}
               />
-              <StatsCard title="活动" value={stats.total.activities} unit="次" delay={0.1} />
+              <StatsCard
+                title="活动次数"
+                value={stats.total.activities}
+                unit="次"
+                icon={<Activity className="h-4 w-4" />}
+                delay={2}
+              />
               <StatsCard
                 title="本周里程"
                 value={(stats.thisWeek.distance / 1000).toFixed(1)}
                 unit="km"
-                delay={0.2}
+                icon={<Calendar className="h-4 w-4" />}
+                delay={3}
               />
               <StatsCard
                 title="总时长"
                 value={(stats.total.duration / 3600).toFixed(1)}
                 unit="小时"
-                delay={0.3}
+                icon={<Clock className="h-4 w-4" />}
+                delay={4}
               />
             </div>
           ) : null}
         </section>
 
-        {/* Map Section - Enhanced with Shadow */}
-        <section className="mb-8 lg:mb-12">
-          <div className="relative h-[50vh] min-h-[400px] overflow-hidden rounded-2xl shadow-lg sm:h-[60vh] sm:min-h-[500px] lg:h-[65vh] lg:min-h-[600px] lg:rounded-3xl">
-            <RunMap className="h-full w-full">
-              {routes.length > 0 && <RouteLayer routes={routes} />}
-            </RunMap>
+        {/* Map Section */}
+        <motion.section
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-label text-xl font-semibold">路线地图</h2>
+            <span className="text-tertiary-label text-sm">
+              {routes.length > 0 ? `${routes.length} 条路线` : '暂无路线数据'}
+            </span>
           </div>
-        </section>
+          <div className="border-separator/30 relative overflow-hidden rounded-3xl border bg-gray-100 shadow-sm dark:bg-gray-900">
+            <div className="h-[400px] sm:h-[500px]">
+              <RunMap className="h-full w-full">
+                {routes.length > 0 && <RouteLayer routes={routes} />}
+              </RunMap>
+            </div>
+          </div>
+        </motion.section>
 
-        {/* Activities Section - Card Layout */}
-        <section>
-          <div className="mb-6 flex items-center justify-between lg:mb-8">
+        {/* Activities Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-label text-xl font-semibold sm:text-2xl">最近活动</h2>
-              <p className="text-secondary-label mt-1 text-sm">查看你的跑步记录</p>
+              <h2 className="text-label text-xl font-semibold">最近活动</h2>
+              <p className="text-tertiary-label mt-1 text-sm">你的运动记录</p>
             </div>
             {activitiesData && activitiesData.pagination.total > 0 && (
-              <div className="text-tertiary-label text-xs sm:text-sm">
+              <span className="bg-secondary-system-background text-secondary-label rounded-full px-3 py-1 text-xs font-medium">
                 {activitiesData.activities.length} / {activitiesData.pagination.total}
-              </div>
+              </span>
             )}
           </div>
 
           {/* Error State */}
           {error && (
-            <div className="border-red/20 bg-red/10 text-red mb-6 rounded-2xl border p-6 lg:mb-8">
-              <p className="font-semibold">加载失败</p>
-              <p className="mt-1 text-sm opacity-80">{error.message}</p>
+            <div className="border-red/20 bg-red/5 mb-6 rounded-2xl border p-6">
+              <p className="text-red font-medium">加载失败</p>
+              <p className="text-red/70 mt-1 text-sm">{error.message}</p>
             </div>
           )}
 
           {/* Loading State */}
           {activitiesLoading && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-secondary-system-fill h-32 animate-pulse rounded-2xl" />
+                <div
+                  key={i}
+                  className="bg-secondary-system-background/50 h-24 animate-pulse rounded-2xl"
+                />
               ))}
             </div>
           )}
@@ -140,7 +178,7 @@ export default function HomePage() {
           {activitiesData && !activitiesLoading && (
             <ActivityTable activities={activitiesData.activities} />
           )}
-        </section>
+        </motion.section>
       </main>
     </div>
   )
@@ -148,9 +186,7 @@ export default function HomePage() {
 
 /**
  * Parse GPX data to extract coordinates
- * TODO: Implement proper GPX parsing when GPX data is available
  */
 function parseGPXCoordinates(_gpxData: string): Array<{ longitude: number; latitude: number }> {
-  // Placeholder: Return empty array until GPX parsing is implemented
   return []
 }
