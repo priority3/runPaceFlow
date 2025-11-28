@@ -191,9 +191,9 @@ export class StravaAdapter implements SyncAdapter {
   async getActivityDetail(id: string): Promise<RawActivity> {
     await this.ensureValidToken()
 
-    const activityId = parseInt(id, 10)
-    if (isNaN(activityId)) {
-      throw new Error(`Invalid activity ID: ${id}`)
+    const activityId = Number.parseInt(id, 10)
+    if (Number.isNaN(activityId)) {
+      throw new TypeError(`Invalid activity ID: ${id}`)
     }
 
     // Fetch activity details
@@ -256,9 +256,9 @@ export class StravaAdapter implements SyncAdapter {
   async downloadGPX(id: string): Promise<string> {
     await this.ensureValidToken()
 
-    const activityId = parseInt(id, 10)
-    if (isNaN(activityId)) {
-      throw new Error(`Invalid activity ID: ${id}`)
+    const activityId = Number.parseInt(id, 10)
+    if (Number.isNaN(activityId)) {
+      throw new TypeError(`Invalid activity ID: ${id}`)
     }
 
     // Fetch activity details
