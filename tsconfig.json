@@ -3,7 +3,7 @@
     // Language and Environment
     "target": "ES2022",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     // Modules
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -25,8 +25,8 @@
     "noImplicitReturns": true,
     "skipLibCheck": true,
     // Path Mapping
-    "baseUrl": ".",
     "paths": {
+      "*": ["./*"],
       "@/*": ["./src/*"]
     },
     // Next.js specific
@@ -37,6 +37,13 @@
     ],
     "allowJs": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "*.config.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "*.config.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": ["node_modules", ".next", "out", "dist", "build"]
 }
