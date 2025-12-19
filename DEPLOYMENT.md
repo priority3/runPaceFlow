@@ -1,115 +1,67 @@
-# 部署指南：解决 Vercel 上的数据问题
+# 部署指南
 
-## 问题说明
+## 部署架构
 
-Vercel 部署成功但没有数据，因为：
+本项目使用以下架构：
 
-1. SQLite 文件 (`data/activities.db`) 在本地，不会自动上传到 Vercel
-2. Vercel 的 serverless 环境无法持久化文件
+- **数据存储**：SQLite 数据库文件存储在 Git 仓库中
+- **自动同步**：GitHub Actions 每天自动同步运动数据
+- **部署平台**：Vercel 自动部署
 
-## 解决方案
+## 已完成的配置
 
-### 方案 1：使用 GitHub 存储数据（推荐，免费）
+✅ 数据库文件 (`data/activities.db`) 已添加到 Git 仓库
+✅ 数据库路径已配置为支持 Vercel 环境
+✅ GitHub Actions 工作流已创建（`.github/workflows/sync.yml`）
 
-这个方案将数据文件提交到 Git 仓库，Vercel 部署时会包含数据。
+## 设置 GitHub Secrets（用于自动同步）
 
-#### 步骤：
+访问：https://github.com/priority3/runPaceFlow/settings/secrets/actions
 
-1. **将数据文件添加到 Git**：
+添加以下 Secrets：
 
-```bash
-# 确保数据文件存在
-ls -la data/activities.db
+### Nike Run Club
 
-# 添加到 Git
-git add -f data/activities.db
-git commit -m "feat: Add activities database"
-git push
-```
+- `NIKE_ACCESS_TOKEN`：从浏览器 Network 标签获取
+  1. 登录 Nike Run Club 网站
+  2. 打开开发者工具 → Network 标签
+  3. 找到包含 `Bearer` token 的请求
+  4. 复制完整的 token
 
-2. **设置 GitHub Actions 自动同步**（已创建）：
-   - 工作流文件：`.github/workflows/sync.yml`
-   - 每天自动从 Nike/Strava 同步数据
-   - 需要在 GitHub 仓库设置 Secrets
+### Strava（可选）
 
-3. **在 GitHub 设置 Secrets**：
-   访问：https://github.com/priority3/runPaceFlow/settings/secrets/actions
+- `STRAVA_CLIENT_ID`：从 [Strava API 设置](https://www.strava.com/settings/api) 获取
+- `STRAVA_CLIENT_SECRET`：同上
+- `STRAVA_REFRESH_TOKEN`：通过 OAuth 授权获取
 
-   添加以下 Secrets：
-   - `NIKE_ACCESS_TOKEN`：从浏览器获取
-   - `STRAVA_CLIENT_ID`：从 Strava API 设置获取
-   - `STRAVA_CLIENT_SECRET`：从 Strava API 设置获取
-   - `STRAVA_REFRESH_TOKEN`：从 Strava 授权获取
+## 工作原理
 
-4. **触发重新部署**：
-   - Push 代码后，Vercel 会自动重新部署
-   - 这次部署会包含 `data/activities.db` 文件
+1. **初始部署**：
+   - Vercel 从 GitHub 拉取代码（包括数据库文件）
+   - 应用使用 Git 仓库中的 SQLite 数据库
 
-### 方案 2：使用 Turso 云数据库（可选，更专业）
+2. **每日更新**：
+   - GitHub Actions 每天运行同步脚本
+   - 从 Nike/Strava API 获取新数据
+   - 更新数据库并提交到 Git
+   - Vercel 自动重新部署
 
-如果你想要更专业的解决方案，可以使用 Turso（SQLite 云服务）。
+## 手动触发同步
 
-#### 步骤：
+如需手动同步数据：
 
-1. **注册 Turso**：https://turso.tech
+1. 访问 GitHub Actions 页面
+2. 选择 "Sync Activities" 工作流
+3. 点击 "Run workflow"
 
-2. **创建数据库**：
+## 验证部署
 
-```bash
-# 安装 CLI
-brew install tursodatabase/tap/turso
+部署成功后，访问 https://run-pace-flow.vercel.app 查看你的运动数据。
 
-# 登录
-turso auth login
+## 故障排除
 
-# 创建数据库
-turso db create runpaceflow
+如果数据未显示：
 
-# 获取连接信息
-turso db show runpaceflow --url
-turso db tokens create runpaceflow
-```
-
-3. **迁移数据**：
-
-```bash
-# 设置环境变量
-export TURSO_DATABASE_URL="你的数据库URL"
-export TURSO_AUTH_TOKEN="你的认证Token"
-
-# 运行迁移脚本
-./scripts/migrate-to-turso.sh
-```
-
-4. **在 Vercel 设置环境变量**：
-   访问：https://vercel.com/你的用户名/run-pace-flow/settings/environment-variables
-
-   添加：
-   - `DATABASE_URL`：Turso 数据库 URL
-   - `DATABASE_AUTH_TOKEN`：Turso 认证 Token
-
-## 快速修复（立即让网站工作）
-
-最快的方法是使用方案 1：
-
-```bash
-# 1. 添加数据文件到 Git
-git add -f data/activities.db
-
-# 2. 提交并推送
-git commit -m "feat: Add activities database for production"
-git push
-
-# 3. 等待 Vercel 自动重新部署（1-2 分钟）
-```
-
-## 验证
-
-部署完成后，访问 https://run-pace-flow.vercel.app 应该能看到你的运动数据了。
-
-## 注意事项
-
-- 方案 1 简单免费，适合个人项目
-- 方案 2 更专业，适合需要实时更新的场景
-- GitHub Actions 会每天自动同步新数据
-- 记得设置 GitHub Secrets 以启用自动同步
+1. 检查 Vercel 部署日志
+2. 确认 `data/activities.db` 文件存在
+3. 验证 GitHub Actions 运行状态

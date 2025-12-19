@@ -84,7 +84,8 @@
       "Bash(else bun run db:push)",
       "Bash(fi)",
       "Bash(node --version:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
