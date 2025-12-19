@@ -7,7 +7,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { CheckCircle2, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
 
 import { trpc } from '@/lib/trpc/client'
 

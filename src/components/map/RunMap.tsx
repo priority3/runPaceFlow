@@ -53,6 +53,7 @@ export function RunMap({ className, children }: RunMapProps) {
     if (viewport.longitude === 116.397428 && viewport.latitude === 39.90923) {
       setViewport(INITIAL_VIEW_STATE)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

@@ -84,9 +84,9 @@ export default function ActivityDetailPage() {
           <div className="mb-6 h-10 w-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
           <div className="mb-8 h-32 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
           <div className="grid gap-4 md:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
+            {[0, 1, 2, 3].map((i) => (
               <div
-                key={i}
+                key={`skeleton-${i}`}
                 className="h-28 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20"
               />
             ))}
@@ -103,6 +103,7 @@ export default function ActivityDetailPage() {
         <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
         <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <button
+            type="button"
             onClick={() => router.push('/')}
             className="text-label/60 hover:text-label mb-6 flex items-center gap-2 transition-colors"
           >
@@ -150,6 +151,7 @@ export default function ActivityDetailPage() {
           transition={{ duration: 0.4 }}
         >
           <button
+            type="button"
             onClick={() => router.push('/')}
             className="text-label/60 hover:text-label mb-6 flex items-center gap-2 transition-colors"
           >
@@ -160,7 +162,7 @@ export default function ActivityDetailPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-label text-2xl font-semibold sm:text-3xl">
-                {typeEmoji} {activity.title || '跑步活动'}
+                <span>{typeEmoji}</span> {activity.title || '跑步活动'}
               </h1>
               <p className="text-label/50 mt-2 text-sm">
                 {formatDate(activity.startTime)} {formatTime(activity.startTime)}

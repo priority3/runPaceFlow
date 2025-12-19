@@ -1,4 +1,9 @@
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { defineConfig } from 'eslint-config-hyoban'
+
+const tsconfigRootDir = dirname(fileURLToPath(import.meta.url))
 
 const hyobanConfig = await defineConfig(
   {
@@ -13,7 +18,7 @@ const hyobanConfig = await defineConfig(
     languageOptions: {
       parserOptions: {
         project: './tsconfig.json',
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir,
       },
     },
 
