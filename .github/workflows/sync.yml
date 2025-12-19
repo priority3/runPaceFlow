@@ -6,6 +6,9 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch: # 允许手动触发
 
+permissions:
+  contents: write  # 允许写入仓库内容
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -14,7 +17,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          # 使用 PAT (Personal Access Token) 以获得推送权限
+          # 如果没有设置 PAT，则回退到默认的 GITHUB_TOKEN
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -59,5 +64,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/activities.db
-          git commit -m "chore: Update activities database [skip ci]"
+          git commit -m "chore: Update activities database"
           git push
