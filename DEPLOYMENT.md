@@ -20,6 +20,15 @@
 
 添加以下 Secrets：
 
+### 必需：GitHub Personal Access Token (PAT)
+
+- `PAT`：用于 GitHub Actions 推送权限
+  1. 访问 https://github.com/settings/tokens/new
+  2. 生成新的 Personal Access Token (classic)
+  3. 勾选 `repo` 权限（完整的仓库访问权限）
+  4. 生成 token 并复制
+  5. 添加为仓库 Secret，名称为 `PAT`
+
 ### Nike Run Club
 
 - `NIKE_ACCESS_TOKEN`：从浏览器 Network 标签获取
