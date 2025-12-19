@@ -5,11 +5,11 @@ import * as schema from './schema'
 
 /**
  * 数据库配置
- * 开发环境使用本地 SQLite 文件
- * 生产环境使用 Turso
+ * 默认使用 data/activities.db，支持 Git 持久化
+ * 可通过 DATABASE_URL 环境变量覆盖
  */
 const client = createClient({
-  url: process.env.DATABASE_URL ?? 'file:./local.db',
+  url: process.env.DATABASE_URL ?? 'file:./data/activities.db',
   authToken: process.env.DATABASE_AUTH_TOKEN,
 })
 
