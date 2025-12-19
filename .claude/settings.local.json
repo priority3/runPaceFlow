@@ -82,7 +82,8 @@
       "Bash(if [ -f local.db ])",
       "Bash(then cp local.db data/activities.db)",
       "Bash(else bun run db:push)",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(node --version:*)"
     ],
     "deny": [],
     "ask": []

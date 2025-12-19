@@ -41,7 +41,7 @@ export function PaceRouteLayer({ segments, activityId }: PaceRouteLayerProps) {
 
         return (
           <Source
-            key={`${activityId}-segment-${index}`}
+            key={`${activityId}-segment-${segment.pace}-${segment.distance}`}
             id={`pace-segment-${activityId}-${index}`}
             type="geojson"
             data={geojson}
