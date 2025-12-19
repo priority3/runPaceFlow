@@ -83,7 +83,8 @@
       "Bash(then cp local.db data/activities.db)",
       "Bash(else bun run db:push)",
       "Bash(fi)",
-      "Bash(node --version:*)"
+      "Bash(node --version:*)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []
