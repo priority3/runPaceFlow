@@ -1,155 +1,123 @@
-# RunPaceFlow
+# RunPaceFlow (WIP)
 
-一个现代化的跑步记录与分析平台，专注于配速分析和地图可视化。
+running 数据记录，现代化UI
 
-## 特性
+## 功能亮点
 
-- 🏃 多平台数据自动同步（Strava / Nike Run Club）
-- ⏰ GitHub Actions 定时自动同步
-- 🗺️ 基于 MapLibre 的地图展示
-- 📊 详细的配速分析和可视化
-- 🎬 简化的路线回放动画
-- 📱 响应式设计
+| 功能              | 描述                                      |
+| ----------------- | ----------------------------------------- |
+| 🔄 **多平台同步** | 支持 Strava / Nike Run Club 数据自动导入  |
+| ⏰ **定时同步**   | GitHub Actions 每日自动同步，无需手动操作 |
+| 🗺️ **地图可视化** | 基于 MapLibre 的高性能路线展示            |
+| 📊 **配速分析**   | 详细的分段配速图表与趋势分析              |
+| 🎬 **路线回放**   | 动画回放跑步轨迹                          |
+| 📱 **响应式设计** | 完美适配桌面与移动端                      |
 
 ## 技术栈
 
-- **前端**: Next.js 15, React 19, TypeScript
-- **UI**: Tailwind CSS 4, shadcn/ui, Radix UI, Framer Motion
-- **状态管理**: Jotai, TanStack Query
-- **数据库**: SQLite (开发) / Turso (生产), Drizzle ORM
-- **API**: tRPC, Zod
-- **地图**: MapLibre GL JS, react-map-gl, @turf/turf
-- **图表**: Recharts
+```
+前端框架    Next.js 15 + React 19 + TypeScript
+样式方案    Tailwind CSS 4 + shadcn/ui + Framer Motion
+状态管理    Jotai + TanStack Query
+数据层      Drizzle ORM + Turso (LibSQL)
+API 层      tRPC + Zod
+地图引擎    MapLibre GL + react-map-gl + Turf.js
+```
 
 ## 快速开始
 
-### 安装依赖
+### 1. 安装依赖
 
 ```bash
-pnpm install
+bun install
 ```
 
-### 配置环境变量
+### 2. 配置环境变量
 
-创建 `.env.local` 文件：
+创建 `.env.local`：
 
 ```bash
-# MapLibre (无需 token，使用开源样式)
+# 地图样式 (MapLibre 开源样式，无需 token)
 NEXT_PUBLIC_MAP_STYLE=https://demotiles.maplibre.org/style.json
 
-# 数据源配置 (二选一，优先使用 Strava)
-
-# Option 1: Strava (推荐)
+# Strava 配置 (推荐)
 STRAVA_CLIENT_ID=your_client_id
 STRAVA_CLIENT_SECRET=your_client_secret
 STRAVA_REFRESH_TOKEN=your_refresh_token
 
-# Option 2: Nike Run Club
-NIKE_REFRESH_TOKEN=your_refresh_token  # 推荐，可自动刷新
-# 或
-NIKE_ACCESS_TOKEN=your_access_token    # 手动模式，1-2小时过期
+# 或 Nike Run Club 配置
+NIKE_REFRESH_TOKEN=your_refresh_token
 
-# Database
+# 数据库
 DATABASE_URL=file:./local.db
 ```
 
-### GitHub Actions 自动同步配置
-
-本项目支持通过 GitHub Actions 自动同步运动数据，无需手动操作。
-
-#### 1. 配置 GitHub Secrets
-
-在你的 GitHub 仓库中设置以下 Secrets (`Settings` -> `Secrets and variables` -> `Actions`):
-
-**Strava 配置（推荐）：**
-
-- `STRAVA_CLIENT_ID`: 你的 Strava 客户端 ID
-- `STRAVA_CLIENT_SECRET`: 你的 Strava 客户端密钥
-- `STRAVA_REFRESH_TOKEN`: 你的 Strava refresh token
-
-**Nike 配置（备选）：**
-
-- `NIKE_REFRESH_TOKEN`: 你的 Nike refresh token（推荐）
-- 或 `NIKE_ACCESS_TOKEN`: 你的 Nike access token
-
-**数据库配置：**
-
-- `DATABASE_URL`: 数据库连接地址（使用 Turso 或其他远程数据库）
-
-#### 2. 自动同步机制
-
-- **定时同步**：每天 UTC 0:00（北京时间上午 8:00）自动执行
-- **手动触发**：在 GitHub Actions 页面可手动触发同步
-- **优先级**：Strava > Nike（如果两者都配置，优先使用 Strava）
-
-#### 3. 本地手动同步（可选）
-
-如果需要本地测试同步功能：
+### 3. 初始化数据库
 
 ```bash
-bun run sync
+bun run db:push
 ```
 
-### 初始化数据库
+### 4. 启动开发服务器
 
 ```bash
-pnpm db:push
+bun run dev
 ```
 
-### 启动开发服务器
+访问 [http://localhost:3000](http://localhost:3000)
 
-```bash
-pnpm dev
-```
+## GitHub Actions 自动同步
 
-打开 [http://localhost:3000](http://localhost:3000)
+支持通过 GitHub Actions 自动同步运动数据。
+
+### 配置 Secrets
+
+在仓库 `Settings → Secrets and variables → Actions` 中添加：
+
+| Secret                 | 说明                       |
+| ---------------------- | -------------------------- |
+| `STRAVA_CLIENT_ID`     | Strava 客户端 ID           |
+| `STRAVA_CLIENT_SECRET` | Strava 客户端密钥          |
+| `STRAVA_REFRESH_TOKEN` | Strava Refresh Token       |
+| `DATABASE_URL`         | 生产数据库连接地址 (Turso) |
+
+### 同步机制
+
+- **定时同步**: 每日 UTC 0:00 (北京时间 8:00)
+- **手动触发**: Actions 页面手动运行
+- **优先级**: Strava > Nike
 
 ## 开发命令
 
 ```bash
-# 开发
-pnpm dev
+bun run dev          # 启动开发服务器
+bun run build        # 构建生产版本
+bun run sync         # 手动同步数据
 
-# 构建
-pnpm build
+bun run lint         # 代码检查
+bun run format       # 格式化代码
+bun run type-check   # 类型检查
 
-# 启动生产服务器
-pnpm start
-
-# 同步运动数据
-pnpm sync
-
-# 代码检查和格式化
-pnpm lint
-pnpm format
-pnpm type-check
-
-# 数据库操作
-pnpm db:generate  # 生成迁移文件
-pnpm db:push      # 推送 schema 到数据库
-pnpm db:studio    # 打开 Drizzle Studio
+bun run db:push      # 推送 Schema
+bun run db:generate  # 生成迁移文件
+bun run db:studio    # Drizzle Studio
 ```
 
 ## 项目结构
 
 ```
-runPaceFlow/
-├── src/
-│   ├── app/              # Next.js App Router
-│   ├── components/       # React 组件
-│   ├── lib/              # 核心库
-│   ├── stores/           # Jotai 状态
-│   ├── hooks/            # 自定义 Hooks
-│   └── types/            # 类型定义
-├── drizzle/              # 数据库迁移
-└── public/               # 静态资源
+src/
+├── app/           # Next.js App Router 路由
+├── components/    # React 组件
+├── lib/           # 核心库 (数据库、API、工具函数)
+├── stores/        # Jotai 状态管理
+├── hooks/         # 自定义 Hooks
+└── types/         # TypeScript 类型定义
 ```
 
-## 文档
+## Credits
 
-- [MVP 实施计划](./MVP_PLAN.md)
-- [技术规范](./TECHNICAL_SPECIFICATION.md)
-- [对话记录](./CONVERSATION_LOG.md)
+[yihong0618/running_page](https://github.com/yihong0618/running_page)
 
 ## License
 
