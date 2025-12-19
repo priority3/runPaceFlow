@@ -138,7 +138,7 @@ export function AnimatedRoute({
 
         return (
           <Source
-            key={`${activityId}-animated-${index}`}
+            key={`${activityId}-animated-${segment.pace}-${segment.distance}`}
             id={`animated-segment-${activityId}-${index}`}
             type="geojson"
             data={geojson}

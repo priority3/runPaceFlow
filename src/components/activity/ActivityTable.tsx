@@ -6,8 +6,8 @@
 
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Clock, Mountain, TrendingUp, ChevronRight } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Calendar, ChevronRight, Clock, Mountain, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 import { formatDuration } from '@/lib/pace/calculator'
