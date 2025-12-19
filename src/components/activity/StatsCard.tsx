@@ -6,7 +6,7 @@
 
 'use client'
 
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { useEffect } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -34,8 +34,8 @@ export function StatsCard({
 }: StatsCardProps) {
   const motionValue = useMotionValue(0)
 
-  const numericValue = typeof value === 'number' ? value : parseFloat(String(value))
-  const isNumeric = !isNaN(numericValue)
+  const numericValue = typeof value === 'number' ? value : Number.parseFloat(String(value))
+  const isNumeric = !Number.isNaN(numericValue)
   const hasDecimals = isNumeric && numericValue % 1 !== 0
 
   const displayValue = useTransform(motionValue, (latest) =>
@@ -52,7 +52,7 @@ export function StatsCard({
       })
       return controls.stop
     }
-    return undefined
+    return
   }, [numericValue, motionValue, animateNumber, delay, isNumeric])
 
   return (

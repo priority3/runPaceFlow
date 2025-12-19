@@ -9,9 +9,9 @@
 
 import { motion } from 'framer-motion'
 
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { shimmerVariants } from '@/lib/animation/variants'
 import { cn } from '@/lib/utils'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /**

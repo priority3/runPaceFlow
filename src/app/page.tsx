@@ -96,9 +96,9 @@ export default function HomePage() {
         <section className="mb-12">
           {statsLoading ? (
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {[0, 1, 2, 3].map((i) => (
                 <div
-                  key={i}
+                  key={`stats-skeleton-${i}`}
                   className="bg-secondary-system-background/50 h-32 animate-pulse rounded-2xl"
                 />
               ))}
@@ -188,9 +188,9 @@ export default function HomePage() {
           {/* Loading State */}
           {activitiesLoading && (
             <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
+              {[0, 1, 2].map((i) => (
                 <div
-                  key={i}
+                  key={`activity-skeleton-${i}`}
                   className="bg-secondary-system-background/50 h-24 animate-pulse rounded-2xl"
                 />
               ))}
