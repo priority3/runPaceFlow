@@ -19,7 +19,7 @@ running 数据记录，现代化UI
 前端框架    Next.js 15 + React 19 + TypeScript
 样式方案    Tailwind CSS 4 + shadcn/ui + Framer Motion
 状态管理    Jotai + TanStack Query
-数据层      Drizzle ORM + Turso (LibSQL)
+数据层      Drizzle ORM + SQLite (Git 持久化)
 API 层      tRPC + Zod
 地图引擎    MapLibre GL + react-map-gl + Turf.js
 ```
@@ -47,9 +47,6 @@ STRAVA_REFRESH_TOKEN=your_refresh_token
 
 # 或 Nike Run Club 配置
 NIKE_REFRESH_TOKEN=your_refresh_token
-
-# 数据库
-DATABASE_URL=file:./local.db
 ```
 
 ### 3. 初始化数据库
@@ -68,23 +65,23 @@ bun run dev
 
 ## GitHub Actions 自动同步
 
-支持通过 GitHub Actions 自动同步运动数据。
+支持通过 GitHub Actions 自动同步运动数据，数据库文件自动提交到仓库。
 
 ### 配置 Secrets
 
 在仓库 `Settings → Secrets and variables → Actions` 中添加：
 
-| Secret                 | 说明                       |
-| ---------------------- | -------------------------- |
-| `STRAVA_CLIENT_ID`     | Strava 客户端 ID           |
-| `STRAVA_CLIENT_SECRET` | Strava 客户端密钥          |
-| `STRAVA_REFRESH_TOKEN` | Strava Refresh Token       |
-| `DATABASE_URL`         | 生产数据库连接地址 (Turso) |
+| Secret                 | 说明                 |
+| ---------------------- | -------------------- |
+| `STRAVA_CLIENT_ID`     | Strava 客户端 ID     |
+| `STRAVA_CLIENT_SECRET` | Strava 客户端密钥    |
+| `STRAVA_REFRESH_TOKEN` | Strava Refresh Token |
 
 ### 同步机制
 
 - **定时同步**: 每日 UTC 0:00 (北京时间 8:00)
 - **手动触发**: Actions 页面手动运行
+- **数据持久化**: SQLite 数据库自动提交到 `data/activities.db`
 - **优先级**: Strava > Nike
 
 ## 开发命令
@@ -113,6 +110,9 @@ src/
 ├── stores/        # Jotai 状态管理
 ├── hooks/         # 自定义 Hooks
 └── types/         # TypeScript 类型定义
+
+data/
+└── activities.db  # SQLite 数据库 (Git 持久化)
 ```
 
 ## Credits
