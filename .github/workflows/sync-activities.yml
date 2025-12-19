@@ -33,6 +33,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Initialize database
+        run: bun run db:push
+
       - name: Sync activities
         env:
           # Strava credentials (优先)
@@ -44,14 +47,14 @@ jobs:
           NIKE_REFRESH_TOKEN: ${{ secrets.NIKE_REFRESH_TOKEN }}
           NIKE_ACCESS_TOKEN: ${{ secrets.NIKE_ACCESS_TOKEN }}
 
-          # Database URL (使用 Turso 或本地 SQLite)
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
           # Sync source override
           SYNC_SOURCE: ${{ github.event.inputs.sync_source || 'auto' }}
         run: bun run sync
 
-      - name: Show sync results
+      - name: Commit database changes
         run: |
-          echo "✅ Sync completed successfully"
-          echo "Check the logs above for details"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/activities.db
+          git diff --quiet --staged || git commit -m "sync: update activities [skip ci]"
+          git push

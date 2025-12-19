@@ -59,12 +59,12 @@ lerna-debug.log*
 .idea
 *.iml
 
-# Database
+# Database (allow data/activities.db for Git-based persistence)
 *.db
 *.db-journal
 *.db-shm
 *.db-wal
-local.db
+!data/activities.db
 
 # Drizzle
 drizzle/**/*.sql
