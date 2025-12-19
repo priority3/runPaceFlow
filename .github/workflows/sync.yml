@@ -1,0 +1,63 @@
+name: Sync Activities
+
+on:
+  schedule:
+    # 每天北京时间早上 8 点运行（UTC 0:00）
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run sync script
+        env:
+          DATABASE_URL: file:./data/activities.db
+          NIKE_ACCESS_TOKEN: ${{ secrets.NIKE_ACCESS_TOKEN }}
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+        run: |
+          # 创建 data 目录（如果不存在）
+          mkdir -p data
+
+          # 初始化数据库（如果不存在）
+          if [ ! -f "data/activities.db" ]; then
+            echo "初始化数据库..."
+            bun run db:push
+          fi
+
+          # 运行同步脚本
+          bun run sync
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet data/activities.db; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/activities.db
+          git commit -m "chore: Update activities database [skip ci]"
+          git push
