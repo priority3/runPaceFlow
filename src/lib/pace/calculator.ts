@@ -15,14 +15,16 @@ export function calculatePace(distance: number, duration: number): number {
 }
 
 /**
- * 格式化配速为 MM:SS/km
+ * 格式化配速为 MM:SS
  * @param paceInSeconds 配速（秒/公里）
+ * @param includeUnit 是否包含单位 /km（默认 false）
  * @returns 格式化的配速字符串
  */
-export function formatPace(paceInSeconds: number): string {
+export function formatPace(paceInSeconds: number, includeUnit = false): string {
   const minutes = Math.floor(paceInSeconds / 60)
   const seconds = Math.floor(paceInSeconds % 60)
-  return `${minutes}:${seconds.toString().padStart(2, '0')}/km`
+  const formatted = `${minutes}:${seconds.toString().padStart(2, '0')}`
+  return includeUnit ? `${formatted}/km` : formatted
 }
 
 /**

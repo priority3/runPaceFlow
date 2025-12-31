@@ -75,9 +75,7 @@ export function FloatingInfoCard({
           {/* 配速 */}
           <div>
             <div className="text-tertiary-label text-xs">配速</div>
-            <div className="text-label text-lg font-bold">
-              {formatPace(currentPace).replace('/km', '')}
-            </div>
+            <div className="text-label text-lg font-bold">{formatPace(currentPace)}</div>
             <div className="text-tertiary-label text-xs">/km</div>
           </div>
 

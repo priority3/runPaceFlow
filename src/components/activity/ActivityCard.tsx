@@ -146,7 +146,9 @@ export function ActivityCard({
                 transition={{ delay: delay + 0.35, ...springs.smooth }}
               >
                 <span className="text-tertiary-label text-xs">配速</span>
-                <span className="text-label text-lg font-semibold">{formatPace(averagePace)}</span>
+                <span className="text-label text-lg font-semibold">
+                  {formatPace(averagePace)}/km
+                </span>
               </motion.div>
             )}
             {elevationGain !== undefined && elevationGain > 0 && (

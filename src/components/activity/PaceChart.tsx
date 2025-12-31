@@ -75,7 +75,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
   const chartData = splits.map((split) => ({
     kilometer: split.kilometer,
     pace: split.pace,
-    paceFormatted: formatPace(split.pace),
+    paceFormatted: `${formatPace(split.pace)}/km`,
   }))
 
   // Find fastest split
@@ -153,7 +153,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
             stroke="rgba(107, 114, 128, 0.5)"
             strokeDasharray="5 5"
             label={{
-              value: `平均 ${formatPace(averagePace)}`,
+              value: `平均 ${formatPace(averagePace)}/km`,
               position: 'right',
               fill: 'rgba(107, 114, 128, 0.6)',
               fontSize: 11,
