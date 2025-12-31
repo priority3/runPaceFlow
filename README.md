@@ -1,123 +1,118 @@
-# RunPaceFlow (WIP)
+# RunPaceFlow
 
-running 数据记录，现代化UI
+Personal running data visualization platform with automatic Strava sync.
 
-## 功能亮点
+[中文文档](./docs/README_CN.md)
 
-| 功能              | 描述                                      |
-| ----------------- | ----------------------------------------- |
-| 🔄 **多平台同步** | 支持 Strava / Nike Run Club 数据自动导入  |
-| ⏰ **定时同步**   | GitHub Actions 每日自动同步，无需手动操作 |
-| 🗺️ **地图可视化** | 基于 MapLibre 的高性能路线展示            |
-| 📊 **配速分析**   | 详细的分段配速图表与趋势分析              |
-| 🎬 **路线回放**   | 动画回放跑步轨迹                          |
-| 📱 **响应式设计** | 完美适配桌面与移动端                      |
+## Features
 
-## 技术栈
+- Strava / Nike Run Club data import
+- Map route visualization with animated playback
+- Split pace analysis and charts
+- Daily auto-sync via GitHub Actions
+- Responsive design for desktop and mobile
 
-```
-前端框架    Next.js 15 + React 19 + TypeScript
-样式方案    Tailwind CSS 4 + shadcn/ui + Framer Motion
-状态管理    Jotai + TanStack Query
-数据层      Drizzle ORM + SQLite (Git 持久化)
-API 层      tRPC + Zod
-地图引擎    MapLibre GL + react-map-gl + Turf.js
-```
+## Configuration
 
-## 快速开始
+### Environment Variables
 
-### 1. 安装依赖
+Create a `.env.local` file:
 
 ```bash
-bun install
-```
+# Required - Map style
+NEXT_PUBLIC_MAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
 
-### 2. 配置环境变量
-
-创建 `.env.local`：
-
-```bash
-# 地图样式 (MapLibre 开源样式，无需 token)
-NEXT_PUBLIC_MAP_STYLE=https://demotiles.maplibre.org/style.json
-
-# Strava 配置 (推荐)
+# Strava (recommended)
 STRAVA_CLIENT_ID=your_client_id
 STRAVA_CLIENT_SECRET=your_client_secret
 STRAVA_REFRESH_TOKEN=your_refresh_token
 
-# 或 Nike Run Club 配置
-NIKE_REFRESH_TOKEN=your_refresh_token
+# Nike Run Club (optional)
+NIKE_ACCESS_TOKEN=your_access_token
 ```
 
-### 3. 初始化数据库
+### Getting Strava Token
+
+1. Go to [Strava API Settings](https://www.strava.com/settings/api) and create an app
+2. Get your `Client ID` and `Client Secret`
+3. Obtain `Refresh Token` via OAuth flow (see [strava-oauth guide](https://github.com/yihong0618/running_page/blob/master/docs/strava_bindtoken.md))
+
+## Local Development
 
 ```bash
+# Install dependencies
+bun install
+
+# Initialize database
 bun run db:push
-```
 
-### 4. 启动开发服务器
-
-```bash
+# Start dev server
 bun run dev
+
+# Manual sync
+bun run sync
 ```
 
-访问 [http://localhost:3000](http://localhost:3000)
+Visit http://localhost:3000
 
-## GitHub Actions 自动同步
+## Deployment
 
-支持通过 GitHub Actions 自动同步运动数据，数据库文件自动提交到仓库。
+### Option 1: Vercel (Recommended)
 
-### 配置 Secrets
+1. Fork this repository
+2. Import project in Vercel
+3. Configure environment variables (same as `.env.local`)
+4. Deploy
 
-在仓库 `Settings → Secrets and variables → Actions` 中添加：
+> Note: Vercel deployment requires GitHub Actions for data sync. Database is stored in the repository.
 
-| Secret                 | 说明                 |
-| ---------------------- | -------------------- |
-| `STRAVA_CLIENT_ID`     | Strava 客户端 ID     |
-| `STRAVA_CLIENT_SECRET` | Strava 客户端密钥    |
-| `STRAVA_REFRESH_TOKEN` | Strava Refresh Token |
-
-### 同步机制
-
-- **定时同步**: 每日 UTC 0:00 (北京时间 8:00)
-- **手动触发**: Actions 页面手动运行
-- **数据持久化**: SQLite 数据库自动提交到 `data/activities.db`
-- **优先级**: Strava > Nike
-
-## 开发命令
+### Option 2: Docker (WIP)
 
 ```bash
-bun run dev          # 启动开发服务器
-bun run build        # 构建生产版本
-bun run sync         # 手动同步数据
+# Using docker-compose
+docker compose up -d
 
-bun run lint         # 代码检查
-bun run format       # 格式化代码
-bun run type-check   # 类型检查
-
-bun run db:push      # 推送 Schema
-bun run db:generate  # 生成迁移文件
-bun run db:studio    # Drizzle Studio
+# Or manual build
+docker build -t runpaceflow .
+docker run -d -p 3000:3000 \
+  -e NEXT_PUBLIC_MAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json \
+  -e STRAVA_CLIENT_ID=your_id \
+  -e STRAVA_CLIENT_SECRET=your_secret \
+  -e STRAVA_REFRESH_TOKEN=your_token \
+  -v runpaceflow_data:/app/data \
+  runpaceflow
 ```
 
-## 项目结构
+## GitHub Actions Auto-Sync
 
-```
-src/
-├── app/           # Next.js App Router 路由
-├── components/    # React 组件
-├── lib/           # 核心库 (数据库、API、工具函数)
-├── stores/        # Jotai 状态管理
-├── hooks/         # 自定义 Hooks
-└── types/         # TypeScript 类型定义
+Built-in GitHub Actions workflow for daily activity sync.
 
-data/
-└── activities.db  # SQLite 数据库 (Git 持久化)
-```
+### Configure Secrets
+
+Add in repository `Settings → Secrets and variables → Actions`:
+
+| Secret                 | Description                           |
+| ---------------------- | ------------------------------------- |
+| `STRAVA_CLIENT_ID`     | Strava Client ID                      |
+| `STRAVA_CLIENT_SECRET` | Strava Client Secret                  |
+| `STRAVA_REFRESH_TOKEN` | Strava Refresh Token                  |
+| `PAT`                  | Personal Access Token for push access |
+
+### Sync Schedule
+
+- **Auto sync**: Daily at UTC 0:00 (Beijing 8:00)
+  Customize by editing cron in `.github/workflows/sync.yml`:
+  ```yaml
+  on:
+    schedule:
+      - cron: '0 0 * * *' # UTC time, format: min hour day month weekday
+  ```
+- **Manual trigger**: Actions → Sync Activities → Run workflow
+- **Data storage**: SQLite database auto-committed to `data/activities.db`
 
 ## Credits
 
-[yihong0618/running_page](https://github.com/yihong0618/running_page)
+Inspired by [yihong0618/running_page](https://github.com/yihong0618/running_page)
 
 ## License
 
