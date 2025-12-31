@@ -1,7 +1,7 @@
 /**
  * Activity Detail Page
  *
- * Glassmorphic design with seamless depth transitions
+ * Spring-based animations with shared element transitions
  */
 
 'use client'
@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
@@ -21,13 +21,14 @@ import { KilometerMarkers } from '@/components/map/KilometerMarkers'
 import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
 import { RunMap } from '@/components/map/RunMap'
 import { useActivityWithSplits } from '@/hooks/use-activities'
+import { layoutTransition, springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import type { TrackPoint } from '@/lib/map/pace-utils'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
 import { formatDuration, formatPace } from '@/lib/pace/calculator'
 import { parseGPX } from '@/lib/sync/parser'
 import { formatDate, formatTime } from '@/lib/utils'
-import { animationProgressAtom, isPlayingAtom, mapViewportAtom } from '@/stores/map'
+import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
 import type { Split } from '@/types/activity'
 
 export default function ActivityDetailPage() {
@@ -41,7 +42,6 @@ export default function ActivityDetailPage() {
   // Playback state
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
   const [animationProgress, setAnimationProgress] = useAtom(animationProgressAtom)
-  const [, setMapViewport] = useAtom(mapViewportAtom)
 
   // Parse GPX data and generate track points
   const { paceSegments, kmMarkers, trackPoints, bounds } = useMemo(() => {
@@ -113,34 +113,6 @@ export default function ActivityDetailPage() {
       bounds: mapBounds,
     }
   }, [data])
-
-  // Center map on route when data loads
-  useEffect(() => {
-    if (bounds) {
-      const centerLng = (bounds.minLng + bounds.maxLng) / 2
-      const centerLat = (bounds.minLat + bounds.maxLat) / 2
-
-      // Calculate zoom level based on bounds
-      const lngSpan = bounds.maxLng - bounds.minLng
-      const latSpan = bounds.maxLat - bounds.minLat
-      const maxSpan = Math.max(lngSpan, latSpan)
-
-      // Rough zoom calculation (adjust based on viewport size)
-      let zoom = 14
-      if (maxSpan > 0.1) zoom = 11
-      else if (maxSpan > 0.05) zoom = 12
-      else if (maxSpan > 0.02) zoom = 13
-      else if (maxSpan > 0.01) zoom = 14
-      else zoom = 15
-      setMapViewport({
-        longitude: centerLng,
-        latitude: centerLat,
-        zoom,
-        pitch: 0,
-        bearing: 0,
-      })
-    }
-  }, [bounds, setMapViewport])
 
   // Get current point for animation
   const currentPoint = useMemo(() => {
@@ -232,13 +204,8 @@ export default function ActivityDetailPage() {
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
 
       <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
+        {/* Header with shared element transition */}
+        <div className="mb-8">
           <button
             type="button"
             onClick={() => router.push('/')}
@@ -248,59 +215,61 @@ export default function ActivityDetailPage() {
             <span>返回</span>
           </button>
 
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-label text-2xl font-semibold sm:text-3xl">
-                <span>{typeEmoji}</span> {activity.title || '跑步活动'}
-              </h1>
-              <p className="text-label/50 mt-2 text-sm">
-                {formatDate(activity.startTime)} {formatTime(activity.startTime)}
-              </p>
-            </div>
+          {/* Shared element: activity card transforms into header */}
+          <motion.div
+            layoutId={`activity-card-${activityId}`}
+            transition={layoutTransition}
+            className="rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-label text-2xl font-semibold sm:text-3xl">
+                  <span>{typeEmoji}</span> {activity.title || '跑步活动'}
+                </h1>
+                <p className="text-label/50 mt-2 text-sm">
+                  {formatDate(activity.startTime)} {formatTime(activity.startTime)}
+                </p>
+              </div>
 
-            {/* Playback controls */}
-            <div className="flex items-center gap-2">
-              <motion.button
-                onClick={handlePlayPause}
-                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2.5 text-sm font-medium backdrop-blur-xl transition-all hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="h-4 w-4" />
-                    <span className="hidden sm:inline">暂停</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4" />
-                    <span className="hidden sm:inline">回放</span>
-                  </>
-                )}
-              </motion.button>
-              {animationProgress > 0 && (
+              {/* Playback controls */}
+              <div className="flex items-center gap-2">
                 <motion.button
-                  onClick={handleStopPlayback}
-                  className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2.5 text-sm backdrop-blur-xl transition-all hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.02 }}
+                  onClick={handlePlayPause}
+                  className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2.5 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
                   whileTap={{ scale: 0.98 }}
+                  transition={springs.snappy}
                 >
-                  <Square className="h-3.5 w-3.5" />
+                  {isPlaying ? (
+                    <>
+                      <Pause className="h-4 w-4" />
+                      <span className="hidden sm:inline">暂停</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4" />
+                      <span className="hidden sm:inline">回放</span>
+                    </>
+                  )}
                 </motion.button>
-              )}
+                {animationProgress > 0 && (
+                  <motion.button
+                    onClick={handleStopPlayback}
+                    className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2.5 text-sm backdrop-blur-xl transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={springs.snappy}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                  </motion.button>
+                )}
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
         {/* Stats Cards */}
-        <motion.section
-          className="mb-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
+        <section className="mb-10">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatsCard title="距离" value={(activity.distance / 1000).toFixed(2)} unit="km" />
             <StatsCard
@@ -321,21 +290,16 @@ export default function ActivityDetailPage() {
               <StatsCard title="爬升" value={activity.elevationGain.toFixed(0)} unit="m" />
             )}
           </div>
-        </motion.section>
+        </section>
 
         {/* Map Section */}
-        <motion.section
-          className="mb-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
+        <section className="mb-10">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-label text-lg font-semibold">路线地图</h2>
           </div>
           <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-gray-100 shadow-sm dark:border-white/10 dark:bg-gray-900">
             <div className="h-[400px] sm:h-[500px]">
-              <RunMap className="h-full w-full">
+              <RunMap className="h-full w-full" bounds={bounds || undefined}>
                 {/* Static pace route or animated playback */}
                 {isPlaying ? (
                   <AnimatedRoute
@@ -366,16 +330,11 @@ export default function ActivityDetailPage() {
               )}
             </div>
           </div>
-        </motion.section>
+        </section>
 
         {/* Pace Analysis Section */}
         {chartSplits.length > 0 && (
-          <motion.section
-            className="mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
+          <section className="mb-10">
             <div className="mb-4">
               <h2 className="text-label text-lg font-semibold">配速分析</h2>
             </div>
@@ -392,17 +351,12 @@ export default function ActivityDetailPage() {
                 <SplitsTable splits={chartSplits} />
               </div>
             </div>
-          </motion.section>
+          </section>
         )}
 
         {/* Additional Stats (if available) */}
         {(activity.averageHeartRate || activity.calories || activity.bestPace) && (
-          <motion.section
-            className="mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
+          <section className="mb-10">
             <div className="mb-4">
               <h2 className="text-label text-lg font-semibold">其他数据</h2>
             </div>
@@ -429,7 +383,7 @@ export default function ActivityDetailPage() {
                 />
               )}
             </div>
-          </motion.section>
+          </section>
         )}
       </div>
     </div>
