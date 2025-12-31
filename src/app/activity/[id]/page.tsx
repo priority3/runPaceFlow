@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
@@ -22,10 +22,12 @@ import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
 import { RunMap } from '@/components/map/RunMap'
 import { useActivityWithSplits } from '@/hooks/use-activities'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
+import type { TrackPoint } from '@/lib/map/pace-utils'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
 import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import { parseGPX } from '@/lib/sync/parser'
 import { formatDate, formatTime } from '@/lib/utils'
-import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
+import { animationProgressAtom, isPlayingAtom, mapViewportAtom } from '@/stores/map'
 import type { Split } from '@/types/activity'
 
 export default function ActivityDetailPage() {
@@ -39,19 +41,106 @@ export default function ActivityDetailPage() {
   // Playback state
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
   const [animationProgress, setAnimationProgress] = useAtom(animationProgressAtom)
+  const [, setMapViewport] = useAtom(mapViewportAtom)
 
-  // Generate mock data for demo (since we don't have real GPX data yet)
-  const { paceSegments, kmMarkers, trackPoints } = useMemo(() => {
-    // TODO: Replace with real GPX parsing when data is available
-    const points = generateMockTrackPoints()
+  // Parse GPX data and generate track points
+  const { paceSegments, kmMarkers, trackPoints, bounds } = useMemo(() => {
+    let points: TrackPoint[] = []
+
+    // Try to parse real GPX data from activity
+    if (data?.activity.gpxData) {
+      try {
+        const gpxResult = parseGPX(data.activity.gpxData)
+        if (gpxResult.tracks.length > 0 && gpxResult.tracks[0].points.length > 0) {
+          // Convert GPX points to TrackPoint format
+          let cumulativeDistance = 0
+          const gpxPoints = gpxResult.tracks[0].points
+
+          points = gpxPoints.map((pt, i) => {
+            if (i > 0) {
+              // Calculate distance from previous point using Haversine
+              const prev = gpxPoints[i - 1]
+              const R = 6371e3
+              const φ1 = (prev.lat * Math.PI) / 180
+              const φ2 = (pt.lat * Math.PI) / 180
+              const Δφ = ((pt.lat - prev.lat) * Math.PI) / 180
+              const Δλ = ((pt.lon - prev.lon) * Math.PI) / 180
+              const a =
+                Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+              cumulativeDistance += R * c
+            }
+
+            return {
+              longitude: pt.lon,
+              latitude: pt.lat,
+              elevation: pt.ele,
+              time: pt.time || new Date(),
+              distance: cumulativeDistance,
+            }
+          })
+        }
+      } catch (err) {
+        console.warn('Failed to parse GPX data:', err)
+      }
+    }
+
+    // Fall back to mock data if no real GPX
+    if (points.length === 0) {
+      points = generateMockTrackPoints()
+    }
+
     const averagePace = data?.activity.averagePace || 360
+
+    // Calculate bounds for map fitting
+    let mapBounds = null
+    if (points.length > 0) {
+      const lngs = points.map((p) => p.longitude)
+      const lats = points.map((p) => p.latitude)
+      mapBounds = {
+        minLng: Math.min(...lngs),
+        maxLng: Math.max(...lngs),
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+      }
+    }
 
     return {
       paceSegments: createPaceSegments(points, averagePace, 50),
       kmMarkers: createKilometerMarkers(points),
       trackPoints: points,
+      bounds: mapBounds,
     }
   }, [data])
+
+  // Center map on route when data loads
+  useEffect(() => {
+    if (bounds) {
+      const centerLng = (bounds.minLng + bounds.maxLng) / 2
+      const centerLat = (bounds.minLat + bounds.maxLat) / 2
+
+      // Calculate zoom level based on bounds
+      const lngSpan = bounds.maxLng - bounds.minLng
+      const latSpan = bounds.maxLat - bounds.minLat
+      const maxSpan = Math.max(lngSpan, latSpan)
+
+      // Rough zoom calculation (adjust based on viewport size)
+      let zoom = 14
+      if (maxSpan > 0.1) zoom = 11
+      else if (maxSpan > 0.05) zoom = 12
+      else if (maxSpan > 0.02) zoom = 13
+      else if (maxSpan > 0.01) zoom = 14
+      else zoom = 15
+      setMapViewport({
+        longitude: centerLng,
+        latitude: centerLat,
+        zoom,
+        pitch: 0,
+        bearing: 0,
+      })
+    }
+  }, [bounds, setMapViewport])
 
   // Get current point for animation
   const currentPoint = useMemo(() => {
@@ -214,9 +303,19 @@ export default function ActivityDetailPage() {
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatsCard title="距离" value={(activity.distance / 1000).toFixed(2)} unit="km" />
-            <StatsCard title="时长" value={formatDuration(activity.duration)} unit="" />
+            <StatsCard
+              title="时长"
+              value={formatDuration(activity.duration)}
+              unit=""
+              animateNumber={false}
+            />
             {activity.averagePace && (
-              <StatsCard title="平均配速" value={formatPace(activity.averagePace)} unit="/km" />
+              <StatsCard
+                title="平均配速"
+                value={formatPace(activity.averagePace)}
+                unit="/km"
+                animateNumber={false}
+              />
             )}
             {activity.elevationGain !== null && activity.elevationGain > 0 && (
               <StatsCard title="爬升" value={activity.elevationGain.toFixed(0)} unit="m" />
@@ -297,7 +396,7 @@ export default function ActivityDetailPage() {
         )}
 
         {/* Additional Stats (if available) */}
-        {(activity.averageHeartRate || activity.calories) && (
+        {(activity.averageHeartRate || activity.calories || activity.bestPace) && (
           <motion.section
             className="mb-10"
             initial={{ opacity: 0, y: 20 }}
@@ -322,7 +421,12 @@ export default function ActivityDetailPage() {
                 <StatsCard title="卡路里" value={activity.calories.toString()} unit="kcal" />
               )}
               {activity.bestPace && (
-                <StatsCard title="最佳配速" value={formatPace(activity.bestPace)} unit="/km" />
+                <StatsCard
+                  title="最快瞬时配速"
+                  value={formatPace(activity.bestPace)}
+                  unit="/km"
+                  animateNumber={false}
+                />
               )}
             </div>
           </motion.section>

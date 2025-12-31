@@ -70,7 +70,7 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       duration,
       distance,
       averagePace,
-      bestPace: rawActivity.bestPace,
+      bestPace: rawActivity.bestPace, // 瞬时最快配速（来自 Strava max_speed）
       elevationGain: rawActivity.elevationGain,
       averageHeartRate: rawActivity.averageHeartRate,
       maxHeartRate: rawActivity.maxHeartRate,
@@ -190,6 +190,14 @@ async function generateSplits(
   if (splitRecords.length > 0) {
     await db.insert(splits).values(splitRecords)
     console.info(`Generated ${splitRecords.length} splits for activity ${activityId}`)
+
+    // 计算最佳配速（配速数值最小的分段）并更新活动记录
+    const validPaces = splitRecords.map((r) => r.pace).filter((p) => p > 0)
+    if (validPaces.length > 0) {
+      const bestPace = Math.min(...validPaces)
+      await db.update(activities).set({ bestPace }).where(eq(activities.id, activityId))
+      console.info(`Updated bestPace for activity ${activityId}: ${bestPace.toFixed(1)} sec/km`)
+    }
   }
 }
 
