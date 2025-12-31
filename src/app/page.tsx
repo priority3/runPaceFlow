@@ -6,10 +6,8 @@
 
 'use client'
 
-import { motion } from 'framer-motion'
-import { useSetAtom } from 'jotai'
 import { Activity, Calendar, Clock, MapPin } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 
 import { ActivityTable } from '@/components/activity/ActivityTable'
 import { StatsCard } from '@/components/activity/StatsCard'
@@ -17,20 +15,18 @@ import { Header } from '@/components/layout/Header'
 import { RouteLayer } from '@/components/map/RouteLayer'
 import { RunMap } from '@/components/map/RunMap'
 import { useActivities, useActivityStats } from '@/hooks/use-activities'
-import { mapViewportAtom } from '@/stores/map'
 import type { Activity as ActivityType } from '@/types/activity'
 import type { RouteData } from '@/types/map'
 
 export default function HomePage() {
   const { data: stats, isLoading: statsLoading } = useActivityStats()
   const { data: activitiesData, isLoading: activitiesLoading, error } = useActivities({ limit: 20 })
-  const setViewport = useSetAtom(mapViewportAtom)
 
-  // Parse GPX data to routes for map display
-  const routes: RouteData[] = useMemo(() => {
-    if (!activitiesData?.activities) return []
+  // Parse GPX data to routes and calculate bounds for map display
+  const { routes, bounds } = useMemo(() => {
+    if (!activitiesData?.activities) return { routes: [], bounds: null }
 
-    return activitiesData.activities
+    const parsedRoutes = activitiesData.activities
       .filter((activity: ActivityType) => activity.gpxData)
       .map((activity: ActivityType) => ({
         id: activity.id,
@@ -39,50 +35,26 @@ export default function HomePage() {
         width: 3,
       }))
       .filter((route: RouteData) => route.coordinates.length > 0)
-  }, [activitiesData])
 
-  // Auto-center map on routes when they load
-  useEffect(() => {
-    if (routes.length === 0) return
+    // Calculate bounds from all routes
+    if (parsedRoutes.length === 0) return { routes: parsedRoutes, bounds: null }
 
-    // Collect all coordinates from all routes
-    const allCoords = routes.flatMap((route) => route.coordinates)
-    if (allCoords.length === 0) return
+    const allCoords = parsedRoutes.flatMap((route) => route.coordinates)
+    if (allCoords.length === 0) return { routes: parsedRoutes, bounds: null }
 
-    // Calculate bounding box
     const lats = allCoords.map((c) => c.latitude)
     const lons = allCoords.map((c) => c.longitude)
 
-    const minLat = Math.min(...lats)
-    const maxLat = Math.max(...lats)
-    const minLon = Math.min(...lons)
-    const maxLon = Math.max(...lons)
-
-    // Calculate center
-    const centerLat = (minLat + maxLat) / 2
-    const centerLon = (minLon + maxLon) / 2
-
-    // Calculate appropriate zoom level based on bounds
-    const latDiff = maxLat - minLat
-    const lonDiff = maxLon - minLon
-    const maxDiff = Math.max(latDiff, lonDiff)
-
-    // Rough zoom calculation (adjust as needed)
-    let zoom = 12
-    if (maxDiff > 0.5) zoom = 10
-    else if (maxDiff > 0.2) zoom = 11
-    else if (maxDiff > 0.1) zoom = 12
-    else if (maxDiff > 0.05) zoom = 13
-    else zoom = 14
-
-    setViewport({
-      longitude: centerLon,
-      latitude: centerLat,
-      zoom,
-      pitch: 0,
-      bearing: 0,
-    })
-  }, [routes, setViewport])
+    return {
+      routes: parsedRoutes,
+      bounds: {
+        minLng: Math.min(...lons),
+        maxLng: Math.max(...lons),
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+      },
+    }
+  }, [activitiesData])
 
   return (
     <div className="bg-system-background min-h-screen">
@@ -138,12 +110,7 @@ export default function HomePage() {
         </section>
 
         {/* Map Section */}
-        <motion.section
-          className="mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-        >
+        <section className="mb-12">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-label text-xl font-semibold">路线地图</h2>
             <span className="text-tertiary-label text-sm">
@@ -152,19 +119,15 @@ export default function HomePage() {
           </div>
           <div className="border-separator/30 relative overflow-hidden rounded-3xl border bg-gray-100 shadow-sm dark:bg-gray-900">
             <div className="h-[400px] sm:h-[500px]">
-              <RunMap className="h-full w-full">
+              <RunMap className="h-full w-full" bounds={bounds || undefined}>
                 {routes.length > 0 && <RouteLayer routes={routes} />}
               </RunMap>
             </div>
           </div>
-        </motion.section>
+        </section>
 
         {/* Activities Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
+        <section>
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h2 className="text-label text-xl font-semibold">最近活动</h2>
@@ -201,7 +164,7 @@ export default function HomePage() {
           {activitiesData && !activitiesLoading && (
             <ActivityTable activities={activitiesData.activities} />
           )}
-        </motion.section>
+        </section>
       </main>
     </div>
   )
