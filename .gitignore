@@ -79,3 +79,5 @@ Thumbs.db
 
 .playwright-mcp/
 .serena/
+
+.claude/settings.local.json
