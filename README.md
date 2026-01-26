@@ -9,6 +9,7 @@ Personal running data visualization platform with automatic Strava sync.
 - Strava / Nike Run Club data import
 - Map route visualization with animated playback
 - Split pace analysis and charts
+- AI-powered running insights (Claude AI)
 - Daily auto-sync via GitHub Actions
 - Responsive design for desktop and mobile
 
@@ -29,6 +30,10 @@ STRAVA_REFRESH_TOKEN=your_refresh_token
 
 # Nike Run Club (optional)
 NIKE_ACCESS_TOKEN=your_access_token
+
+# Claude AI (optional - for running insights)
+ANTHROPIC_API_KEY=your_api_key
+ANTHROPIC_BASE_URL=  # Optional: custom API endpoint for proxy
 ```
 
 ### Getting Strava Token
@@ -36,6 +41,16 @@ NIKE_ACCESS_TOKEN=your_access_token
 1. Go to [Strava API Settings](https://www.strava.com/settings/api) and create an app
 2. Get your `Client ID` and `Client Secret`
 3. Obtain `Refresh Token` via OAuth flow (see [strava-oauth guide](https://github.com/yihong0618/running_page/blob/master/docs/strava_bindtoken.md))
+
+### Claude AI Setup (Optional)
+
+The AI feature generates personalized running insights for each activity, analyzing your pace, splits, and performance patterns.
+
+1. Get an API key from [Anthropic Console](https://console.anthropic.com/)
+2. Add `ANTHROPIC_API_KEY` to your environment variables
+3. (Optional) Set `ANTHROPIC_BASE_URL` if using a proxy or alternative API endpoint
+
+> Note: Without Claude AI configured, the app works normally but without AI insights.
 
 ## Local Development
 

@@ -9,6 +9,7 @@
 - 支持 Strava / Nike Run Club 数据导入
 - 地图路线可视化与动画回放
 - 分段配速分析与图表展示
+- **AI 跑步分析**（Claude AI）
 - GitHub Actions 每日自动同步
 - 响应式设计，适配桌面与移动端
 
@@ -29,6 +30,10 @@ STRAVA_REFRESH_TOKEN=your_refresh_token
 
 # Nike Run Club 配置 (可选)
 NIKE_ACCESS_TOKEN=your_access_token
+
+# Claude AI 配置 (可选 - 用于 AI 跑步分析)
+ANTHROPIC_API_KEY=your_api_key
+ANTHROPIC_BASE_URL=  # 可选：自定义 API 地址（用于代理）
 ```
 
 ### 获取 Strava Token
@@ -36,6 +41,16 @@ NIKE_ACCESS_TOKEN=your_access_token
 1. 前往 [Strava API Settings](https://www.strava.com/settings/api) 创建应用
 2. 获取 `Client ID` 和 `Client Secret`
 3. 通过 OAuth 流程获取 `Refresh Token`（可参考 [strava-oauth](https://github.com/yihong0618/running_page/blob/master/docs/strava_bindtoken.md)）
+
+### Claude AI 配置（可选）
+
+AI 功能可为每次跑步生成个性化分析，包括配速分析、分段表现和训练建议。
+
+1. 前往 [Anthropic Console](https://console.anthropic.com/) 获取 API Key
+2. 将 `ANTHROPIC_API_KEY` 添加到环境变量
+3. （可选）设置 `ANTHROPIC_BASE_URL` 用于代理或其他兼容接口
+
+> 注意：未配置 Claude AI 时，应用正常运行，但不会显示 AI 分析。
 
 ## 本地开发
 
