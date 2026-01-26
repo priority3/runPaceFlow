@@ -18,6 +18,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@libsql/client": "^0.15.15",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-popover": "^1.1.4",
@@ -42,7 +43,9 @@
     "react": "^19.0.0-rc.1",
     "react-dom": "^19.0.0-rc.1",
     "react-map-gl": "^8.1.0",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.3.0",
+    "remark-gfm": "^4.0.1",
     "superjson": "^2.2.5",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-uikit-colors": "^1.0.0",

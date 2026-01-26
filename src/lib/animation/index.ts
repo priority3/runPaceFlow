@@ -1,11 +1,11 @@
-export { PageTransitionProvider } from './PageTransitionProvider'
 export {
-  springs,
   fadeIn,
-  slideUp,
-  pageTransition,
-  tapScale,
-  hoverScale,
   fastStagger,
+  hoverScale,
   layoutTransition,
+  pageTransition,
+  slideUp,
+  springs,
+  tapScale,
 } from './config'
+export { PageTransitionProvider } from './PageTransitionProvider'

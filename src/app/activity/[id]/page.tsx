@@ -12,6 +12,7 @@ import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 
+import { AIInsight } from '@/components/activity/AIInsight'
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
 import { StatsCard } from '@/components/activity/StatsCard'
@@ -290,6 +291,11 @@ export default function ActivityDetailPage() {
               <StatsCard title="爬升" value={activity.elevationGain.toFixed(0)} unit="m" />
             )}
           </div>
+        </section>
+
+        {/* AI Insight Section */}
+        <section className="mb-10">
+          <AIInsight activityId={activityId} />
         </section>
 
         {/* Map Section */}

@@ -10,7 +10,8 @@
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Map, { type MapRef } from 'react-map-gl/maplibre'
+import type { MapRef } from 'react-map-gl/maplibre'
+import Map from 'react-map-gl/maplibre'
 
 import type { MapViewport } from '@/types/map'
 
@@ -51,10 +52,15 @@ export function RunMap({
   boundsPadding = 60,
 }: RunMapProps) {
   const mapRef = useRef<MapRef>(null)
-  const boundsKeyRef = useRef<string>('')
+  const prevBoundsRef = useRef<string | null>(null)
 
-  // Calculate initial viewport from bounds if provided
-  const calculatedInitialViewport = useMemo(() => {
+  // Generate a key for current bounds
+  const boundsKey = bounds
+    ? `${bounds.minLng.toFixed(6)},${bounds.maxLng.toFixed(6)},${bounds.minLat.toFixed(6)},${bounds.maxLat.toFixed(6)}`
+    : null
+
+  // Calculate viewport from bounds if provided
+  const calculatedViewport = useMemo(() => {
     if (bounds) {
       const centerLng = (bounds.minLng + bounds.maxLng) / 2
       const centerLat = (bounds.minLat + bounds.maxLat) / 2
@@ -81,35 +87,37 @@ export function RunMap({
     return { ...DEFAULT_VIEW_STATE, ...initialViewport }
   }, [bounds, initialViewport])
 
-  const [viewport, setViewport] = useState<MapViewport>(calculatedInitialViewport)
+  const [viewport, setViewport] = useState<MapViewport>(calculatedViewport)
 
-  // Update viewport when bounds change (for page navigation)
+  // Fit bounds when they change
   useEffect(() => {
-    if (bounds) {
-      const newKey = `${bounds.minLng},${bounds.maxLng},${bounds.minLat},${bounds.maxLat}`
-      if (boundsKeyRef.current !== newKey) {
-        boundsKeyRef.current = newKey
-        setViewport(calculatedInitialViewport)
+    if (!bounds || !boundsKey) return
 
-        // Also call fitBounds if map is ready
-        if (mapRef.current) {
-          const map = mapRef.current.getMap()
-          if (map) {
-            map.fitBounds(
-              [
-                [bounds.minLng, bounds.minLat],
-                [bounds.maxLng, bounds.maxLat],
-              ],
-              {
-                padding: boundsPadding,
-                duration: 0,
-              },
-            )
-          }
-        }
-      }
+    // Check if bounds actually changed
+    if (prevBoundsRef.current === boundsKey) return
+    prevBoundsRef.current = boundsKey
+
+    // Update viewport state
+    setViewport(calculatedViewport)
+
+    // Call fitBounds on the map if it's ready
+    const map = mapRef.current?.getMap()
+    if (map) {
+      // Use requestAnimationFrame to ensure map is ready
+      requestAnimationFrame(() => {
+        map.fitBounds(
+          [
+            [bounds.minLng, bounds.minLat],
+            [bounds.maxLng, bounds.maxLat],
+          ],
+          {
+            padding: boundsPadding,
+            duration: 0,
+          },
+        )
+      })
     }
-  }, [bounds, boundsPadding, calculatedInitialViewport])
+  }, [bounds, boundsKey, boundsPadding, calculatedViewport])
 
   const handleMove = useCallback((evt: { viewState: MapViewport }) => {
     setViewport({
@@ -136,11 +144,11 @@ export function RunMap({
             duration: 0,
           },
         )
-        // Update ref to prevent duplicate fitting
-        boundsKeyRef.current = `${bounds.minLng},${bounds.maxLng},${bounds.minLat},${bounds.maxLat}`
+        // Update ref to mark bounds as fitted
+        prevBoundsRef.current = boundsKey
       }
     }
-  }, [bounds, boundsPadding])
+  }, [bounds, boundsKey, boundsPadding])
 
   return (
     <div className={className}>

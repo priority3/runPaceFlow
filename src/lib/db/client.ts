@@ -1,6 +1,7 @@
+import path from 'node:path'
+
 import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
-import path from 'path'
 
 import * as schema from './schema'
 
