@@ -98,6 +98,22 @@ export const syncLogs = sqliteTable('sync_logs', {
   completedAt: integer('completed_at', { mode: 'timestamp' }),
 })
 
+/**
+ * AI 洞察表 - 缓存 Claude 生成的跑步分析
+ */
+export const activityInsights = sqliteTable('activity_insights', {
+  id: text('id').primaryKey(),
+  activityId: text('activity_id')
+    .notNull()
+    .references(() => activities.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  generatedAt: integer('generated_at', { mode: 'timestamp' }).notNull(),
+  model: text('model').notNull(), // e.g., 'claude-sonnet-4-20250514'
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+})
+
 // 导出类型
 export type Activity = typeof activities.$inferSelect
 export type NewActivity = typeof activities.$inferInsert
@@ -110,3 +126,6 @@ export type NewUserProfile = typeof userProfile.$inferInsert
 
 export type SyncLog = typeof syncLogs.$inferSelect
 export type NewSyncLog = typeof syncLogs.$inferInsert
+
+export type ActivityInsight = typeof activityInsights.$inferSelect
+export type NewActivityInsight = typeof activityInsights.$inferInsert

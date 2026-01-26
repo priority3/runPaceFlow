@@ -6,6 +6,7 @@
 
 import { createTRPCRouter } from '../server'
 import { activitiesRouter } from './activities'
+import { insightsRouter } from './insights'
 import { syncRouter } from './sync'
 
 /**
@@ -14,9 +15,8 @@ import { syncRouter } from './sync'
  */
 export const appRouter = createTRPCRouter({
   activities: activitiesRouter,
+  insights: insightsRouter,
   sync: syncRouter,
-  // Future routers can be added here:
-  // user: userRouter,
 })
 
 // Export type definition of API

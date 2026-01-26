@@ -155,10 +155,16 @@ export class StravaAdapter implements SyncAdapter {
           break
         }
 
-        // Fetch detailed data for each activity
+        // Fetch detailed data for each activity (only running activities)
         for (const activity of pageActivities) {
           if (activities.length >= totalLimit) {
             break
+          }
+
+          // Skip non-running activities
+          if (!this.isRunningActivity(activity.type)) {
+            console.info(`⏭️ Skipping non-running activity ${activity.id} (type: ${activity.type})`)
+            continue
           }
 
           try {
@@ -480,5 +486,13 @@ ${trackPoints}
     }
 
     return typeMap[stravaType] || 'other'
+  }
+
+  /**
+   * Check if an activity type is running
+   */
+  private isRunningActivity(stravaType: string): boolean {
+    const runningTypes = ['Run', 'TrailRun', 'VirtualRun']
+    return runningTypes.includes(stravaType)
   }
 }
