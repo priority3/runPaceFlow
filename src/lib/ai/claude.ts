@@ -43,25 +43,39 @@ export async function generateActivityInsight(input: ActivityInsightInput): Prom
   const systemPrompt = buildSystemPrompt()
   const userPrompt = buildUserPrompt(input)
 
-  const response = await client.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: userPrompt,
-      },
-    ],
-  })
+  try {
+    const response = await client.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+    })
 
-  // Extract text content from response
-  const textContent = response.content.find((block) => block.type === 'text')
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('No text content in Claude response')
+    // Validate response structure
+    if (!response || !response.content) {
+      // Reason: Some proxies return different response structures
+      throw new Error(`Invalid API response structure: ${JSON.stringify(response).slice(0, 200)}`)
+    }
+
+    // Extract text content from response
+    const textContent = response.content.find((block) => block.type === 'text')
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text content in Claude response')
+    }
+
+    return textContent.text
+  } catch (error) {
+    // Re-throw with more context for debugging
+    if (error instanceof Error) {
+      throw new Error(`Claude API error: ${error.message}`)
+    }
+    throw new Error(`Claude API error: ${String(error)}`)
   }
-
-  return textContent.text
 }
 
 /**
