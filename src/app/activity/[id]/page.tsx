@@ -13,6 +13,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 
 import { AIInsight } from '@/components/activity/AIInsight'
+import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { HeartRateZones } from '@/components/activity/HeartRateZones'
 import { PaceChart } from '@/components/activity/PaceChart'
 import { PaceDistribution } from '@/components/activity/PaceDistribution'
@@ -257,7 +258,7 @@ export default function ActivityDetailPage() {
 
         {/* Map Section - Now at top as main visual focus */}
         <section className="mb-6">
-          <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-gray-100 shadow-sm dark:border-white/10 dark:bg-gray-900">
+          <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-black/10 dark:shadow-black/30">
             <div className="h-[300px] sm:h-[400px]">
               <RunMap className="h-full w-full" bounds={bounds || undefined}>
                 {/* Static pace route or animated playback */}
@@ -456,6 +457,16 @@ export default function ActivityDetailPage() {
             </AnimatedTabsContent>
           )}
         </AnimatedTabs>
+
+        {/* Bottom Action Bar */}
+        <ActivityActionBar
+          activityId={activityId}
+          activityTitle={activity.title || '跑步活动'}
+          onExport={(format) => {
+            // TODO: Implement export functionality
+            console.log('Export as:', format)
+          }}
+        />
       </div>
     </div>
   )

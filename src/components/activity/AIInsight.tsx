@@ -2,13 +2,14 @@
  * AIInsight Component
  *
  * Displays AI-generated running analysis with loading, error states,
- * and option to regenerate insights
+ * typewriter animation, and option to regenerate insights
  */
 
 'use client'
 
 import { motion } from 'framer-motion'
 import { RefreshCw, Sparkles } from 'lucide-react'
+import * as React from 'react'
 import type { Components } from 'react-markdown'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -21,6 +22,8 @@ import { cn } from '@/lib/utils'
 interface AIInsightProps {
   activityId: string
   className?: string
+  /** Enable typewriter animation for new insights */
+  enableTypewriter?: boolean
 }
 
 /**
@@ -103,8 +106,13 @@ const markdownComponents: Components = {
   hr: () => <hr className="my-4 border-white/10" />,
 }
 
-export function AIInsight({ activityId, className }: AIInsightProps) {
+export function AIInsight({ activityId, className, enableTypewriter = true }: AIInsightProps) {
   const utils = trpc.useUtils()
+  // Track if this is a fresh generation (for typewriter effect)
+  const [isNewGeneration, setIsNewGeneration] = React.useState(false)
+  const [typewriterComplete, setTypewriterComplete] = React.useState(false)
+  const [displayedContent, setDisplayedContent] = React.useState('')
+  const typewriterRef = React.useRef<NodeJS.Timeout | null>(null)
 
   const {
     data: insight,
@@ -120,10 +128,66 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
   )
 
   const regenerateMutation = trpc.insights.regenerate.useMutation({
+    onMutate: () => {
+      setIsNewGeneration(true)
+      setTypewriterComplete(false)
+      setDisplayedContent('')
+    },
     onSuccess: () => {
       utils.insights.getForActivity.invalidate({ activityId })
     },
   })
+
+  // Typewriter effect for new generations
+  React.useEffect(() => {
+    if (!insight?.content || !enableTypewriter || !isNewGeneration) {
+      if (insight?.content) {
+        setDisplayedContent(insight.content)
+        setTypewriterComplete(true)
+      }
+      return
+    }
+
+    const content = insight.content
+    let currentIndex = 0
+    const speed = 20 // characters per frame
+    const frameDelay = 16 // ~60fps
+
+    // Clear any existing animation
+    if (typewriterRef.current) {
+      clearInterval(typewriterRef.current)
+    }
+
+    typewriterRef.current = setInterval(() => {
+      currentIndex += speed
+
+      // Reason: Skip to end of current word/line for smoother reading
+      while (
+        currentIndex < content.length &&
+        content[currentIndex] !== ' ' &&
+        content[currentIndex] !== '\n'
+      ) {
+        currentIndex++
+      }
+
+      if (currentIndex >= content.length) {
+        setDisplayedContent(content)
+        setTypewriterComplete(true)
+        setIsNewGeneration(false)
+        if (typewriterRef.current) {
+          clearInterval(typewriterRef.current)
+        }
+      } else {
+        setDisplayedContent(content.slice(0, currentIndex))
+      }
+    }, frameDelay)
+
+    return () => {
+      if (typewriterRef.current) {
+        clearInterval(typewriterRef.current)
+      }
+    }
+  }, [insight?.content, enableTypewriter, isNewGeneration])
 
   const handleRegenerate = () => {
     regenerateMutation.mutate({ activityId })
@@ -241,8 +305,16 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
       {/* Content */}
       <div className={cn('ai-insight-content', isRegenerating && 'opacity-50')}>
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {insight.content}
+          {displayedContent || insight.content}
         </ReactMarkdown>
+        {/* Typewriter cursor */}
+        {!typewriterComplete && isNewGeneration && (
+          <motion.span
+            className="bg-purple ml-1 inline-block h-4 w-[2px] align-middle"
+            animate={{ opacity: [1, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
+          />
+        )}
       </div>
 
       {/* Footer */}

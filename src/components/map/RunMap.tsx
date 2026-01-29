@@ -9,10 +9,13 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css'
 
+import { motion, AnimatePresence } from 'framer-motion'
+import { MapPin, Maximize2, Minimize2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MapRef } from 'react-map-gl/maplibre'
 import Map from 'react-map-gl/maplibre'
 
+import { cn } from '@/lib/utils'
 import type { MapViewport } from '@/types/map'
 
 export interface RunMapProps {
@@ -29,6 +32,10 @@ export interface RunMapProps {
   }
   /** Padding for fitBounds */
   boundsPadding?: number
+  /** Show loading skeleton */
+  showSkeleton?: boolean
+  /** Enable fullscreen button */
+  enableFullscreen?: boolean
 }
 
 // Use environment variable or fallback to a clean, minimal style
@@ -50,9 +57,14 @@ export function RunMap({
   initialViewport,
   bounds,
   boundsPadding = 60,
+  showSkeleton = true,
+  enableFullscreen = true,
 }: RunMapProps) {
   const mapRef = useRef<MapRef>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const prevBoundsRef = useRef<string | null>(null)
+  const [isMapLoaded, setIsMapLoaded] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Generate a key for current bounds
   const boundsKey = bounds
@@ -88,6 +100,59 @@ export function RunMap({
   }, [bounds, initialViewport])
 
   const [viewport, setViewport] = useState<MapViewport>(calculatedViewport)
+
+  // Toggle fullscreen mode
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev)
+  }, [])
+
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false)
+      }
+    }
+
+    if (isFullscreen) {
+      document.addEventListener('keydown', handleKeyDown)
+      // Prevent body scroll when fullscreen
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [isFullscreen])
+
+  // Resize map when entering/exiting fullscreen
+  useEffect(() => {
+    if (mapRef.current) {
+      // Trigger resize after animation
+      const timer = setTimeout(() => {
+        mapRef.current?.resize()
+        // Re-fit bounds after resize
+        if (bounds) {
+          const map = mapRef.current?.getMap()
+          map?.fitBounds(
+            [
+              [bounds.minLng, bounds.minLat],
+              [bounds.maxLng, bounds.maxLat],
+            ],
+            {
+              padding: isFullscreen ? 80 : boundsPadding,
+              duration: 300,
+            },
+          )
+        }
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+    return undefined
+  }, [isFullscreen, bounds, boundsPadding])
 
   // Fit bounds when they change
   useEffect(() => {
@@ -130,6 +195,7 @@ export function RunMap({
   }, [])
 
   const handleLoad = useCallback(() => {
+    setIsMapLoaded(true)
     // Fit bounds immediately after map loads
     if (bounds && mapRef.current) {
       const map = mapRef.current.getMap()
@@ -150,8 +216,72 @@ export function RunMap({
     }
   }, [bounds, boundsKey, boundsPadding])
 
-  return (
-    <div className={className}>
+  const mapContent = (
+    <>
+      {/* Map skeleton loading state */}
+      {showSkeleton && !isMapLoaded && (
+        <div className="absolute inset-0 z-10 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900">
+          {/* Animated gradient background */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+            animate={{
+              backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+            style={{ backgroundSize: '200% 100%' }}
+          />
+
+          {/* Grid pattern overlay */}
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px',
+            }}
+          />
+
+          {/* Center loading indicator */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <motion.div
+              className="bg-blue/10 flex h-12 w-12 items-center justify-center rounded-full"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <MapPin className="text-blue h-6 w-6" />
+            </motion.div>
+            <motion.span
+              className="text-label/50 text-sm"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              加载地图中...
+            </motion.span>
+          </div>
+
+          {/* Fake route preview */}
+          <svg className="absolute inset-0 h-full w-full opacity-10">
+            <motion.path
+              d="M 20% 80% Q 30% 60%, 40% 50% T 60% 40% T 80% 30%"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              className="text-blue"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          </svg>
+        </div>
+      )}
+
       <Map
         ref={mapRef}
         {...viewport}
@@ -164,6 +294,61 @@ export function RunMap({
       >
         {children}
       </Map>
-    </div>
+
+      {/* Fullscreen toggle button */}
+      {enableFullscreen && isMapLoaded && (
+        <motion.button
+          type="button"
+          onClick={toggleFullscreen}
+          className={cn(
+            'absolute z-20 flex items-center justify-center rounded-lg border border-white/20 bg-white/80 p-2 shadow-sm backdrop-blur-xl transition-colors hover:bg-white dark:border-white/10 dark:bg-black/60 dark:hover:bg-black/80',
+            isFullscreen ? 'top-4 right-4' : 'right-3 bottom-3',
+          )}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title={isFullscreen ? '退出全屏 (ESC)' : '全屏查看'}
+        >
+          {isFullscreen ? (
+            <Minimize2 className="text-label h-4 w-4" />
+          ) : (
+            <Maximize2 className="text-label h-4 w-4" />
+          )}
+        </motion.button>
+      )}
+    </>
+  )
+
+  return (
+    <>
+      {/* Normal view */}
+      <div ref={containerRef} className={cn('relative', className, isFullscreen && 'invisible')}>
+        {!isFullscreen && mapContent}
+      </div>
+
+      {/* Fullscreen overlay */}
+      <AnimatePresence>
+        {isFullscreen && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-black"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Close hint */}
+            <motion.div
+              className="absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/60 px-4 py-2 text-sm text-white/70 backdrop-blur-xl"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              按 ESC 退出全屏
+            </motion.div>
+
+            <div className="relative h-full w-full">{mapContent}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
