@@ -4,11 +4,18 @@
  * Handles communication with Anthropic Claude API
  */
 
+import { resolve } from 'path'
+
+import { config } from 'dotenv'
 import Anthropic from '@anthropic-ai/sdk'
+
+// Reason: Next.js server components may not auto-load .env.local in all contexts
+config({ path: resolve(process.cwd(), '.env.local'), override: true })
 
 import { buildSystemPrompt, buildUserPrompt } from './prompts'
 import type { ActivityInsightInput } from './types'
 import { CLAUDE_MODEL } from './types'
+import { fetchWithCloudflareBypass } from './cloudflare-bypass'
 
 // Lazy initialization to avoid issues during build
 let claudeClient: Anthropic | null = null
@@ -26,6 +33,15 @@ function getClaudeClient(): Anthropic {
       apiKey,
       // Support custom base URL for proxy or alternative endpoints
       ...(baseURL && { baseURL }),
+      // Use custom fetch with Cloudflare bypass
+      fetch: baseURL ? fetchWithCloudflareBypass : undefined,
+      // Add timeout to prevent hanging requests
+      timeout: 60000, // 60 seconds
+      // Add default headers to mimic Claude Code CLI
+      defaultHeaders: {
+        'anthropic-version': '2023-06-01',
+        'user-agent': 'anthropic-sdk-typescript/0.20.0',
+      },
     })
   }
   return claudeClient
@@ -58,7 +74,6 @@ export async function generateActivityInsight(input: ActivityInsightInput): Prom
 
     // Validate response structure
     if (!response || !response.content) {
-      // Reason: Some proxies return different response structures
       throw new Error(`Invalid API response structure: ${JSON.stringify(response).slice(0, 200)}`)
     }
 
@@ -70,6 +85,32 @@ export async function generateActivityInsight(input: ActivityInsightInput): Prom
 
     return textContent.text
   } catch (error) {
+    // Log detailed error info for debugging
+    console.error('[Claude API Error]', {
+      model: CLAUDE_MODEL,
+      hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+      apiKeyPrefix: process.env.ANTHROPIC_API_KEY?.slice(0, 10) + '...',
+      baseUrl: process.env.ANTHROPIC_BASE_URL || 'default (https://api.anthropic.com)',
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      error: error instanceof Error ? error.message : String(error),
+    })
+
+    // Detect AWS WAF CAPTCHA response
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (
+      errorMessage.includes('<!DOCTYPE html>') ||
+      errorMessage.includes('captcha') ||
+      errorMessage.includes('challenge')
+    ) {
+      throw new Error(
+        'Claude API blocked by AWS WAF verification. This usually happens when: ' +
+          '1) Using a proxy that is flagged, ' +
+          '2) IP address is marked as suspicious, ' +
+          '3) Request rate is too high. ' +
+          'Try: changing proxy, using VPN, or waiting before retrying.',
+      )
+    }
+
     // Re-throw with more context for debugging
     if (error instanceof Error) {
       throw new Error(`Claude API error: ${error.message}`)
