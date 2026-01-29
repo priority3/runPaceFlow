@@ -58,6 +58,7 @@ export interface StructuredAnalysis {
 
 /**
  * Claude model options
+ * Using Sonnet 4.5 for better availability and lower cost
  */
-export const CLAUDE_MODEL = 'claude-sonnet-4-20250514' as const
+export const CLAUDE_MODEL = 'claude-sonnet-4-5-20250514' as const
 export type ClaudeModel = typeof CLAUDE_MODEL
