@@ -46,9 +46,23 @@ ANTHROPIC_BASE_URL=  # Optional: custom API endpoint for proxy
 
 The AI feature generates personalized running insights for each activity, analyzing your pace, splits, and performance patterns.
 
-1. Get an API key from [Anthropic Console](https://console.anthropic.com/)
-2. Add `ANTHROPIC_API_KEY` to your environment variables
-3. (Optional) Set `ANTHROPIC_BASE_URL` if using a proxy or alternative API endpoint
+**For Vercel Deployment:**
+
+Configure these environment variables in Vercel Dashboard (`Settings → Environment Variables`):
+
+| Variable             | Description                                                      |
+| -------------------- | ---------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`  | API key from [Anthropic Console](https://console.anthropic.com/) |
+| `ANTHROPIC_BASE_URL` | (Optional) Custom API endpoint for proxy                         |
+
+**For Local Development:**
+
+Add to your `.env.local` file:
+
+```bash
+ANTHROPIC_API_KEY=your_api_key
+ANTHROPIC_BASE_URL=  # Optional: custom API endpoint
+```
 
 > Note: Without Claude AI configured, the app works normally but without AI insights.
 
