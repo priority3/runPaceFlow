@@ -13,14 +13,16 @@ import { useParams, useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 
 import { AIInsight } from '@/components/activity/AIInsight'
+import { HeartRateZones } from '@/components/activity/HeartRateZones'
 import { PaceChart } from '@/components/activity/PaceChart'
+import { PaceDistribution } from '@/components/activity/PaceDistribution'
 import { SplitsTable } from '@/components/activity/SplitsTable'
-import { StatsCard } from '@/components/activity/StatsCard'
 import { AnimatedRoute } from '@/components/map/AnimatedRoute'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
 import { KilometerMarkers } from '@/components/map/KilometerMarkers'
 import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
 import { RunMap } from '@/components/map/RunMap'
+import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useActivityWithSplits } from '@/hooks/use-activities'
 import { layoutTransition, springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
@@ -204,107 +206,59 @@ export default function ActivityDetailPage() {
       {/* Subtle gradient overlay for glassmorphic depth */}
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
 
-      <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header with shared element transition */}
-        <div className="mb-8">
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            className="text-label/60 hover:text-label mb-6 flex items-center gap-2 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>返回</span>
-          </button>
+      <div className="relative container mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {/* Compact Header */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="text-label/60 hover:text-label flex items-center gap-2 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>返回</span>
+            </button>
 
-          {/* Shared element: activity card transforms into header */}
-          <motion.div
-            layoutId={`activity-card-${activityId}`}
-            transition={layoutTransition}
-            className="rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-label text-2xl font-semibold sm:text-3xl">
-                  <span>{typeEmoji}</span> {activity.title || '跑步活动'}
-                </h1>
-                <p className="text-label/50 mt-2 text-sm">
-                  {formatDate(activity.startTime)} {formatTime(activity.startTime)}
-                </p>
-              </div>
-
-              {/* Playback controls */}
-              <div className="flex items-center gap-2">
-                <motion.button
-                  onClick={handlePlayPause}
-                  className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2.5 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
-                  whileTap={{ scale: 0.98 }}
-                  transition={springs.snappy}
-                >
-                  {isPlaying ? (
-                    <>
-                      <Pause className="h-4 w-4" />
-                      <span className="hidden sm:inline">暂停</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4" />
-                      <span className="hidden sm:inline">回放</span>
-                    </>
-                  )}
-                </motion.button>
-                {animationProgress > 0 && (
-                  <motion.button
-                    onClick={handleStopPlayback}
-                    className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2.5 text-sm backdrop-blur-xl transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={springs.snappy}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Square className="h-3.5 w-3.5" />
-                  </motion.button>
+            {/* Playback controls */}
+            <div className="flex items-center gap-2">
+              <motion.button
+                onClick={handlePlayPause}
+                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
+                whileTap={{ scale: 0.98 }}
+                transition={springs.snappy}
+              >
+                {isPlaying ? (
+                  <>
+                    <Pause className="h-4 w-4" />
+                    <span className="hidden sm:inline">暂停</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" />
+                    <span className="hidden sm:inline">回放</span>
+                  </>
                 )}
-              </div>
+              </motion.button>
+              {animationProgress > 0 && (
+                <motion.button
+                  onClick={handleStopPlayback}
+                  className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2 text-sm backdrop-blur-xl transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={springs.snappy}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Square className="h-3.5 w-3.5" />
+                </motion.button>
+              )}
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <section className="mb-10">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatsCard title="距离" value={(activity.distance / 1000).toFixed(2)} unit="km" />
-            <StatsCard
-              title="时长"
-              value={formatDuration(activity.duration)}
-              unit=""
-              animateNumber={false}
-            />
-            {activity.averagePace && (
-              <StatsCard
-                title="平均配速"
-                value={formatPace(activity.averagePace)}
-                unit="/km"
-                animateNumber={false}
-              />
-            )}
-            {activity.elevationGain !== null && activity.elevationGain > 0 && (
-              <StatsCard title="爬升" value={activity.elevationGain.toFixed(0)} unit="m" />
-            )}
-          </div>
-        </section>
-
-        {/* AI Insight Section */}
-        <section className="mb-10">
-          <AIInsight activityId={activityId} />
-        </section>
-
-        {/* Map Section */}
-        <section className="mb-10">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-label text-lg font-semibold">路线地图</h2>
-          </div>
+        {/* Map Section - Now at top as main visual focus */}
+        <section className="mb-6">
           <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-gray-100 shadow-sm dark:border-white/10 dark:bg-gray-900">
-            <div className="h-[400px] sm:h-[500px]">
+            <div className="h-[300px] sm:h-[400px]">
               <RunMap className="h-full w-full" bounds={bounds || undefined}>
                 {/* Static pace route or animated playback */}
                 {isPlaying ? (
@@ -338,59 +292,170 @@ export default function ActivityDetailPage() {
           </div>
         </section>
 
-        {/* Pace Analysis Section */}
-        {chartSplits.length > 0 && (
-          <section className="mb-10">
-            <div className="mb-4">
-              <h2 className="text-label text-lg font-semibold">配速分析</h2>
+        {/* Activity Info Card - Compact one-line stats */}
+        <motion.div
+          layoutId={`activity-card-${activityId}`}
+          transition={layoutTransition}
+          className="mb-6 rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Title and date */}
+            <div className="min-w-0">
+              <h1 className="text-label truncate text-xl font-semibold sm:text-2xl">
+                <span>{typeEmoji}</span> {activity.title || '跑步活动'}
+              </h1>
+              <p className="text-label/50 mt-1 text-sm">
+                {formatDate(activity.startTime)} {formatTime(activity.startTime)}
+              </p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Pace Chart */}
-              <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                <h3 className="text-label/80 mb-4 text-sm font-medium">每公里配速</h3>
-                <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
-              </div>
 
-              {/* Splits Table */}
+            {/* Core stats in one row */}
+            <div className="flex flex-wrap items-center gap-4 text-sm sm:gap-6">
+              <div className="flex flex-col items-center">
+                <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+                  {(activity.distance / 1000).toFixed(2)}
+                </span>
+                <span className="text-label/50 text-xs">公里</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+                  {formatDuration(activity.duration)}
+                </span>
+                <span className="text-label/50 text-xs">时长</span>
+              </div>
+              {activity.averagePace && (
+                <div className="flex flex-col items-center">
+                  <span className="text-blue text-lg font-semibold tabular-nums sm:text-xl">
+                    {formatPace(activity.averagePace)}
+                  </span>
+                  <span className="text-blue/60 text-xs">配速</span>
+                </div>
+              )}
+              {activity.elevationGain !== null && activity.elevationGain > 0 && (
+                <div className="flex flex-col items-center">
+                  <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+                    ↗{activity.elevationGain.toFixed(0)}
+                  </span>
+                  <span className="text-label/50 text-xs">爬升</span>
+                </div>
+              )}
+              {activity.averageHeartRate && (
+                <div className="flex flex-col items-center">
+                  <span className="text-red text-lg font-semibold tabular-nums sm:text-xl">
+                    ❤{activity.averageHeartRate}
+                  </span>
+                  <span className="text-red/60 text-xs">心率</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tabbed Content Section */}
+        <AnimatedTabs defaultValue="pace" className="w-full">
+          <TabsList className="mb-4 w-full justify-start overflow-x-auto">
+            <TabsTrigger value="pace">配速分析</TabsTrigger>
+            <TabsTrigger value="splits">分段数据</TabsTrigger>
+            <TabsTrigger value="ai">AI 分析</TabsTrigger>
+            {(activity.averageHeartRate || activity.calories) && (
+              <TabsTrigger value="more">更多数据</TabsTrigger>
+            )}
+          </TabsList>
+
+          {/* Pace Analysis Tab */}
+          <AnimatedTabsContent value="pace">
+            {chartSplits.length > 0 ? (
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                  <h3 className="text-label/80 mb-4 text-sm font-medium">每公里配速</h3>
+                  <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
+                </div>
+                <PaceDistribution splits={chartSplits} averagePace={activity.averagePace || 360} />
+              </div>
+            ) : (
+              <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                暂无配速数据
+              </div>
+            )}
+          </AnimatedTabsContent>
+
+          {/* Splits Table Tab */}
+          <AnimatedTabsContent value="splits">
+            {chartSplits.length > 0 ? (
               <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                 <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
                 <SplitsTable splits={chartSplits} />
               </div>
-            </div>
-          </section>
-        )}
+            ) : (
+              <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                暂无分段数据
+              </div>
+            )}
+          </AnimatedTabsContent>
 
-        {/* Additional Stats (if available) */}
-        {(activity.averageHeartRate || activity.calories || activity.bestPace) && (
-          <section className="mb-10">
-            <div className="mb-4">
-              <h2 className="text-label text-lg font-semibold">其他数据</h2>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {activity.averageHeartRate && (
-                <StatsCard
-                  title="平均心率"
-                  value={activity.averageHeartRate.toString()}
-                  unit="bpm"
-                />
-              )}
-              {activity.maxHeartRate && (
-                <StatsCard title="最大心率" value={activity.maxHeartRate.toString()} unit="bpm" />
-              )}
-              {activity.calories && (
-                <StatsCard title="卡路里" value={activity.calories.toString()} unit="kcal" />
-              )}
-              {activity.bestPace && (
-                <StatsCard
-                  title="最快瞬时配速"
-                  value={formatPace(activity.bestPace)}
-                  unit="/km"
-                  animateNumber={false}
-                />
-              )}
-            </div>
-          </section>
-        )}
+          {/* AI Insight Tab */}
+          <AnimatedTabsContent value="ai">
+            <AIInsight activityId={activityId} />
+          </AnimatedTabsContent>
+
+          {/* More Data Tab */}
+          {(activity.averageHeartRate || activity.calories) && (
+            <AnimatedTabsContent value="more">
+              <div className="space-y-6">
+                {/* Heart Rate Zones */}
+                {activity.averageHeartRate && activity.maxHeartRate && (
+                  <HeartRateZones
+                    averageHeartRate={activity.averageHeartRate}
+                    maxHeartRate={activity.maxHeartRate}
+                  />
+                )}
+
+                {/* Other Stats */}
+                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                  <h3 className="text-label/80 mb-4 text-sm font-medium">其他数据</h3>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {activity.averageHeartRate && (
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                        <div className="text-label/50 text-xs">平均心率</div>
+                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                          {activity.averageHeartRate}
+                          <span className="text-label/50 ml-1 text-sm">bpm</span>
+                        </div>
+                      </div>
+                    )}
+                    {activity.maxHeartRate && (
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                        <div className="text-label/50 text-xs">最大心率</div>
+                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                          {activity.maxHeartRate}
+                          <span className="text-label/50 ml-1 text-sm">bpm</span>
+                        </div>
+                      </div>
+                    )}
+                    {activity.calories && (
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                        <div className="text-label/50 text-xs">卡路里</div>
+                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                          {activity.calories}
+                          <span className="text-label/50 ml-1 text-sm">kcal</span>
+                        </div>
+                      </div>
+                    )}
+                    {activity.bestPace && (
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                        <div className="text-label/50 text-xs">最快配速</div>
+                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                          {formatPace(activity.bestPace)}
+                          <span className="text-label/50 ml-1 text-sm">/km</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </AnimatedTabsContent>
+          )}
+        </AnimatedTabs>
       </div>
     </div>
   )
