@@ -9,7 +9,9 @@
 import { Activity, Calendar, Clock, MapPin } from 'lucide-react'
 import { useMemo } from 'react'
 
+import { ActivityHeatmap } from '@/components/activity/ActivityHeatmap'
 import { ActivityTable } from '@/components/activity/ActivityTable'
+import { PersonalRecords } from '@/components/activity/PersonalRecords'
 import { StatsCard } from '@/components/activity/StatsCard'
 import { Header } from '@/components/layout/Header'
 import { RouteLayer } from '@/components/map/RouteLayer'
@@ -82,28 +84,34 @@ export default function HomePage() {
                 value={(stats.total.distance / 1000).toFixed(1)}
                 unit="km"
                 icon={<MapPin className="h-4 w-4" />}
-                delay={1}
               />
               <StatsCard
                 title="活动次数"
                 value={stats.total.activities}
                 unit="次"
                 icon={<Activity className="h-4 w-4" />}
-                delay={2}
               />
               <StatsCard
                 title="本周里程"
                 value={(stats.thisWeek.distance / 1000).toFixed(1)}
                 unit="km"
                 icon={<Calendar className="h-4 w-4" />}
-                delay={3}
+                currentValue={stats.thisWeek.distance}
+                previousValue={stats.lastWeek.distance}
+                higherIsBetter={true}
+                goal={30000}
+                goalUnit="km"
+                subtitle="vs 上周"
               />
               <StatsCard
-                title="总时长"
-                value={(stats.total.duration / 3600).toFixed(1)}
+                title="本周时长"
+                value={(stats.thisWeek.duration / 3600).toFixed(1)}
                 unit="小时"
                 icon={<Clock className="h-4 w-4" />}
-                delay={4}
+                currentValue={stats.thisWeek.duration}
+                previousValue={stats.lastWeek.duration}
+                higherIsBetter={true}
+                subtitle="vs 上周"
               />
             </div>
           ) : null}
@@ -125,6 +133,20 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Activity Heatmap */}
+        {activitiesData && activitiesData.activities.length > 0 && (
+          <section className="mb-12">
+            <ActivityHeatmap activities={activitiesData.activities} />
+          </section>
+        )}
+
+        {/* Personal Records */}
+        {activitiesData && activitiesData.activities.length > 0 && (
+          <section className="mb-12">
+            <PersonalRecords activities={activitiesData.activities} />
+          </section>
+        )}
 
         {/* Activities Section */}
         <section>

@@ -127,7 +127,7 @@ export const activitiesRouter = createTRPCRouter({
     }),
 
   /**
-   * Get activity statistics
+   * Get activity statistics with trend comparison
    */
   getStats: publicProcedure.query(async ({ ctx }) => {
     const allActivities = await ctx.db.select().from(activities)
@@ -139,8 +139,17 @@ export const activitiesRouter = createTRPCRouter({
       0,
     )
 
-    // Calculate this week's stats
-    const oneWeekAgo = new Date()
+    // Calculate average pace from all activities
+    const activitiesWithPace = allActivities.filter((a) => a.averagePace && a.averagePace > 0)
+    const avgPace =
+      activitiesWithPace.length > 0
+        ? activitiesWithPace.reduce((sum, a) => sum + (a.averagePace || 0), 0) /
+          activitiesWithPace.length
+        : 0
+
+    // Calculate this week's stats (last 7 days)
+    const now = new Date()
+    const oneWeekAgo = new Date(now)
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
 
     const thisWeekActivities = allActivities.filter(
@@ -151,7 +160,30 @@ export const activitiesRouter = createTRPCRouter({
       (sum, activity) => sum + (activity.distance || 0),
       0,
     )
+    const thisWeekDuration = thisWeekActivities.reduce(
+      (sum, activity) => sum + (activity.duration || 0),
+      0,
+    )
     const thisWeekCount = thisWeekActivities.length
+
+    // Calculate last week's stats (7-14 days ago) for trend comparison
+    const twoWeeksAgo = new Date(now)
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+
+    const lastWeekActivities = allActivities.filter((activity) => {
+      const activityDate = new Date(activity.startTime)
+      return activityDate > twoWeeksAgo && activityDate <= oneWeekAgo
+    })
+
+    const lastWeekDistance = lastWeekActivities.reduce(
+      (sum, activity) => sum + (activity.distance || 0),
+      0,
+    )
+    const lastWeekDuration = lastWeekActivities.reduce(
+      (sum, activity) => sum + (activity.duration || 0),
+      0,
+    )
+    const lastWeekCount = lastWeekActivities.length
 
     return {
       total: {
@@ -159,10 +191,17 @@ export const activitiesRouter = createTRPCRouter({
         distance: totalDistance,
         duration: totalDuration,
         elevation: totalElevation,
+        averagePace: avgPace,
       },
       thisWeek: {
         activities: thisWeekCount,
         distance: thisWeekDistance,
+        duration: thisWeekDuration,
+      },
+      lastWeek: {
+        activities: lastWeekCount,
+        distance: lastWeekDistance,
+        duration: lastWeekDuration,
       },
     }
   }),
