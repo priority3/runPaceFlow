@@ -14,8 +14,8 @@ import {
   Flame,
   Gauge,
   Mountain,
-  Trophy,
   TrendingUp,
+  Trophy,
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
