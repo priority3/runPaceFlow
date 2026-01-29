@@ -9,7 +9,7 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { MapPin, Maximize2, Minimize2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MapRef } from 'react-map-gl/maplibre'
@@ -151,7 +151,7 @@ export function RunMap({
       }, 100)
       return () => clearTimeout(timer)
     }
-    return undefined
+    return
   }, [isFullscreen, bounds, boundsPadding])
 
   // Fit bounds when they change

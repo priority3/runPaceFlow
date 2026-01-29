@@ -7,8 +7,8 @@
 
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
-import { Download, Share2, X, Copy, Check, FileText, Image as ImageIcon } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Check, Copy, Download, FileText, Image as ImageIcon, Share2, X } from 'lucide-react'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
@@ -51,7 +51,7 @@ export function ActivityActionBar({
         document.removeEventListener('click', handleClickOutside)
       }
     }
-    return undefined
+    return
   }, [showShareMenu, showExportMenu])
 
   const handleShare = async () => {

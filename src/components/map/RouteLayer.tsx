@@ -1,7 +1,7 @@
 /**
  * RouteLayer Component
  *
- * Displays running routes on the map with glassmorphic styling
+ * Displays running routes on the map with glow effect
  */
 
 'use client'
@@ -29,7 +29,9 @@ export function RouteLayer({ routes }: RouteLayerProps) {
 
         const geojson: GeoJSON.Feature<GeoJSON.LineString> = {
           type: 'Feature',
-          properties: {},
+          properties: {
+            routeId: route.id,
+          },
           geometry: {
             type: 'LineString',
             coordinates: route.coordinates.map((coord) => [coord.longitude, coord.latitude]),
@@ -38,11 +40,28 @@ export function RouteLayer({ routes }: RouteLayerProps) {
 
         return (
           <Source key={route.id} id={`route-${route.id}`} type="geojson" data={geojson}>
+            {/* Glow effect layer (behind main line) */}
+            <Layer
+              id={`route-glow-${route.id}`}
+              type="line"
+              paint={{
+                'line-color': route.color || '#374151',
+                'line-width': 8,
+                'line-opacity': 0.15,
+                'line-blur': 4,
+              }}
+              layout={{
+                'line-join': 'round',
+                'line-cap': 'round',
+              }}
+            />
+
+            {/* Main route line */}
             <Layer
               id={`route-line-${route.id}`}
               type="line"
               paint={{
-                'line-color': route.color || '#374151', // Dark gray for better visibility
+                'line-color': route.color || '#374151',
                 'line-width': route.width || 3,
                 'line-opacity': 0.85,
               }}
