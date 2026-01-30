@@ -105,6 +105,7 @@ export class StravaAdapter implements SyncAdapter {
    * @param options - Filter options
    * @param options.startDate - Start date filter (optional)
    * @param options.endDate - End date filter (optional)
+   * @param options.after - Unix timestamp for incremental sync (optional)
    * @param options.limit - Maximum number of activities to fetch
    * @param options.page - Page number for pagination (starts at 1)
    */
@@ -112,6 +113,7 @@ export class StravaAdapter implements SyncAdapter {
     options: {
       startDate?: Date
       endDate?: Date
+      after?: number
       limit?: number
       page?: number
     } = {},
@@ -131,7 +133,10 @@ export class StravaAdapter implements SyncAdapter {
         })
 
         // Add date filters if provided
-        if (options.startDate) {
+        // Prefer direct 'after' timestamp for incremental sync
+        if (options.after) {
+          params.append('after', options.after.toString())
+        } else if (options.startDate) {
           params.append('after', Math.floor(options.startDate.getTime() / 1000).toString())
         }
         if (options.endDate) {
