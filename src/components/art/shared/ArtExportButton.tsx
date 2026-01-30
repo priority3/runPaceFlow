@@ -55,7 +55,7 @@ export function ArtExportButton({ onDownload, onCopy, onShare, disabled }: ArtEx
   }
 
   return (
-    <div className="relative flex items-center gap-2">
+    <div className="relative flex flex-wrap items-center justify-end gap-2">
       {/* Copy button */}
       {onCopy && (
         <motion.button
@@ -104,17 +104,17 @@ export function ArtExportButton({ onDownload, onCopy, onShare, disabled }: ArtEx
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-white/20 bg-white/90 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black/80"
+              className="absolute top-full right-0 z-20 mt-2 w-56 overflow-hidden rounded-xl border border-white/20 bg-white/90 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black/80"
             >
-              <div className="py-1">
+              <div className="max-h-80 overflow-y-auto py-1">
                 {(Object.keys(socialPresets) as SocialPreset[]).map((preset) => (
                   <button
                     key={preset}
                     onClick={() => handleDownload(preset)}
-                    className="text-label hover:bg-fill-tertiary flex w-full items-center justify-between px-4 py-2 text-left text-sm transition-colors"
+                    className="text-label hover:bg-fill-tertiary flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors"
                   >
-                    <span>{socialPresets[preset].name}</span>
-                    <span className="text-label/50 text-xs">
+                    <span className="truncate">{socialPresets[preset].name}</span>
+                    <span className="text-label/50 shrink-0 text-xs">
                       {socialPresets[preset].width}×{socialPresets[preset].height}
                     </span>
                   </button>
