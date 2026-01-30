@@ -57,6 +57,8 @@ export interface RawActivity {
   title: string
   /** 活动类型 */
   type: 'running' | 'cycling' | 'walking' | 'swimming' | 'other'
+  /** 是否室内活动（跑步机等） */
+  isIndoor?: boolean
   /** 开始时间 */
   startTime: Date
   /** 持续时间（秒） */
