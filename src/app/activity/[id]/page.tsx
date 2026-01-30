@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { AIInsight } from '@/components/activity/AIInsight'
@@ -58,7 +58,7 @@ export default function ActivityDetailPage() {
   // Parse GPX data and generate track points
   const { paceSegments, kmMarkers, trackPoints, bounds, heartRateData } = useMemo(() => {
     let points: TrackPoint[] = []
-    let hrData: { distance: number; heartRate: number }[] = []
+    const hrData: { distance: number; heartRate: number }[] = []
 
     // Try to parse real GPX data from activity
     if (data?.activity.gpxData) {
