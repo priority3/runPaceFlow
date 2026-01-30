@@ -21,6 +21,8 @@ export interface SyncAdapter {
   getActivities: (options?: {
     startDate?: Date
     endDate?: Date
+    /** Unix timestamp - only fetch activities after this time (for incremental sync) */
+    after?: number
     limit?: number
   }) => Promise<RawActivity[]>
 

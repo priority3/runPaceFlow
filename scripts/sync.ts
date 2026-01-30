@@ -6,9 +6,15 @@
  * Syncs running activities from Strava or Nike Run Club
  * Designed to run via GitHub Actions or locally
  *
- * Priority: Strava > Nike
+ * Features:
+ * - Incremental sync: Only fetches activities after the last synced timestamp
+ * - Priority: Strava > Nike
  */
 
+import { desc } from 'drizzle-orm'
+
+import { db } from '../src/lib/db'
+import { activities } from '../src/lib/db/schema'
 import { NikeAdapter } from '../src/lib/sync/adapters/nike'
 import { StravaAdapter } from '../src/lib/sync/adapters/strava'
 import { syncActivities } from '../src/lib/sync/processor'
@@ -29,6 +35,25 @@ interface SyncResult {
 }
 
 /**
+ * Get the latest activity timestamp from the database
+ * Used for incremental sync to only fetch new activities
+ */
+async function getLatestActivityTimestamp(): Promise<number | null> {
+  const result = await db
+    .select({ startTime: activities.startTime })
+    .from(activities)
+    .orderBy(desc(activities.startTime))
+    .limit(1)
+
+  if (result.length === 0) {
+    return null
+  }
+
+  // Convert Date to Unix timestamp (seconds)
+  return Math.floor(result[0].startTime.getTime() / 1000)
+}
+
+/**
  * Sync activities from Strava
  */
 async function syncStrava(): Promise<SyncResult> {
@@ -46,8 +71,21 @@ async function syncStrava(): Promise<SyncResult> {
     throw new Error('Strava authentication failed')
   }
 
-  // Get activities
-  const rawActivities = await adapter.getActivities({ limit: 50 })
+  // Get the latest activity timestamp for incremental sync
+  const lastTimestamp = await getLatestActivityTimestamp()
+
+  if (lastTimestamp) {
+    const lastDate = new Date(lastTimestamp * 1000)
+    console.info(`📅 Incremental sync: fetching activities after ${lastDate.toISOString()}`)
+  } else {
+    console.info('📅 Full sync: no existing activities found')
+  }
+
+  // Get activities (incremental if we have a timestamp)
+  const rawActivities = await adapter.getActivities({
+    limit: 50,
+    after: lastTimestamp ?? undefined,
+  })
   console.info(`📥 Fetched ${rawActivities.length} activities from Strava`)
 
   // Sync to database
@@ -76,8 +114,21 @@ async function syncNike(): Promise<SyncResult> {
     ? new NikeAdapter(NIKE_REFRESH_TOKEN, NIKE_REFRESH_TOKEN)
     : new NikeAdapter(NIKE_ACCESS_TOKEN!)
 
-  // Get activities
-  const rawActivities = await adapter.getActivities({ limit: 50 })
+  // Get the latest activity timestamp for incremental sync
+  const lastTimestamp = await getLatestActivityTimestamp()
+
+  if (lastTimestamp) {
+    const lastDate = new Date(lastTimestamp * 1000)
+    console.info(`📅 Incremental sync: fetching activities after ${lastDate.toISOString()}`)
+  } else {
+    console.info('📅 Full sync: no existing activities found')
+  }
+
+  // Get activities (incremental if we have a timestamp)
+  const rawActivities = await adapter.getActivities({
+    limit: 50,
+    after: lastTimestamp ?? undefined,
+  })
   console.info(`📥 Fetched ${rawActivities.length} activities from Nike`)
 
   // Sync to database
