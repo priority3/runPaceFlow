@@ -2,11 +2,16 @@
  * ActivityHeatmap Component
  *
  * GitHub-style contribution heatmap for running activities
+ * Features: Click interaction with Popover, streak statistics
  */
 
 'use client'
 
-import { useMemo } from 'react'
+import * as Popover from '@radix-ui/react-popover'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Flame, Trophy, X } from 'lucide-react'
+import Link from 'next/link'
+import { useMemo, useState } from 'react'
 
 import { cn } from '@/lib/utils'
 import type { Activity } from '@/types/activity'
@@ -14,6 +19,20 @@ import type { Activity } from '@/types/activity'
 export interface ActivityHeatmapProps {
   activities: Activity[]
   className?: string
+  /** Callback when a day with activities is clicked */
+  onDayClick?: (date: Date, activities: Activity[]) => void
+}
+
+interface DayData {
+  date: Date
+  distance: number
+  count: number
+  activities: Activity[]
+}
+
+interface StreakData {
+  current: number
+  longest: number
 }
 
 /**
@@ -29,30 +48,84 @@ function getIntensityColor(distance: number): string {
 }
 
 /**
+ * Calculate current and longest running streaks
+ */
+function calculateStreaks(activities: Activity[]): StreakData {
+  if (activities.length === 0) return { current: 0, longest: 0 }
+
+  // Create a set of dates with activities
+  const activityDates = new Set<string>()
+  for (const activity of activities) {
+    const dateKey = new Date(activity.startTime).toISOString().split('T')[0]
+    activityDates.add(dateKey)
+  }
+
+  // Calculate current streak (counting back from today or yesterday)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayKey = today.toISOString().split('T')[0]
+
+  let currentStreak = 0
+  const checkDate = new Date(today)
+
+  // If no activity today, start from yesterday
+  if (!activityDates.has(todayKey)) {
+    checkDate.setDate(checkDate.getDate() - 1)
+  }
+
+  while (activityDates.has(checkDate.toISOString().split('T')[0])) {
+    currentStreak++
+    checkDate.setDate(checkDate.getDate() - 1)
+  }
+
+  // Calculate longest streak by iterating through all dates
+  const sortedDates = Array.from(activityDates).sort()
+  let longestStreak = 0
+  let tempStreak = 1
+
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prevDate = new Date(sortedDates[i - 1])
+    const currDate = new Date(sortedDates[i])
+    const diffDays = Math.round((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 1) {
+      tempStreak++
+    } else {
+      longestStreak = Math.max(longestStreak, tempStreak)
+      tempStreak = 1
+    }
+  }
+  longestStreak = Math.max(longestStreak, tempStreak)
+
+  return { current: currentStreak, longest: longestStreak }
+}
+
+/**
  * Generate calendar data for the last 12 weeks
  */
 function generateCalendarData(activities: Activity[]): {
-  weeks: { date: Date; distance: number; count: number }[][]
+  weeks: DayData[][]
   monthLabels: { label: string; weekIndex: number }[]
 } {
   const today = new Date()
-  const weeks: { date: Date; distance: number; count: number }[][] = []
+  const weeks: DayData[][] = []
   const monthLabels: { label: string; weekIndex: number }[] = []
 
-  // Create a map of date -> total distance
-  const activityMap = new Map<string, { distance: number; count: number }>()
+  // Create a map of date -> activities data
+  const activityMap = new Map<string, { distance: number; count: number; activities: Activity[] }>()
   for (const activity of activities) {
     const dateKey = new Date(activity.startTime).toISOString().split('T')[0]
-    const existing = activityMap.get(dateKey) || { distance: 0, count: 0 }
+    const existing = activityMap.get(dateKey) || { distance: 0, count: 0, activities: [] }
     activityMap.set(dateKey, {
       distance: existing.distance + activity.distance,
       count: existing.count + 1,
+      activities: [...existing.activities, activity],
     })
   }
 
   // Generate 12 weeks of data (84 days)
   const startDate = new Date(today)
-  startDate.setDate(startDate.getDate() - 83) // Go back 83 days (12 weeks - 1 day)
+  startDate.setDate(startDate.getDate() - 83)
 
   // Adjust to start from Sunday
   const dayOfWeek = startDate.getDay()
@@ -60,19 +133,20 @@ function generateCalendarData(activities: Activity[]): {
 
   let currentMonth = -1
   for (let week = 0; week < 12; week++) {
-    const weekData: { date: Date; distance: number; count: number }[] = []
+    const weekData: DayData[] = []
 
     for (let day = 0; day < 7; day++) {
       const date = new Date(startDate)
       date.setDate(startDate.getDate() + week * 7 + day)
 
       const dateKey = date.toISOString().split('T')[0]
-      const data = activityMap.get(dateKey) || { distance: 0, count: 0 }
+      const data = activityMap.get(dateKey) || { distance: 0, count: 0, activities: [] }
 
       weekData.push({
         date,
         distance: data.distance,
         count: data.count,
+        activities: data.activities,
       })
 
       // Track month labels
@@ -102,8 +176,141 @@ function generateCalendarData(activities: Activity[]): {
   return { weeks, monthLabels }
 }
 
+/**
+ * Format duration in seconds to readable string
+ */
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  if (hours > 0) {
+    return `${hours}小时${minutes}分`
+  }
+  return `${minutes}分钟`
+}
+
+/**
+ * Day cell component with Popover
+ */
+function DayCell({
+  day,
+  isToday,
+  isFuture,
+}: {
+  day: DayData
+  isToday: boolean
+  isFuture: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const hasActivities = day.count > 0
+
+  if (isFuture) {
+    return <div className="h-3 w-3 rounded-sm bg-transparent" />
+  }
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'h-3 w-3 rounded-sm transition-all duration-150',
+            getIntensityColor(day.distance),
+            isToday && 'ring-blue ring-1 ring-offset-1',
+            hasActivities && 'hover:ring-blue/50 cursor-pointer hover:scale-125 hover:ring-2',
+            !hasActivities && 'cursor-default',
+          )}
+          disabled={!hasActivities}
+          aria-label={`${day.date.toLocaleDateString('zh-CN')}: ${hasActivities ? `${day.count}次活动` : '无活动'}`}
+        />
+      </Popover.Trigger>
+
+      <AnimatePresence>
+        {open && hasActivities && (
+          <Popover.Portal forceMount>
+            <Popover.Content sideOffset={8} align="center" className="z-50" asChild>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="w-64 rounded-xl border border-white/20 bg-white/90 p-4 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-black/90"
+              >
+                {/* Header */}
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-label text-sm font-medium">
+                    {day.date.toLocaleDateString('zh-CN', {
+                      month: 'long',
+                      day: 'numeric',
+                      weekday: 'short',
+                    })}
+                  </span>
+                  <Popover.Close asChild>
+                    <button
+                      type="button"
+                      className="text-label/40 hover:text-label rounded-full p-1 transition-colors"
+                      aria-label="关闭"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </Popover.Close>
+                </div>
+
+                {/* Stats */}
+                <div className="mb-3 grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-black/5 p-2 dark:bg-white/5">
+                    <div className="text-label/50 text-xs">活动次数</div>
+                    <div className="text-label text-lg font-semibold">{day.count}</div>
+                  </div>
+                  <div className="rounded-lg bg-black/5 p-2 dark:bg-white/5">
+                    <div className="text-label/50 text-xs">总距离</div>
+                    <div className="text-label text-lg font-semibold">
+                      {(day.distance / 1000).toFixed(1)}
+                      <span className="text-label/50 ml-0.5 text-xs">km</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Activity list */}
+                <div className="space-y-2">
+                  <div className="text-label/50 text-xs">活动列表</div>
+                  <div className="max-h-32 space-y-1.5 overflow-y-auto">
+                    {day.activities.map((activity) => (
+                      <Link
+                        key={activity.id}
+                        href={`/activity/${activity.id}`}
+                        className="flex items-center justify-between rounded-lg bg-black/5 p-2 transition-colors hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                        onClick={() => setOpen(false)}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-label truncate text-sm font-medium">
+                            {activity.title || '跑步'}
+                          </div>
+                          <div className="text-label/50 text-xs">
+                            {formatDuration(activity.duration)}
+                          </div>
+                        </div>
+                        <div className="text-label ml-2 text-sm font-medium">
+                          {(activity.distance / 1000).toFixed(1)} km
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <Popover.Arrow className="fill-white/90 dark:fill-black/90" />
+              </motion.div>
+            </Popover.Content>
+          </Popover.Portal>
+        )}
+      </AnimatePresence>
+    </Popover.Root>
+  )
+}
+
 export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps) {
   const { weeks, monthLabels } = useMemo(() => generateCalendarData(activities), [activities])
+  const streaks = useMemo(() => calculateStreaks(activities), [activities])
 
   const today = new Date()
   const todayKey = today.toISOString().split('T')[0]
@@ -126,9 +333,37 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
         className,
       )}
     >
-      {/* Header */}
-      <div className="mb-3 flex flex-col gap-1 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-label text-sm font-medium">跑步热力图</h3>
+      {/* Header with streak badges */}
+      <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <h3 className="text-label text-sm font-medium">跑步热力图</h3>
+
+          {/* Streak badges */}
+          <div className="flex items-center gap-2">
+            {streaks.current > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="bg-orange/10 flex items-center gap-1 rounded-full px-2 py-0.5"
+              >
+                <Flame className="text-orange h-3 w-3" />
+                <span className="text-orange text-xs font-medium">{streaks.current}天连续</span>
+              </motion.div>
+            )}
+            {streaks.longest > 0 && streaks.longest > streaks.current && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="bg-yellow/10 flex items-center gap-1 rounded-full px-2 py-0.5"
+              >
+                <Trophy className="text-yellow h-3 w-3" />
+                <span className="text-yellow text-xs font-medium">最长{streaks.longest}天</span>
+              </motion.div>
+            )}
+          </div>
+        </div>
+
         <span className="text-label/50 text-xs">
           近12周 · {totalActivities} 次 · {(totalDistance / 1000).toFixed(1)} km
         </span>
@@ -173,21 +408,7 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
                     const isToday = dateKey === todayKey
                     const isFuture = day.date > today
 
-                    return (
-                      <div
-                        key={dateKey}
-                        className={cn(
-                          'h-3 w-3 rounded-sm transition-colors',
-                          isFuture ? 'bg-transparent' : getIntensityColor(day.distance),
-                          isToday && 'ring-blue ring-1 ring-offset-1',
-                        )}
-                        title={
-                          isFuture
-                            ? ''
-                            : `${day.date.toLocaleDateString('zh-CN')}: ${day.count > 0 ? `${day.count}次, ${(day.distance / 1000).toFixed(1)}km` : '无活动'}`
-                        }
-                      />
-                    )
+                    return <DayCell key={dateKey} day={day} isToday={isToday} isFuture={isFuture} />
                   })}
                 </div>
               ))}

@@ -117,7 +117,7 @@ export function PaceDistribution({ splits, averagePace, className }: PaceDistrib
             </div>
             <div className="text-label/40 mt-0.5 flex justify-between text-xs">
               <span>
-                {zone.minPace > 0 ? formatPace(zone.minPace) : '< ' + formatPace(zone.maxPace)}
+                {zone.minPace > 0 ? formatPace(zone.minPace) : `< ${formatPace(zone.maxPace)}`}
                 {zone.maxPace < Infinity ? ` - ${formatPace(zone.maxPace)}` : '+'}
               </span>
               <span>{(zone.totalDistance / 1000).toFixed(2)} km</span>

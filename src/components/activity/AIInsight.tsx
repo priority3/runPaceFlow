@@ -148,7 +148,7 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
       return
     }
 
-    const content = insight.content
+    const { content } = insight
     let currentIndex = 0
     const speed = 20 // characters per frame
     const frameDelay = 16 // ~60fps

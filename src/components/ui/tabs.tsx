@@ -28,10 +28,16 @@ const TabsContext = React.createContext<{
 /**
  * Enhanced Tabs root with state management for indicator
  */
-const AnimatedTabs = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
->(({ defaultValue, value, onValueChange, children, ...props }, ref) => {
+const AnimatedTabs = ({
+  ref,
+  defaultValue,
+  value,
+  onValueChange,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & {
+  ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Root> | null>
+}) => {
   const [activeTab, setActiveTab] = React.useState(value || defaultValue)
 
   const handleValueChange = React.useCallback(
@@ -50,23 +56,27 @@ const AnimatedTabs = React.forwardRef<
   }, [value])
 
   return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab: handleValueChange }}>
+    <TabsContext value={{ activeTab, setActiveTab: handleValueChange }}>
       <TabsPrimitive.Root ref={ref} value={activeTab} onValueChange={handleValueChange} {...props}>
         {children}
       </TabsPrimitive.Root>
-    </TabsContext.Provider>
+    </TabsContext>
   )
-})
+}
 AnimatedTabs.displayName = 'AnimatedTabs'
 
 /**
  * TabsList with sliding indicator
  */
-const TabsList = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, children, ...props }, ref) => {
-  const { activeTab } = React.useContext(TabsContext)
+const TabsList = ({
+  ref,
+  className,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
+  ref?: React.Ref<HTMLDivElement>
+}) => {
+  const { activeTab } = React.use(TabsContext)
   const [indicatorStyle, setIndicatorStyle] = React.useState({ left: 0, width: 0 })
   const listRef = React.useRef<HTMLDivElement>(null)
 
@@ -97,8 +107,9 @@ const TabsList = React.forwardRef<
       ref={(node) => {
         // Handle both refs
         if (typeof ref === 'function') ref(node)
-        else if (ref) ref.current = node
-        ;(listRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+        else if (ref && typeof ref === 'object')
+          (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+        listRef.current = node
       }}
       className={cn(
         'relative inline-flex items-center gap-1 rounded-xl border border-white/20 bg-white/40 p-1 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
@@ -125,16 +136,20 @@ const TabsList = React.forwardRef<
       {children}
     </TabsPrimitive.List>
   )
-})
+}
 TabsList.displayName = TabsPrimitive.List.displayName
 
 /**
  * TabsTrigger with hover animation
  */
-const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+const TabsTrigger = ({
+  ref,
+  className,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger> & {
+  ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Trigger> | null>
+}) => (
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
@@ -156,16 +171,19 @@ const TabsTrigger = React.forwardRef<
       {children}
     </motion.span>
   </TabsPrimitive.Trigger>
-))
+)
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
 /**
  * Basic TabsContent
  */
-const TabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
+const TabsContent = ({
+  ref,
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
+  ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Content> | null>
+}) => (
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
@@ -174,17 +192,21 @@ const TabsContent = React.forwardRef<
     )}
     {...props}
   />
-))
+)
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
 /**
  * Animated TabsContent with fade transition
  * Wraps content in motion.div for entry animation
  */
-const AnimatedTabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+const AnimatedTabsContent = ({
+  ref,
+  className,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content> & {
+  ref?: React.RefObject<React.ElementRef<typeof TabsPrimitive.Content> | null>
+}) => (
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
@@ -205,7 +227,7 @@ const AnimatedTabsContent = React.forwardRef<
       {children}
     </motion.div>
   </TabsPrimitive.Content>
-))
+)
 AnimatedTabsContent.displayName = 'AnimatedTabsContent'
 
 export { AnimatedTabs, AnimatedTabsContent, Tabs, TabsContent, TabsList, TabsTrigger }

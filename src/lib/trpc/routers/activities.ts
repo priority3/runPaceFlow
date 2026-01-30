@@ -11,6 +11,69 @@ import { activities, splits } from '@/lib/db/schema'
 
 import { createTRPCRouter, publicProcedure } from '../server'
 
+/**
+ * Helper to get date range boundaries
+ */
+function getDateRanges() {
+  const now = new Date()
+  now.setHours(23, 59, 59, 999)
+
+  // This week (last 7 days)
+  const oneWeekAgo = new Date(now)
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+  oneWeekAgo.setHours(0, 0, 0, 0)
+
+  // Last week (7-14 days ago)
+  const twoWeeksAgo = new Date(now)
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+  twoWeeksAgo.setHours(0, 0, 0, 0)
+
+  // This month (last 30 days)
+  const oneMonthAgo = new Date(now)
+  oneMonthAgo.setDate(oneMonthAgo.getDate() - 30)
+  oneMonthAgo.setHours(0, 0, 0, 0)
+
+  // Last month (30-60 days ago)
+  const twoMonthsAgo = new Date(now)
+  twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60)
+  twoMonthsAgo.setHours(0, 0, 0, 0)
+
+  return { now, oneWeekAgo, twoWeeksAgo, oneMonthAgo, twoMonthsAgo }
+}
+
+/**
+ * Calculate daily distance for the last N days
+ */
+function calculateDailyTrend(
+  allActivities: { startTime: Date; distance: number }[],
+  days: number,
+): number[] {
+  const now = new Date()
+  now.setHours(23, 59, 59, 999)
+
+  const dailyData: number[] = []
+
+  for (let i = days - 1; i >= 0; i--) {
+    const dayStart = new Date(now)
+    dayStart.setDate(dayStart.getDate() - i)
+    dayStart.setHours(0, 0, 0, 0)
+
+    const dayEnd = new Date(dayStart)
+    dayEnd.setHours(23, 59, 59, 999)
+
+    const dayDistance = allActivities
+      .filter((a) => {
+        const activityDate = new Date(a.startTime)
+        return activityDate >= dayStart && activityDate <= dayEnd
+      })
+      .reduce((sum, a) => sum + (a.distance || 0), 0)
+
+    dailyData.push(dayDistance)
+  }
+
+  return dailyData
+}
+
 export const activitiesRouter = createTRPCRouter({
   /**
    * Get list of activities with optional filtering
@@ -131,6 +194,7 @@ export const activitiesRouter = createTRPCRouter({
    */
   getStats: publicProcedure.query(async ({ ctx }) => {
     const allActivities = await ctx.db.select().from(activities)
+    const { oneWeekAgo, twoWeeksAgo, oneMonthAgo, twoMonthsAgo } = getDateRanges()
 
     const totalDistance = allActivities.reduce((sum, activity) => sum + (activity.distance || 0), 0)
     const totalDuration = allActivities.reduce((sum, activity) => sum + (activity.duration || 0), 0)
@@ -147,15 +211,10 @@ export const activitiesRouter = createTRPCRouter({
           activitiesWithPace.length
         : 0
 
-    // Calculate this week's stats (last 7 days)
-    const now = new Date()
-    const oneWeekAgo = new Date(now)
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
+    // This week stats (last 7 days)
     const thisWeekActivities = allActivities.filter(
       (activity) => new Date(activity.startTime) > oneWeekAgo,
     )
-
     const thisWeekDistance = thisWeekActivities.reduce(
       (sum, activity) => sum + (activity.distance || 0),
       0,
@@ -166,15 +225,11 @@ export const activitiesRouter = createTRPCRouter({
     )
     const thisWeekCount = thisWeekActivities.length
 
-    // Calculate last week's stats (7-14 days ago) for trend comparison
-    const twoWeeksAgo = new Date(now)
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-
+    // Last week stats (7-14 days ago)
     const lastWeekActivities = allActivities.filter((activity) => {
       const activityDate = new Date(activity.startTime)
       return activityDate > twoWeeksAgo && activityDate <= oneWeekAgo
     })
-
     const lastWeekDistance = lastWeekActivities.reduce(
       (sum, activity) => sum + (activity.distance || 0),
       0,
@@ -184,6 +239,38 @@ export const activitiesRouter = createTRPCRouter({
       0,
     )
     const lastWeekCount = lastWeekActivities.length
+
+    // This month stats (last 30 days)
+    const thisMonthActivities = allActivities.filter(
+      (activity) => new Date(activity.startTime) > oneMonthAgo,
+    )
+    const thisMonthDistance = thisMonthActivities.reduce(
+      (sum, activity) => sum + (activity.distance || 0),
+      0,
+    )
+    const thisMonthDuration = thisMonthActivities.reduce(
+      (sum, activity) => sum + (activity.duration || 0),
+      0,
+    )
+    const thisMonthCount = thisMonthActivities.length
+
+    // Last month stats (30-60 days ago)
+    const lastMonthActivities = allActivities.filter((activity) => {
+      const activityDate = new Date(activity.startTime)
+      return activityDate > twoMonthsAgo && activityDate <= oneMonthAgo
+    })
+    const lastMonthDistance = lastMonthActivities.reduce(
+      (sum, activity) => sum + (activity.distance || 0),
+      0,
+    )
+    const lastMonthDuration = lastMonthActivities.reduce(
+      (sum, activity) => sum + (activity.duration || 0),
+      0,
+    )
+    const lastMonthCount = lastMonthActivities.length
+
+    // Calculate 7-day trend data for sparklines
+    const weeklyTrend = calculateDailyTrend(allActivities, 7)
 
     return {
       total: {
@@ -203,6 +290,17 @@ export const activitiesRouter = createTRPCRouter({
         distance: lastWeekDistance,
         duration: lastWeekDuration,
       },
+      thisMonth: {
+        activities: thisMonthCount,
+        distance: thisMonthDistance,
+        duration: thisMonthDuration,
+      },
+      lastMonth: {
+        activities: lastMonthCount,
+        distance: lastMonthDistance,
+        duration: lastMonthDuration,
+      },
+      weeklyTrend,
     }
   }),
 })
