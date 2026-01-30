@@ -31,6 +31,9 @@ export const activities = sqliteTable('activities', {
   // GPX 数据
   gpxData: text('gpx_data'), // 完整的 GPX XML
 
+  // 室内/户外标识
+  isIndoor: integer('is_indoor', { mode: 'boolean' }).default(false), // true = 室内（跑步机等）
+
   // 时间戳
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
