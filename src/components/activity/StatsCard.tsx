@@ -26,8 +26,10 @@ export interface StatsCardProps {
   previousValue?: number
   /** Whether higher is better (true) or lower is better (false, e.g., pace) */
   higherIsBetter?: boolean
-  /** Goal value for progress bar */
+  /** Goal value for progress calculation (in raw units) */
   goal?: number
+  /** Goal display value (converted to display units, e.g., km instead of meters) */
+  goalDisplayValue?: number
   /** Goal unit label */
   goalUnit?: string
   /** Sparkline data points (7 days trend) */
@@ -159,6 +161,7 @@ export function StatsCard({
   previousValue,
   higherIsBetter = true,
   goal,
+  goalDisplayValue,
   goalUnit,
   sparklineData,
   sparklineColor,
@@ -258,19 +261,20 @@ export function StatsCard({
           <div className="mb-1 flex items-center justify-between text-xs">
             <span className="text-label/40">目标进度</span>
             <span className="text-label/60 tabular-nums">
-              {Math.round(goalProgress)}% / {goal}
+              {Math.round(goalProgress)}% / {goalDisplayValue ?? goal}
               {goalUnit}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+          <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
             <motion.div
+              key={`progress-${title}-${goalProgress}`}
               className={cn(
                 'h-full rounded-full',
                 goalProgress >= 100 ? 'bg-green' : goalProgress >= 50 ? 'bg-blue' : 'bg-orange',
               )}
-              initial={{ width: 0 }}
+              initial={{ width: '0%' }}
               animate={{ width: `${goalProgress}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
             />
           </div>
         </div>

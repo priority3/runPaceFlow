@@ -28,6 +28,14 @@ import type { RouteData } from '@/types/map'
 type StatsPeriod = 'week' | 'month'
 type MapLayerMode = 'route' | 'pace'
 
+// 目标配置（从环境变量读取，带默认值）
+const GOALS = {
+  weeklyDistance: Number(process.env.NEXT_PUBLIC_WEEKLY_DISTANCE_GOAL) || 10000,
+  monthlyDistance: Number(process.env.NEXT_PUBLIC_MONTHLY_DISTANCE_GOAL) || 50000,
+  weeklyDuration: Number(process.env.NEXT_PUBLIC_WEEKLY_DURATION_GOAL) || 3600,
+  monthlyDuration: Number(process.env.NEXT_PUBLIC_MONTHLY_DURATION_GOAL) || 18000,
+}
+
 export default function HomePage() {
   const { data: stats, isLoading: statsLoading } = useActivityStats()
   const { data: activitiesData, isLoading: activitiesLoading, error } = useActivities({ limit: 20 })
@@ -176,7 +184,12 @@ export default function HomePage() {
                   currentValue={periodStats.current.distance}
                   previousValue={periodStats.previous.distance}
                   higherIsBetter={true}
-                  goal={statsPeriod === 'week' ? 30000 : 120000}
+                  goal={statsPeriod === 'week' ? GOALS.weeklyDistance : GOALS.monthlyDistance}
+                  goalDisplayValue={
+                    statsPeriod === 'week'
+                      ? GOALS.weeklyDistance / 1000
+                      : GOALS.monthlyDistance / 1000
+                  }
                   goalUnit="km"
                   subtitle={periodStats.compareLabel}
                   sparklineData={stats.weeklyTrend}
@@ -189,6 +202,13 @@ export default function HomePage() {
                   currentValue={periodStats.current.duration}
                   previousValue={periodStats.previous.duration}
                   higherIsBetter={true}
+                  goal={statsPeriod === 'week' ? GOALS.weeklyDuration : GOALS.monthlyDuration}
+                  goalDisplayValue={
+                    statsPeriod === 'week'
+                      ? GOALS.weeklyDuration / 3600
+                      : GOALS.monthlyDuration / 3600
+                  }
+                  goalUnit="小时"
                   subtitle={periodStats.compareLabel}
                 />
               </motion.div>
