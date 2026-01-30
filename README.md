@@ -34,13 +34,19 @@ NIKE_ACCESS_TOKEN=your_access_token
 # Claude AI (optional - for running insights)
 ANTHROPIC_API_KEY=your_api_key
 ANTHROPIC_BASE_URL=  # Optional: custom API endpoint for proxy
+
+# Goals (optional - customize weekly/monthly targets)
+NEXT_PUBLIC_WEEKLY_DISTANCE_GOAL=10000   # Weekly distance goal in meters (default: 10km)
+NEXT_PUBLIC_MONTHLY_DISTANCE_GOAL=50000  # Monthly distance goal in meters (default: 50km)
+NEXT_PUBLIC_WEEKLY_DURATION_GOAL=3600    # Weekly duration goal in seconds (default: 1 hour)
+NEXT_PUBLIC_MONTHLY_DURATION_GOAL=18000  # Monthly duration goal in seconds (default: 5 hours)
 ```
 
 ### Getting Strava Token
 
 1. Go to [Strava API Settings](https://www.strava.com/settings/api) and create an app
 2. Get your `Client ID` and `Client Secret`
-3. Obtain `Refresh Token` via OAuth flow (see [strava-oauth guide](https://github.com/yihong0618/running_page/blob/master/docs/strava_bindtoken.md))
+3. Obtain `Refresh Token` via OAuth flow (see [strava-oauth guide](https://github.com/yihong0618/running_page?tab=readme-ov-file#strava))
 
 ### Claude AI Setup (Optional)
 

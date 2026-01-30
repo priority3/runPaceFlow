@@ -34,13 +34,19 @@ NIKE_ACCESS_TOKEN=your_access_token
 # Claude AI 配置 (可选 - 用于 AI 跑步分析)
 ANTHROPIC_API_KEY=your_api_key
 ANTHROPIC_BASE_URL=  # 可选：自定义 API 地址（用于代理）
+
+# 运动目标配置 (可选 - 自定义周/月目标)
+NEXT_PUBLIC_WEEKLY_DISTANCE_GOAL=10000   # 每周里程目标（米），默认 10km
+NEXT_PUBLIC_MONTHLY_DISTANCE_GOAL=50000  # 每月里程目标（米），默认 50km
+NEXT_PUBLIC_WEEKLY_DURATION_GOAL=3600    # 每周时长目标（秒），默认 1 小时
+NEXT_PUBLIC_MONTHLY_DURATION_GOAL=18000  # 每月时长目标（秒），默认 5 小时
 ```
 
 ### 获取 Strava Token
 
 1. 前往 [Strava API Settings](https://www.strava.com/settings/api) 创建应用
 2. 获取 `Client ID` 和 `Client Secret`
-3. 通过 OAuth 流程获取 `Refresh Token`（可参考 [strava-oauth](https://github.com/yihong0618/running_page/blob/master/docs/strava_bindtoken.md)）
+3. 通过 OAuth 流程获取 `Refresh Token`（可参考 [strava-oauth](https://github.com/yihong0618/running_page?tab=readme-ov-file#strava)）
 
 ### Claude AI 配置（可选）
 
