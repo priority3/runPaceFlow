@@ -37,13 +37,15 @@ export class NikeAdapter implements SyncAdapter {
   }
 
   /**
-   * 获取活动列表（支持分页）
+   * 获取活动列表（支持分页和增量同步）
    * 使用 before_id 参数实现分页
+   * @param options.after - Unix timestamp for incremental sync (optional)
    */
   async getActivities(
     options: {
       startDate?: Date
       endDate?: Date
+      after?: number
       limit?: number
       beforeId?: string // 分页标识
     } = {},
@@ -51,6 +53,9 @@ export class NikeAdapter implements SyncAdapter {
     const activities: RawActivity[] = []
     let beforeId = options.beforeId || null
     const pageLimit = options.limit || 30
+
+    // Convert after timestamp to Date for comparison
+    const afterDate = options.after ? new Date(options.after * 1000) : null
 
     try {
       // 分页获取活动列表
@@ -69,6 +74,17 @@ export class NikeAdapter implements SyncAdapter {
 
         // 获取每个活动的详情
         for (const activity of runActivities) {
+          // Skip activities older than the after timestamp (incremental sync)
+          if (afterDate && activity.start_epoch_ms) {
+            const activityDate = new Date(activity.start_epoch_ms)
+            if (activityDate <= afterDate) {
+              // Activities are returned in reverse chronological order
+              // Once we hit an old activity, we can stop
+              console.info(`⏭️ Skipping activity ${activity.id} (older than last sync)`)
+              return activities
+            }
+          }
+
           try {
             const detail = await this.getActivityDetail(activity.id)
             activities.push(detail)

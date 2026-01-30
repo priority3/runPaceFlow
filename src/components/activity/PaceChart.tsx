@@ -8,6 +8,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -89,12 +90,24 @@ const CustomTooltip = ({ active, payload, fastestKm, averagePace }: any) => {
  * Pace bar chart component with color-coded bars
  */
 export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
+  // Prevent SSR hydration mismatch with ResponsiveContainer
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   if (!splits || splits.length === 0) {
     return (
       <div className="flex h-[300px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
         <p className="text-label/50">暂无配速数据</p>
       </div>
     )
+  }
+
+  // Show placeholder during SSR
+  if (!isMounted) {
+    return <div className="h-[300px] animate-pulse rounded-xl bg-white/30 dark:bg-black/10" />
   }
 
   // Prepare chart data
