@@ -250,7 +250,7 @@ export function ActivityActionBar({
       </AnimatePresence>
 
       {/* Spacer for mobile to prevent content being hidden by action bar */}
-      <div className="h-20 sm:hidden" />
+      <div className="h-16 sm:hidden" aria-hidden="true" />
     </>
   )
 }
