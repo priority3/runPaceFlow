@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { AIInsight } from '@/components/activity/AIInsight'
@@ -26,7 +26,7 @@ import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
 import { RunMap } from '@/components/map/RunMap'
 import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useActivityWithSplits } from '@/hooks/use-activities'
-import { layoutTransition, springs } from '@/lib/animation'
+import { springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import type { TrackPoint } from '@/lib/map/pace-utils'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
@@ -47,6 +47,13 @@ export default function ActivityDetailPage() {
   // Playback state
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
   const [animationProgress, setAnimationProgress] = useAtom(animationProgressAtom)
+
+  // Client-side mount state to prevent hydration issues
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Parse GPX data and generate track points
   const { paceSegments, kmMarkers, trackPoints, bounds, heartRateData } = useMemo(() => {
@@ -151,22 +158,16 @@ export default function ActivityDetailPage() {
     setAnimationProgress(100)
   }
 
-  // Loading state
-  if (isLoading) {
+  // Loading state - also show during SSR to prevent hydration mismatch
+  if (isLoading || !isMounted) {
     return (
       <div className="bg-system-background min-h-screen">
         <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
         <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6 h-10 w-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
-          <div className="mb-8 h-32 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
-          <div className="grid gap-4 md:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={`skeleton-${i}`}
-                className="h-28 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20"
-              />
-            ))}
-          </div>
+          <div className="mb-8 h-64 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl sm:h-80 dark:bg-black/20" />
+          <div className="mb-6 h-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
+          <div className="h-64 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
         </div>
       </div>
     )
@@ -310,8 +311,9 @@ export default function ActivityDetailPage() {
 
         {/* Activity Info Card - Compact one-line stats */}
         <motion.div
-          layoutId={`activity-card-${activityId}`}
-          transition={layoutTransition}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
           className="mb-6 rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
