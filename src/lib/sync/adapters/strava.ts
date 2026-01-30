@@ -395,6 +395,7 @@ export class StravaAdapter implements SyncAdapter {
       id: activity.id.toString(),
       source: 'strava',
       type: this.mapActivityType(activity.type),
+      isIndoor: this.isIndoorActivity(activity.type),
       title: activity.name,
       startTime: new Date(activity.start_date),
       duration: activity.moving_time, // Use moving_time (excludes pauses)
@@ -499,5 +500,13 @@ ${trackPoints}
   private isRunningActivity(stravaType: string): boolean {
     const runningTypes = ['Run', 'TrailRun', 'VirtualRun']
     return runningTypes.includes(stravaType)
+  }
+
+  /**
+   * Check if an activity is indoor (treadmill, indoor cycling, etc.)
+   */
+  private isIndoorActivity(stravaType: string): boolean {
+    const indoorTypes = ['VirtualRun', 'VirtualRide', 'Treadmill']
+    return indoorTypes.includes(stravaType)
   }
 }

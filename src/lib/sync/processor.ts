@@ -76,6 +76,7 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       maxHeartRate: rawActivity.maxHeartRate,
       calories: rawActivity.calories,
       gpxData,
+      isIndoor: rawActivity.isIndoor ?? false,
     })
 
     // 生成分段数据

@@ -13,6 +13,7 @@ import {
   Clock,
   Flame,
   Gauge,
+  Home,
   Mountain,
   TrendingUp,
   Trophy,
@@ -204,6 +205,13 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
                       <h3 className="text-label truncate font-medium">
                         {activity.title || '跑步活动'}
                       </h3>
+                      {/* Indoor badge */}
+                      {activity.isIndoor && (
+                        <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                          <Home className="h-3 w-3" />
+                          室内
+                        </span>
+                      )}
                       {/* Achievement badges */}
                       {achievements.get(activity.id)?.map((achievement) => (
                         <span
