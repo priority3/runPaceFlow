@@ -6,7 +6,7 @@
 
 'use client'
 
-import { motion, useMotionValue, animate } from 'framer-motion'
+import { animate, motion, useMotionValue } from 'framer-motion'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'

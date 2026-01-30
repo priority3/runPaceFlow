@@ -163,3 +163,119 @@ export function segmentsToPacePoints(segments: PaceSegment[]): PacePoint[] {
     color: segment.color,
   }))
 }
+
+/**
+ * Parse GPX data and create pace segments
+ * @param gpxData Raw GPX XML string
+ * @param averagePace Average pace in seconds per kilometer
+ * @returns Array of pace segments
+ */
+export function parsePaceSegments(gpxData: string, averagePace: number): PaceSegment[] {
+  if (!gpxData || gpxData.trim() === '') return []
+
+  try {
+    // Parse trackpoints from GPX
+    const trackPoints = parseGPXToTrackPoints(gpxData)
+    if (trackPoints.length < 2) return []
+
+    // Create pace segments
+    return createPaceSegments(trackPoints, averagePace, 100)
+  } catch (error) {
+    console.error('Failed to parse pace segments:', error)
+    return []
+  }
+}
+
+/**
+ * Parse GPX XML to TrackPoint array
+ */
+function parseGPXToTrackPoints(gpxData: string): TrackPoint[] {
+  const trackPoints: TrackPoint[] = []
+
+  // Match trkpt elements with lat, lon, time, and optionally extensions
+  const trkptRegex =
+    /<trkpt[^>]+lat=["']([^"']+)["'][^>]+lon=["']([^"']+)["'][^>]*>([\s\S]*?)<\/trkpt>/gi
+
+  let match
+  let lastPoint: TrackPoint | null = null
+  let cumulativeDistance = 0
+
+  while ((match = trkptRegex.exec(gpxData)) !== null) {
+    const lat = Number.parseFloat(match[1])
+    const lon = Number.parseFloat(match[2])
+    const content = match[3]
+
+    if (Number.isNaN(lat) || Number.isNaN(lon)) continue
+
+    // Extract time
+    const timeMatch = content.match(/<time>([^<]+)<\/time>/i)
+    const time = timeMatch ? new Date(timeMatch[1]) : new Date()
+
+    // Calculate distance from last point
+    if (lastPoint) {
+      cumulativeDistance += haversineDistance(lastPoint.latitude, lastPoint.longitude, lat, lon)
+    }
+
+    const point: TrackPoint = {
+      latitude: lat,
+      longitude: lon,
+      time,
+      distance: cumulativeDistance,
+    }
+
+    trackPoints.push(point)
+    lastPoint = point
+  }
+
+  // Try alternative format if no points found
+  if (trackPoints.length === 0) {
+    const altRegex =
+      /<trkpt[^>]+lon=["']([^"']+)["'][^>]+lat=["']([^"']+)["'][^>]*>([\s\S]*?)<\/trkpt>/gi
+
+    while ((match = altRegex.exec(gpxData)) !== null) {
+      const lon = Number.parseFloat(match[1])
+      const lat = Number.parseFloat(match[2])
+      const content = match[3]
+
+      if (Number.isNaN(lat) || Number.isNaN(lon)) continue
+
+      const timeMatch = content.match(/<time>([^<]+)<\/time>/i)
+      const time = timeMatch ? new Date(timeMatch[1]) : new Date()
+
+      if (lastPoint) {
+        cumulativeDistance += haversineDistance(lastPoint.latitude, lastPoint.longitude, lat, lon)
+      }
+
+      const point: TrackPoint = {
+        latitude: lat,
+        longitude: lon,
+        time,
+        distance: cumulativeDistance,
+      }
+
+      trackPoints.push(point)
+      lastPoint = point
+    }
+  }
+
+  return trackPoints
+}
+
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ * @returns Distance in meters
+ */
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000 // Earth's radius in meters
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+function toRad(deg: number): number {
+  return deg * (Math.PI / 180)
+}
