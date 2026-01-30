@@ -17,7 +17,7 @@ export function ArtControlPanel({ title, children, className = '' }: ArtControlP
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border border-white/20 bg-white/50 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/20 ${className}`}
+      className={`rounded-xl border border-white/20 bg-white/50 p-3 backdrop-blur-xl sm:p-4 dark:border-white/10 dark:bg-black/20 ${className}`}
     >
       <h4 className="text-label/80 mb-3 text-sm font-medium">{title}</h4>
       <div className="space-y-3">{children}</div>
@@ -32,10 +32,11 @@ interface ControlRowProps {
 
 /**
  * Single control row with label
+ * Stacks vertically on mobile, horizontal on larger screens
  */
 export function ControlRow({ label, children }: ControlRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <span className="text-label/60 text-sm">{label}</span>
       {children}
     </div>
@@ -77,6 +78,7 @@ interface SliderControlProps {
 
 /**
  * Slider control for numeric values
+ * Full width on mobile, fixed width on larger screens
  */
 export function SliderControl({
   value,
@@ -87,7 +89,7 @@ export function SliderControl({
   formatValue,
 }: SliderControlProps) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex w-full items-center gap-3 sm:w-auto">
       <input
         type="range"
         min={min}
@@ -95,9 +97,9 @@ export function SliderControl({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="bg-fill-tertiary accent-blue h-1.5 w-24 cursor-pointer appearance-none rounded-full"
+        className="bg-fill-tertiary accent-blue h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full sm:w-24 sm:flex-none"
       />
-      <span className="text-label/60 w-12 text-right text-sm tabular-nums">
+      <span className="text-label/60 w-12 shrink-0 text-right text-sm tabular-nums">
         {formatValue ? formatValue(value) : value}
       </span>
     </div>
@@ -112,6 +114,7 @@ interface SegmentedControlProps<T extends string> {
 
 /**
  * Segmented control for selecting between options
+ * Scrollable on mobile if needed
  */
 export function SegmentedControl<T extends string>({
   options,
@@ -119,12 +122,12 @@ export function SegmentedControl<T extends string>({
   onChange,
 }: SegmentedControlProps<T>) {
   return (
-    <div className="bg-fill-tertiary inline-flex rounded-lg p-1">
+    <div className="bg-fill-tertiary inline-flex w-full overflow-x-auto rounded-lg p-1 sm:w-auto">
       {options.map((option) => (
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             value === option.value
               ? 'text-label bg-white shadow-sm dark:bg-black/40'
               : 'text-label/60 hover:text-label'

@@ -83,8 +83,8 @@ export function RunningFingerprint({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
-      {/* Canvas container */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-white/20 bg-black shadow-lg dark:border-white/10">
+      {/* Canvas container - max width on larger screens for better proportions */}
+      <div className="relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-2xl border border-white/20 bg-black shadow-lg dark:border-white/10">
         <FingerprintCanvas
           splits={fingerprintSplits}
           mode={settings.mode}
@@ -100,11 +100,11 @@ export function RunningFingerprint({
         />
 
         {/* Overlay info */}
-        <div className="absolute right-4 bottom-4 left-4 flex items-end justify-between">
-          <div className="text-sm text-white/60">
+        <div className="absolute right-3 bottom-3 left-3 flex items-end justify-between sm:right-4 sm:bottom-4 sm:left-4">
+          <div className="text-xs text-white/60 sm:text-sm">
             <span className="font-medium text-white">{splits.length}</span> 公里
           </div>
-          <div className="text-xs text-white/40">RunPaceFlow</div>
+          <div className="text-[10px] text-white/40 sm:text-xs">RunPaceFlow</div>
         </div>
       </div>
 
