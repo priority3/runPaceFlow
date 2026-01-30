@@ -19,6 +19,7 @@ import { HeartRateZones } from '@/components/activity/HeartRateZones'
 import { PaceChart } from '@/components/activity/PaceChart'
 import { PaceDistribution } from '@/components/activity/PaceDistribution'
 import { SplitsTable } from '@/components/activity/SplitsTable'
+import { ArtGallery } from '@/components/art'
 import { AnimatedRoute } from '@/components/map/AnimatedRoute'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
 import { KilometerMarkers } from '@/components/map/KilometerMarkers'
@@ -377,6 +378,7 @@ export default function ActivityDetailPage() {
               <TabsTrigger value="heartrate">心率</TabsTrigger>
             )}
             <TabsTrigger value="splits">分段数据</TabsTrigger>
+            <TabsTrigger value="art">艺术</TabsTrigger>
             <TabsTrigger value="ai">AI 分析</TabsTrigger>
             {activity.calories && <TabsTrigger value="more">更多数据</TabsTrigger>}
           </TabsList>
@@ -442,6 +444,18 @@ export default function ActivityDetailPage() {
           {/* AI Insight Tab */}
           <AnimatedTabsContent value="ai">
             <AIInsight activityId={activityId} />
+          </AnimatedTabsContent>
+
+          {/* Art Gallery Tab */}
+          <AnimatedTabsContent value="art">
+            <ArtGallery
+              splits={chartSplits}
+              trackPoints={trackPoints}
+              paceSegments={paceSegments}
+              kmMarkers={kmMarkers}
+              heartRateData={heartRateData}
+              activity={activity}
+            />
           </AnimatedTabsContent>
 
           {/* More Data Tab - Calories and other stats */}
