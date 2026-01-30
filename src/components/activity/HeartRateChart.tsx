@@ -8,6 +8,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import {
   Area,
   AreaChart,
@@ -79,12 +80,24 @@ export function HeartRateChart({
   maxHeartRate,
   className,
 }: HeartRateChartProps) {
+  // Prevent SSR hydration mismatch with ResponsiveContainer
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   if (!data || data.length === 0) {
     return (
       <div className="flex h-[250px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
         <p className="text-label/50">暂无心率数据</p>
       </div>
     )
+  }
+
+  // Show placeholder during SSR
+  if (!isMounted) {
+    return <div className="h-[250px] animate-pulse rounded-xl bg-white/30 dark:bg-black/10" />
   }
 
   // Prepare chart data - sample every N points to avoid too many data points
