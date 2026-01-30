@@ -85,7 +85,8 @@ function Sparkline({
       const midX = (prev.x + curr.x) / 2
       linePath += ` Q ${prev.x} ${prev.y} ${midX} ${(prev.y + curr.y) / 2}`
     }
-    const lastPt = pts[pts.length - 1]
+    const lastPt = pts.at(-1)
+    if (!lastPt) return { path: '', areaPath: '', points: pts }
     linePath += ` L ${lastPt.x} ${lastPt.y}`
 
     // Create area path for gradient fill
@@ -135,10 +136,10 @@ function Sparkline({
       />
 
       {/* End point dot */}
-      {points.length > 0 && (
+      {points.length > 0 && points.at(-1) && (
         <motion.circle
-          cx={points[points.length - 1].x}
-          cy={points[points.length - 1].y}
+          cx={points.at(-1)!.x}
+          cy={points.at(-1)!.y}
           r={2.5}
           fill={color}
           initial={{ scale: 0 }}
