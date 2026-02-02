@@ -1,3 +1,5 @@
+import { generateSmartName } from '@/lib/activity/naming'
+
 import type { RawActivity, SyncAdapter } from './base'
 
 /**
@@ -391,12 +393,19 @@ export class StravaAdapter implements SyncAdapter {
     // Calculate best pace from max speed
     const bestPace = activity.max_speed > 0 ? 1000 / activity.max_speed : undefined
 
+    // Generate smart name based on distance and race matching
+    const startTime = new Date(activity.start_date)
+    const title = generateSmartName(
+      { distance: activity.distance, startTime, gpxData: gpxData || null },
+      activity.name,
+    )
+
     return {
       id: activity.id.toString(),
       source: 'strava',
       type: this.mapActivityType(activity.type),
       isIndoor: this.isIndoorActivity(activity.type),
-      title: activity.name,
+      title,
       startTime: new Date(activity.start_date),
       duration: activity.moving_time, // Use moving_time (excludes pauses)
       distance: activity.distance,

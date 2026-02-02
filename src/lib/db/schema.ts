@@ -34,6 +34,9 @@ export const activities = sqliteTable('activities', {
   // 室内/户外标识
   isIndoor: integer('is_indoor', { mode: 'boolean' }).default(false), // true = 室内（跑步机等）
 
+  // 赛事名称（同步时通过 zuicool.com 匹配获取）
+  raceName: text('race_name'), // 如 "2025 北京马拉松"
+
   // 时间戳
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()

@@ -12,6 +12,7 @@ import {
   calculateTrackDistance,
   parseGPX,
 } from './parser'
+import { extractCoordinatesFromGPX, matchRaceForActivity } from './race-matcher'
 
 /**
  * 数据处理器
@@ -55,6 +56,16 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
     const averagePace =
       rawActivity.averagePace || (distance > 0 ? calculatePace(distance, duration) : 0)
 
+    // 匹配赛事名称（半马以上距离）
+    let raceName: string | null = null
+    if (distance >= 20500) {
+      const coords = extractCoordinatesFromGPX(gpxData)
+      raceName = await matchRaceForActivity(rawActivity.startTime, distance, coords)
+      if (raceName) {
+        console.info(`Matched race: ${raceName} for activity ${rawActivity.id}`)
+      }
+    }
+
     // 创建活动记录
     const activityId = generateId('act')
     const endTime = new Date(rawActivity.startTime.getTime() + duration * 1000)
@@ -77,6 +88,7 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       calories: rawActivity.calories,
       gpxData,
       isIndoor: rawActivity.isIndoor ?? false,
+      raceName,
     })
 
     // 生成分段数据
