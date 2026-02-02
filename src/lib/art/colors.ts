@@ -214,3 +214,166 @@ export const artThemes = {
 } as const
 
 export type ArtTheme = keyof typeof artThemes
+
+/**
+ * Premium color palettes for fingerprint visualization
+ * Vibrant but harmonious gradients for data art
+ */
+export const premiumPalettes = {
+  default: {
+    // Vibrant cyan to warm coral - Strava-inspired
+    colors: ['#00D4AA', '#00C9B7', '#FFD93D', '#FF8C42', '#FF6B6B'],
+    name: 'Strava',
+  },
+  warm: {
+    // Energetic warm gradient - sunrise vibes
+    colors: ['#FFE66D', '#FFB347', '#FF7F50', '#FF6B6B', '#EE5A5A'],
+    name: 'Sunrise',
+  },
+  cool: {
+    // Electric blue to purple - Nike Run Club style
+    colors: ['#00F5FF', '#00D4FF', '#7B68EE', '#9370DB', '#BA55D3'],
+    name: 'Electric',
+  },
+  nature: {
+    // Vivid forest gradient - natural energy
+    colors: ['#00FF88', '#00E676', '#00C853', '#00A844', '#008B3A'],
+    name: 'Forest',
+  },
+} as const
+
+export type PremiumPalette = keyof typeof premiumPalettes
+
+/**
+ * Get smooth pace color using multi-point interpolation
+ * Creates seamless gradient transitions instead of hard zone boundaries
+ *
+ * @param pace Current pace in seconds/km
+ * @param minPace Fastest pace in the run
+ * @param maxPace Slowest pace in the run
+ * @param palette Color palette to use
+ * @returns Interpolated hex color
+ */
+export function getSmoothPaceColor(
+  pace: number,
+  minPace: number,
+  maxPace: number,
+  palette: PremiumPalette = 'default',
+): string {
+  const { colors } = premiumPalettes[palette]
+  const range = maxPace - minPace
+
+  // Handle edge case where all paces are the same
+  if (range === 0) {
+    return colors[Math.floor(colors.length / 2)]
+  }
+
+  // Normalize pace to 0-1 range (0 = fastest, 1 = slowest)
+  const normalized = Math.max(0, Math.min(1, (pace - minPace) / range))
+
+  // Calculate which segment of the gradient we're in
+  const segmentCount = colors.length - 1
+  const segmentIndex = Math.min(Math.floor(normalized * segmentCount), segmentCount - 1)
+  const segmentProgress = normalized * segmentCount - segmentIndex
+
+  // Interpolate between the two colors in this segment
+  return interpolateColor(colors[segmentIndex], colors[segmentIndex + 1], segmentProgress)
+}
+
+/**
+ * Get smooth heart rate color using multi-point interpolation
+ *
+ * @param heartRate Current heart rate
+ * @param maxHeartRate Maximum heart rate
+ * @param palette Color palette to use
+ * @returns Interpolated hex color
+ */
+export function getSmoothHeartRateColor(
+  heartRate: number,
+  maxHeartRate: number,
+  palette: PremiumPalette = 'default',
+): string {
+  const { colors } = premiumPalettes[palette]
+
+  // Normalize heart rate to 0-1 range (50-100% of max HR)
+  const percentage = heartRate / maxHeartRate
+  const normalized = Math.max(0, Math.min(1, (percentage - 0.5) / 0.5))
+
+  // Calculate which segment of the gradient we're in
+  const segmentCount = colors.length - 1
+  const segmentIndex = Math.min(Math.floor(normalized * segmentCount), segmentCount - 1)
+  const segmentProgress = normalized * segmentCount - segmentIndex
+
+  return interpolateColor(colors[segmentIndex], colors[segmentIndex + 1], segmentProgress)
+}
+
+/**
+ * Get smooth elevation color using multi-point interpolation
+ *
+ * @param elevation Current elevation
+ * @param minElevation Minimum elevation in route
+ * @param maxElevation Maximum elevation in route
+ * @param palette Color palette to use
+ * @returns Interpolated hex color
+ */
+export function getSmoothElevationColor(
+  elevation: number,
+  minElevation: number,
+  maxElevation: number,
+  palette: PremiumPalette = 'default',
+): string {
+  const { colors } = premiumPalettes[palette]
+  const range = maxElevation - minElevation
+
+  if (range === 0) {
+    return colors[Math.floor(colors.length / 2)]
+  }
+
+  const normalized = Math.max(0, Math.min(1, (elevation - minElevation) / range))
+
+  const segmentCount = colors.length - 1
+  const segmentIndex = Math.min(Math.floor(normalized * segmentCount), segmentCount - 1)
+  const segmentProgress = normalized * segmentCount - segmentIndex
+
+  return interpolateColor(colors[segmentIndex], colors[segmentIndex + 1], segmentProgress)
+}
+
+/**
+ * Darken a hex color by a percentage
+ * @param hex Hex color string
+ * @param percent Percentage to darken (0-100)
+ * @returns Darkened hex color
+ */
+export function darkenColor(hex: string, percent: number): string {
+  const cleanHex = hex.replace('#', '')
+  const r = Number.parseInt(cleanHex.slice(0, 2), 16)
+  const g = Number.parseInt(cleanHex.slice(2, 4), 16)
+  const b = Number.parseInt(cleanHex.slice(4, 6), 16)
+
+  const factor = 1 - percent / 100
+  const newR = Math.round(r * factor)
+  const newG = Math.round(g * factor)
+  const newB = Math.round(b * factor)
+
+  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`
+}
+
+/**
+ * Lighten a hex color by a percentage
+ * @param hex Hex color string
+ * @param percent Percentage to lighten (0-100)
+ * @returns Lightened hex color
+ */
+export function lightenColor(hex: string, percent: number): string {
+  const cleanHex = hex.replace('#', '')
+  const r = Number.parseInt(cleanHex.slice(0, 2), 16)
+  const g = Number.parseInt(cleanHex.slice(2, 4), 16)
+  const b = Number.parseInt(cleanHex.slice(4, 6), 16)
+
+  const factor = percent / 100
+  const newR = Math.round(r + (255 - r) * factor)
+  const newG = Math.round(g + (255 - g) * factor)
+  const newB = Math.round(b + (255 - b) * factor)
+
+  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`
+}

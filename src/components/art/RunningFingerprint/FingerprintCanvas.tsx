@@ -2,9 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { ArtTheme } from '@/lib/art/colors'
+import type { ArtTheme, PremiumPalette } from '@/lib/art/colors'
 import { artThemes } from '@/lib/art/colors'
-import type { FingerprintOptions, FingerprintRing, FingerprintSplit } from '@/lib/art/fingerprint'
+import type {
+  FingerprintOptions,
+  FingerprintRing,
+  FingerprintSplit,
+  PremiumRenderOptions,
+} from '@/lib/art/fingerprint'
 import {
   calculateFingerprintRadius,
   calculateRadialLines,
@@ -23,6 +28,10 @@ interface FingerprintCanvasProps {
   showRadialLines?: boolean
   animateRotation?: boolean
   theme?: ArtTheme
+  /** Color palette for premium rendering */
+  palette?: PremiumPalette
+  /** Enable premium multi-layer rendering effects */
+  usePremiumRendering?: boolean
   onCanvasReady?: (canvas: HTMLCanvasElement) => void
   className?: string
 }
@@ -41,6 +50,8 @@ export function FingerprintCanvas({
   showRadialLines = true,
   animateRotation = false,
   theme = 'default',
+  palette = 'default',
+  usePremiumRendering = true,
   onCanvasReady,
   className = '',
 }: FingerprintCanvasProps) {
@@ -59,6 +70,11 @@ export function FingerprintCanvas({
     const minElevation = elevations.length > 0 ? Math.min(...elevations) : 0
     const maxElevation = elevations.length > 0 ? Math.max(...elevations) : 100
 
+    // Calculate pace range for smooth color interpolation
+    const paces = splits.map((s) => s.pace)
+    const minPace = Math.min(...paces)
+    const maxPace = Math.max(...paces)
+
     const options: FingerprintOptions = {
       mode,
       averagePace,
@@ -66,9 +82,13 @@ export function FingerprintCanvas({
       minElevation,
       maxElevation,
       baseRadius: 40,
-      ringSpacing: 6,
-      minThickness: 4,
-      maxThickness: 16,
+      ringSpacing: usePremiumRendering ? -2 : 6, // Overlap for premium, gap for classic
+      minThickness: usePremiumRendering ? 8 : 4,
+      maxThickness: usePremiumRendering ? 24 : 16,
+      usePremiumColors: usePremiumRendering,
+      palette,
+      minPace,
+      maxPace,
     }
 
     const generatedRings = generateFingerprintRings(splits, options)
@@ -82,7 +102,16 @@ export function FingerprintCanvas({
     } else {
       setRadialLines([])
     }
-  }, [splits, mode, averagePace, maxHeartRate, showRadialLines, elevationData])
+  }, [
+    splits,
+    mode,
+    averagePace,
+    maxHeartRate,
+    showRadialLines,
+    elevationData,
+    palette,
+    usePremiumRendering,
+  ])
 
   // Draw function
   const draw = useCallback(
@@ -104,11 +133,35 @@ export function FingerprintCanvas({
       ctx.fillStyle = themeColors.background
       ctx.fillRect(0, 0, width, height)
 
+      // Calculate auto-scale to fit within canvas with padding
+      const maxRadius = calculateFingerprintRadius(rings)
+      const padding = 40 // Padding from edges
+      const availableSize = Math.min(width, height) - padding * 2
+      const autoScale = maxRadius > 0 ? availableSize / (maxRadius * 2) : 1
+      const finalScale = scale * Math.min(autoScale, 1) // Don't scale up, only down
+
       // Apply scale
       ctx.save()
       ctx.translate(centerX, centerY)
-      ctx.scale(scale, scale)
+      ctx.scale(finalScale, finalScale)
       ctx.translate(-centerX, -centerY)
+
+      // Premium render options
+      const premiumOptions: PremiumRenderOptions = usePremiumRendering
+        ? {
+            enableGlow: true,
+            enableDepth: true,
+            enableHighlight: true,
+            enableCenterGlow: true,
+            glowIntensity: 0.15,
+            theme,
+          }
+        : {
+            enableGlow: false,
+            enableDepth: false,
+            enableHighlight: false,
+            enableCenterGlow: false,
+          }
 
       // Draw fingerprint
       drawFingerprint(
@@ -118,11 +171,12 @@ export function FingerprintCanvas({
         centerY,
         currentRotation,
         showRadialLines ? radialLines : undefined,
+        premiumOptions,
       )
 
       ctx.restore()
     },
-    [rings, radialLines, scale, showRadialLines, theme],
+    [rings, radialLines, scale, showRadialLines, theme, usePremiumRendering],
   )
 
   // Animation loop
