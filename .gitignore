@@ -67,7 +67,7 @@ lerna-debug.log*
 !data/activities.db
 
 # Drizzle
-drizzle/**/*.sql
+drizzle/
 .drizzle/
 
 # Logs
@@ -81,3 +81,6 @@ Thumbs.db
 .serena/
 
 .claude/settings.local.json
+
+# Race data (fetched on-demand during sync)
+src/lib/activity/races-data.json
