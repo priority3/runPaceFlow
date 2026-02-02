@@ -7,6 +7,7 @@ import { generateId } from '@/lib/utils'
 import type { SyncAdapter } from './adapters/base'
 import { NikeAdapter } from './adapters/nike'
 import { syncActivities } from './processor'
+import { cleanupRaceMatcher, initRaceMatcher } from './race-matcher'
 
 /**
  * 同步服务
@@ -86,6 +87,9 @@ export async function performSync(options: SyncOptions): Promise<SyncResult> {
   })
 
   try {
+    // 初始化赛事匹配器（启动 Playwright 浏览器）
+    await initRaceMatcher()
+
     // 获取访问令牌
     const profile = await getUserProfile()
     const accessToken = getAccessToken(profile, source)
@@ -129,6 +133,9 @@ export async function performSync(options: SyncOptions): Promise<SyncResult> {
     // 更新用户的最后同步时间
     await updateLastSyncTime(source)
 
+    // 清理赛事匹配器资源
+    await cleanupRaceMatcher()
+
     return {
       success: true,
       activitiesCount: activityIds.length,
@@ -137,6 +144,9 @@ export async function performSync(options: SyncOptions): Promise<SyncResult> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error(`Sync failed for ${source}:`, errorMessage)
+
+    // 清理赛事匹配器资源（即使失败也要清理）
+    await cleanupRaceMatcher()
 
     // 更新同步日志为失败状态
     await db

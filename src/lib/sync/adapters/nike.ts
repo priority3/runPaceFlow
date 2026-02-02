@@ -1,3 +1,5 @@
+import { generateSmartName } from '@/lib/activity/naming'
+
 import type { RawActivity, SyncAdapter } from './base'
 
 /**
@@ -416,8 +418,15 @@ ${trackPointsXML}
     // 提取卡路里
     const calories = getSummary('calories')
 
-    // 提取活动名称
-    const title = raw.tags?.['com.nike.name'] || '跑步'
+    // 提取原始活动名称
+    const originalTitle = raw.tags?.['com.nike.name'] || '跑步'
+
+    // 生成智能名称
+    const startTime = new Date(raw.start_epoch_ms)
+    const title = generateSmartName(
+      { distance: distanceInMeters, startTime, gpxData: gpxData || null },
+      originalTitle,
+    )
 
     return {
       id: raw.id,
