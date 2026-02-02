@@ -91,9 +91,11 @@ const TabsList = ({
       if (activeElement && listRef.current) {
         const listRect = listRef.current.getBoundingClientRect()
         const activeRect = activeElement.getBoundingClientRect()
+        // Account for scroll position when calculating left offset
+        const scrollLeft = listRef.current.scrollLeft
 
         setIndicatorStyle({
-          left: activeRect.left - listRect.left,
+          left: activeRect.left - listRect.left + scrollLeft,
           width: activeRect.width,
         })
       }
@@ -101,6 +103,29 @@ const TabsList = ({
 
     return () => clearTimeout(timer)
   }, [activeTab])
+
+  // Also update indicator when scrolling
+  React.useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+
+    const handleScroll = () => {
+      const activeElement = list.querySelector(`[data-state="active"]`) as HTMLElement
+      if (activeElement) {
+        const listRect = list.getBoundingClientRect()
+        const activeRect = activeElement.getBoundingClientRect()
+        const scrollLeft = list.scrollLeft
+
+        setIndicatorStyle({
+          left: activeRect.left - listRect.left + scrollLeft,
+          width: activeRect.width,
+        })
+      }
+    }
+
+    list.addEventListener('scroll', handleScroll)
+    return () => list.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
     <TabsPrimitive.List
