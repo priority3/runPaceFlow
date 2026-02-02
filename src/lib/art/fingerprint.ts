@@ -1,11 +1,22 @@
 /**
  * Running Fingerprint Algorithm
  *
- * Generates unique circular "fingerprint" patterns from running data
- * Each ring represents 1 kilometer with visual properties mapped to performance metrics
+ * Generates a continuous spiral visualization from running data
+ * Inspired by Strava Year in Sport - one continuous line that spirals outward
+ * Color and thickness change smoothly along the path based on pace
  */
 
-import { getElevationColor, getHeartRateColor, getPaceZoneColor, hexToRgba } from './colors'
+import type { ArtTheme, PremiumPalette } from './colors'
+import {
+  getElevationColor,
+  getHeartRateColor,
+  getPaceZoneColor,
+  getSmoothElevationColor,
+  getSmoothHeartRateColor,
+  getSmoothPaceColor,
+  hexToRgba,
+  interpolateColor,
+} from './colors'
 
 /**
  * Split data for fingerprint generation
@@ -19,7 +30,7 @@ export interface FingerprintSplit {
 }
 
 /**
- * Fingerprint ring data
+ * Fingerprint ring data (represents spiral segment data)
  */
 export interface FingerprintRing {
   kilometer: number
@@ -43,13 +54,26 @@ export interface FingerprintOptions {
   ringSpacing?: number
   minThickness?: number
   maxThickness?: number
+  usePremiumColors?: boolean
+  palette?: PremiumPalette
+  minPace?: number
+  maxPace?: number
+}
+
+/**
+ * Premium rendering options for drawFingerprint
+ */
+export interface PremiumRenderOptions {
+  enableGlow?: boolean
+  enableDepth?: boolean
+  enableHighlight?: boolean
+  enableCenterGlow?: boolean
+  glowIntensity?: number
+  theme?: ArtTheme
 }
 
 /**
  * Generate fingerprint rings from split data
- * @param splits Array of split data
- * @param options Generation options
- * @returns Array of ring data for rendering
  */
 export function generateFingerprintRings(
   splits: FingerprintSplit[],
@@ -61,45 +85,53 @@ export function generateFingerprintRings(
     maxHeartRate = 190,
     minElevation = 0,
     maxElevation = 100,
-    baseRadius = 50,
-    ringSpacing = 8,
-    minThickness = 4,
-    maxThickness = 20,
+    baseRadius = 25,
+    ringSpacing = 12, // Increased spacing for sparser spiral
+    minThickness = 6,
+    maxThickness = 16,
+    usePremiumColors = true,
+    palette = 'default',
   } = options
 
-  // Calculate pace range for thickness mapping
   const paces = splits.map((s) => s.pace)
-  const minPace = Math.min(...paces)
-  const maxPace = Math.max(...paces)
+  const minPace = options.minPace ?? Math.min(...paces)
+  const maxPace = options.maxPace ?? Math.max(...paces)
   const paceRange = maxPace - minPace || 1
 
   const rings: FingerprintRing[] = []
   let currentRadius = baseRadius
 
   for (const split of splits) {
-    // Calculate thickness based on pace (slower = thicker)
     const paceNormalized = (split.pace - minPace) / paceRange
     const thickness = minThickness + paceNormalized * (maxThickness - minThickness)
 
-    // Determine color based on mode
     let color: string
     switch (mode) {
       case 'heartrate': {
-        color = split.averageHeartRate
-          ? getHeartRateColor(split.averageHeartRate, maxHeartRate)
-          : '#888888'
+        if (split.averageHeartRate) {
+          color = usePremiumColors
+            ? getSmoothHeartRateColor(split.averageHeartRate, maxHeartRate, palette)
+            : getHeartRateColor(split.averageHeartRate, maxHeartRate)
+        } else {
+          color = '#888888'
+        }
         break
       }
       case 'elevation': {
-        color =
-          split.elevation !== undefined
-            ? getElevationColor(split.elevation, minElevation, maxElevation)
-            : '#888888'
+        if (split.elevation !== undefined) {
+          color = usePremiumColors
+            ? getSmoothElevationColor(split.elevation, minElevation, maxElevation, palette)
+            : getElevationColor(split.elevation, minElevation, maxElevation)
+        } else {
+          color = '#888888'
+        }
         break
       }
       case 'pace':
       default: {
-        color = getPaceZoneColor(split.pace, averagePace)
+        color = usePremiumColors
+          ? getSmoothPaceColor(split.pace, minPace, maxPace, palette)
+          : getPaceZoneColor(split.pace, averagePace)
       }
     }
 
@@ -120,10 +152,6 @@ export function generateFingerprintRings(
 
 /**
  * Calculate radial lines for elevation visualization
- * @param elevationData Array of elevation values
- * @param numLines Number of radial lines
- * @param maxRadius Maximum radius
- * @returns Array of line endpoints
  */
 export function calculateRadialLines(
   elevationData: number[],
@@ -146,7 +174,7 @@ export function calculateRadialLines(
 
     lines.push({
       angle: i * angleStep,
-      length: 10 + normalized * (maxRadius * 0.3), // 10-30% of max radius
+      length: 10 + normalized * (maxRadius * 0.3),
     })
   }
 
@@ -154,13 +182,28 @@ export function calculateRadialLines(
 }
 
 /**
- * Draw fingerprint on canvas
- * @param ctx Canvas 2D context
- * @param rings Ring data
- * @param centerX Center X coordinate
- * @param centerY Center Y coordinate
- * @param rotation Rotation angle in radians
- * @param radialLines Optional radial lines for elevation
+ * Draw center glow effect
+ */
+function drawCenterGlow(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  radius: number,
+  intensity: number,
+): void {
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
+  gradient.addColorStop(0, hexToRgba(color, intensity * 0.8))
+  gradient.addColorStop(0.4, hexToRgba(color, intensity * 0.3))
+  gradient.addColorStop(1, hexToRgba(color, 0))
+
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, Math.PI * 2)
+  ctx.fillStyle = gradient
+  ctx.fill()
+}
+
+/**
+ * Draw a continuous spiral with smoothly varying color and thickness
+ * This creates a single unbroken line that spirals outward
  */
 export function drawFingerprint(
   ctx: CanvasRenderingContext2D,
@@ -169,31 +212,131 @@ export function drawFingerprint(
   centerY: number,
   rotation = 0,
   radialLines?: Array<{ angle: number; length: number }>,
+  premiumOptions: PremiumRenderOptions = {},
 ): void {
+  const { enableGlow = true, enableCenterGlow = true, glowIntensity = 0.25 } = premiumOptions
+
+  if (rings.length === 0) return
+
   ctx.save()
   ctx.translate(centerX, centerY)
   ctx.rotate(rotation)
 
-  // Draw rings
-  for (const ring of rings) {
-    ctx.beginPath()
-    ctx.arc(0, 0, ring.innerRadius + ring.thickness / 2, 0, Math.PI * 2)
-    ctx.strokeStyle = ring.color
-    ctx.lineWidth = ring.thickness
-    ctx.stroke()
+  // Draw center glow
+  if (enableCenterGlow) {
+    drawCenterGlow(ctx, rings[0].color, rings[0].innerRadius * 1.2, glowIntensity)
+  }
 
-    // Add subtle glow effect
+  // Spiral parameters - half rotation per kilometer for sparser spiral
+  const rotationsPerKm = 0.5 // Each km = half rotation (180°)
+  const totalRotations = rings.length * rotationsPerKm
+  const startRadius = rings[0].innerRadius
+  const endRadius = rings[rings.length - 1].outerRadius
+  const totalAngle = totalRotations * Math.PI * 2
+
+  // High resolution for smooth spiral
+  const pointsPerRotation = 120
+  const totalPoints = Math.ceil(totalRotations * pointsPerRotation)
+
+  // Pre-calculate all points with their colors and thicknesses
+  const points: Array<{
+    x: number
+    y: number
+    color: string
+    thickness: number
+  }> = []
+
+  for (let i = 0; i <= totalPoints; i++) {
+    const progress = i / totalPoints
+    const angle = -Math.PI / 2 + progress * totalAngle // Start from top
+    const radius = startRadius + progress * (endRadius - startRadius)
+
+    // Find which ring (kilometer) we're in and interpolate
+    const kmProgress = progress * rings.length
+    const ringIndex = Math.min(Math.floor(kmProgress), rings.length - 1)
+    const nextRingIndex = Math.min(ringIndex + 1, rings.length - 1)
+    const ringFraction = kmProgress - ringIndex
+
+    // Interpolate color between current and next ring
+    const currentRing = rings[ringIndex]
+    const nextRing = rings[nextRingIndex]
+    const color = interpolateColor(currentRing.color, nextRing.color, ringFraction)
+    const thickness =
+      currentRing.thickness + (nextRing.thickness - currentRing.thickness) * ringFraction
+
+    points.push({
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+      color,
+      thickness,
+    })
+  }
+
+  // Draw glow layer first (thicker, semi-transparent)
+  if (enableGlow) {
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i]
+      const p2 = points[i + 1]
+
+      ctx.beginPath()
+      ctx.moveTo(p1.x, p1.y)
+      ctx.lineTo(p2.x, p2.y)
+      ctx.strokeStyle = hexToRgba(p1.color, glowIntensity)
+      ctx.lineWidth = p1.thickness + 8
+      ctx.lineCap = 'round'
+      ctx.stroke()
+    }
+  }
+
+  // Draw main spiral line with gradient effect
+  for (let i = 0; i < points.length - 1; i++) {
+    const p1 = points[i]
+    const p2 = points[i + 1]
+
     ctx.beginPath()
-    ctx.arc(0, 0, ring.innerRadius + ring.thickness / 2, 0, Math.PI * 2)
-    ctx.strokeStyle = hexToRgba(ring.color, 0.3)
-    ctx.lineWidth = ring.thickness + 4
+    ctx.moveTo(p1.x, p1.y)
+    ctx.lineTo(p2.x, p2.y)
+
+    // Create slight depth effect - lighter on inner edge
+    const baseColor = p1.color
+    ctx.strokeStyle = baseColor
+    ctx.lineWidth = p1.thickness
+    ctx.lineCap = 'round'
     ctx.stroke()
   }
 
+  // Draw inner highlight (thin white line along inner edge)
+  ctx.globalAlpha = 0.15
+  for (let i = 0; i < points.length - 1; i += 2) {
+    const progress = i / totalPoints
+    const angle = -Math.PI / 2 + progress * totalAngle
+    const radius = startRadius + progress * (endRadius - startRadius) - points[i].thickness * 0.35
+
+    const x1 = Math.cos(angle) * radius
+    const y1 = Math.sin(angle) * radius
+
+    const nextProgress = (i + 2) / totalPoints
+    const nextAngle = -Math.PI / 2 + nextProgress * totalAngle
+    const nextRadius =
+      startRadius +
+      nextProgress * (endRadius - startRadius) -
+      (points[i + 2]?.thickness ?? points[i].thickness) * 0.35
+
+    const x2 = Math.cos(nextAngle) * nextRadius
+    const y2 = Math.sin(nextAngle) * nextRadius
+
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.strokeStyle = '#FFFFFF'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+
   // Draw radial lines if provided
   if (radialLines && radialLines.length > 0) {
-    const lastRing = rings.at(-1)
-    const maxRingRadius = lastRing ? lastRing.outerRadius : 100
+    const maxRingRadius = endRadius
 
     for (const line of radialLines) {
       ctx.beginPath()
@@ -201,7 +344,7 @@ export function drawFingerprint(
       const endX = Math.cos(line.angle) * (maxRingRadius + line.length)
       const endY = Math.sin(line.angle) * (maxRingRadius + line.length)
       ctx.lineTo(endX, endY)
-      ctx.strokeStyle = hexToRgba('#FFFFFF', 0.15)
+      ctx.strokeStyle = hexToRgba('#FFFFFF', 0.06)
       ctx.lineWidth = 1
       ctx.stroke()
     }
@@ -211,12 +354,7 @@ export function drawFingerprint(
 }
 
 /**
- * Draw fingerprint with animation frame
- * @param ctx Canvas 2D context
- * @param rings Ring data
- * @param centerX Center X coordinate
- * @param centerY Center Y coordinate
- * @param progress Animation progress (0-1)
+ * Draw fingerprint with animation
  */
 export function drawFingerprintAnimated(
   ctx: CanvasRenderingContext2D,
@@ -225,19 +363,81 @@ export function drawFingerprintAnimated(
   centerY: number,
   progress: number,
 ): void {
+  if (rings.length === 0) return
+
   ctx.save()
   ctx.translate(centerX, centerY)
 
-  const visibleRings = Math.ceil(progress * rings.length)
+  // Draw center glow
+  if (progress > 0) {
+    drawCenterGlow(
+      ctx,
+      rings[0].color,
+      rings[0].innerRadius * 1.2,
+      0.25 * Math.min(progress * 2, 1),
+    )
+  }
 
-  for (let i = 0; i < visibleRings; i++) {
-    const ring = rings[i]
-    const ringProgress = i === visibleRings - 1 ? (progress * rings.length) % 1 : 1
+  // Sparse spiral - half rotation per km
+  const rotationsPerKm = 0.5
+  const totalRotations = rings.length * rotationsPerKm
+  const startRadius = rings[0].innerRadius
+  const endRadius = rings[rings.length - 1].outerRadius
+  const totalAngle = totalRotations * Math.PI * 2
+
+  const pointsPerRotation = 120
+  const totalPoints = Math.floor(Math.ceil(totalRotations * pointsPerRotation) * progress)
+
+  const points: Array<{ x: number; y: number; color: string; thickness: number }> = []
+
+  for (let i = 0; i <= totalPoints; i++) {
+    const pointProgress = i / Math.ceil(totalRotations * pointsPerRotation)
+    const angle = -Math.PI / 2 + pointProgress * totalAngle
+    const radius = startRadius + pointProgress * (endRadius - startRadius)
+
+    const kmProgress = pointProgress * rings.length
+    const ringIndex = Math.min(Math.floor(kmProgress), rings.length - 1)
+    const nextRingIndex = Math.min(ringIndex + 1, rings.length - 1)
+    const ringFraction = kmProgress - ringIndex
+
+    const currentRing = rings[ringIndex]
+    const nextRing = rings[nextRingIndex]
+    const color = interpolateColor(currentRing.color, nextRing.color, ringFraction)
+    const thickness =
+      currentRing.thickness + (nextRing.thickness - currentRing.thickness) * ringFraction
+
+    points.push({
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+      color,
+      thickness,
+    })
+  }
+
+  // Draw glow
+  for (let i = 0; i < points.length - 1; i++) {
+    const p1 = points[i]
+    const p2 = points[i + 1]
 
     ctx.beginPath()
-    ctx.arc(0, 0, ring.innerRadius + ring.thickness / 2, 0, Math.PI * 2 * ringProgress)
-    ctx.strokeStyle = ring.color
-    ctx.lineWidth = ring.thickness
+    ctx.moveTo(p1.x, p1.y)
+    ctx.lineTo(p2.x, p2.y)
+    ctx.strokeStyle = hexToRgba(p1.color, 0.25)
+    ctx.lineWidth = p1.thickness + 8
+    ctx.lineCap = 'round'
+    ctx.stroke()
+  }
+
+  // Draw main line
+  for (let i = 0; i < points.length - 1; i++) {
+    const p1 = points[i]
+    const p2 = points[i + 1]
+
+    ctx.beginPath()
+    ctx.moveTo(p1.x, p1.y)
+    ctx.lineTo(p2.x, p2.y)
+    ctx.strokeStyle = p1.color
+    ctx.lineWidth = p1.thickness
     ctx.lineCap = 'round'
     ctx.stroke()
   }
@@ -247,8 +447,6 @@ export function drawFingerprintAnimated(
 
 /**
  * Calculate total fingerprint radius
- * @param rings Ring data
- * @returns Total radius including all rings
  */
 export function calculateFingerprintRadius(rings: FingerprintRing[]): number {
   if (rings.length === 0) return 0
