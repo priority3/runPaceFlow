@@ -122,7 +122,10 @@ export function FingerprintCanvas({
       const ctx = canvas.getContext('2d')
       if (!ctx) return
 
-      const { width, height } = canvas
+      // Use CSS dimensions (not pixel dimensions) since ctx.scale(dpr) is already applied
+      const dpr = window.devicePixelRatio || 1
+      const width = canvas.width / dpr
+      const height = canvas.height / dpr
       const centerX = width / 2
       const centerY = height / 2
 
