@@ -24,13 +24,12 @@ async function backfillRaceNames() {
     await initRaceMatcher()
 
     // Get all activities with distance >= 20.5km (half marathon+)
-    const halfMarathonActivities = await db
-      .select()
-      .from(activities)
-      .where(eq(activities.raceName, null))
-      .all()
+    const allActivities = await db.select().from(activities).all()
 
-    const eligibleActivities = halfMarathonActivities.filter((a) => a.distance >= 20500)
+    // Filter for half marathon+ activities without race names
+    const eligibleActivities = allActivities.filter(
+      (a) => a.distance >= 20500 && (a.raceName === null || a.raceName === ''),
+    )
 
     console.log(
       `📊 Found ${eligibleActivities.length} half marathon+ activities without race names\n`,
