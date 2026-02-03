@@ -1,7 +1,7 @@
 /**
- * Backfill race names for existing half marathon+ activities
+ * Backfill race names for existing race activities
  *
- * This script matches existing activities (≥20.5km) with race events
+ * This script matches existing activities (≥5km) with race events
  * and updates their race_name field in the database.
  */
 
@@ -23,16 +23,16 @@ async function backfillRaceNames() {
     // Initialize race matcher browser
     await initRaceMatcher()
 
-    // Get all activities with distance >= 20.5km (half marathon+)
+    // Get all activities with distance >= 5km (common race distances)
     const allActivities = await db.select().from(activities).all()
 
-    // Filter for half marathon+ activities without race names
+    // Filter for race-distance activities without race names (5km, 10km, half, full marathon)
     const eligibleActivities = allActivities.filter(
-      (a) => a.distance >= 20500 && (a.raceName === null || a.raceName === ''),
+      (a) => a.distance >= 5000 && (a.raceName === null || a.raceName === ''),
     )
 
     console.log(
-      `📊 Found ${eligibleActivities.length} half marathon+ activities without race names\n`,
+      `📊 Found ${eligibleActivities.length} race-distance activities (≥5km) without race names\n`,
     )
 
     let matchedCount = 0

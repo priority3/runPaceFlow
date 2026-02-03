@@ -67,6 +67,40 @@ function formatDateWithWeekday(date: Date): string {
 }
 
 /**
+ * Generate smart activity title based on distance
+ */
+function getSmartActivityTitle(activity: Activity): string {
+  // If has race name, use it
+  if (activity.raceName) {
+    return activity.raceName
+  }
+
+  const distanceKm = activity.distance / 1000
+
+  // Check for common race distances (with ±0.5km tolerance)
+  if (Math.abs(distanceKm - 5) <= 0.5) {
+    return '5公里跑'
+  }
+  if (Math.abs(distanceKm - 10) <= 0.5) {
+    return '10公里跑'
+  }
+  if (Math.abs(distanceKm - 21.0975) <= 0.5) {
+    return '半程马拉松'
+  }
+  if (Math.abs(distanceKm - 42.195) <= 0.5) {
+    return '全程马拉松'
+  }
+
+  // For other distances, use formatted distance
+  if (distanceKm >= 1) {
+    return `${distanceKm.toFixed(2)}公里跑`
+  }
+
+  // Fallback to original title
+  return activity.title || '跑步活动'
+}
+
+/**
  * Achievement badge types
  */
 type AchievementType = 'longest' | 'fastest' | 'mostElevation' | 'streak'
@@ -204,9 +238,9 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
                     <div className="mb-2 flex items-center gap-2">
                       <div className="min-w-0 flex-1">
                         <h3 className="text-label truncate font-medium">
-                          {activity.raceName || activity.title || '跑步活动'}
+                          {getSmartActivityTitle(activity)}
                         </h3>
-                        {/* Show original title as subtitle if race name exists */}
+                        {/* Show original title as subtitle if using smart title or race name */}
                         {activity.raceName &&
                           activity.title &&
                           activity.raceName !== activity.title && (
