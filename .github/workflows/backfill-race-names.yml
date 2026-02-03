@@ -1,0 +1,55 @@
+name: Backfill Race Names
+
+on:
+  workflow_dispatch: # 仅允许手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
+
+      - name: Run backfill script
+        env:
+          DATABASE_URL: file:./data/activities.db
+        run: |
+          echo "🏃 Running race name backfill..."
+          bun run scripts/backfill-race-names.ts
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet data/activities.db; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "ℹ️  No changes to database"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "✅ Database updated with race names"
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/activities.db
+          git commit -m "chore: Backfill race names for existing activities"
+          git push
