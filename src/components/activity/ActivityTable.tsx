@@ -202,9 +202,19 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
                   <div className="min-w-0 flex-1">
                     {/* Title with achievement badges */}
                     <div className="mb-2 flex items-center gap-2">
-                      <h3 className="text-label truncate font-medium">
-                        {activity.title || '跑步活动'}
-                      </h3>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-label truncate font-medium">
+                          {activity.raceName || activity.title || '跑步活动'}
+                        </h3>
+                        {/* Show original title as subtitle if race name exists */}
+                        {activity.raceName &&
+                          activity.title &&
+                          activity.raceName !== activity.title && (
+                            <p className="text-label/50 mt-0.5 truncate text-xs">
+                              {activity.title}
+                            </p>
+                          )}
+                      </div>
                       {/* Indoor badge */}
                       {activity.isIndoor && (
                         <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
