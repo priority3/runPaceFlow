@@ -9,23 +9,38 @@
 import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
-import { AIInsight } from '@/components/activity/AIInsight'
-import { HeartRateChart } from '@/components/activity/HeartRateChart'
-import { HeartRateZones } from '@/components/activity/HeartRateZones'
 import { PaceChart } from '@/components/activity/PaceChart'
-import { PaceDistribution } from '@/components/activity/PaceDistribution'
 import { SplitsTable } from '@/components/activity/SplitsTable'
-import { ArtGallery } from '@/components/art'
-import { AnimatedRoute } from '@/components/map/AnimatedRoute'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
-import { KilometerMarkers } from '@/components/map/KilometerMarkers'
-import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
-import { RunMap } from '@/components/map/RunMap'
 import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+// Lazy load map components - MapLibre GL is ~60KB gzipped
+const RunMap = dynamic(
+  () => import('@/components/map/RunMap').then((m) => ({ default: m.RunMap })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] animate-pulse rounded-2xl bg-gray-100 sm:h-[400px] dark:bg-gray-900" />
+    ),
+  },
+)
+
+const AnimatedRoute = dynamic(() =>
+  import('@/components/map/AnimatedRoute').then((m) => ({ default: m.AnimatedRoute })),
+)
+
+const PaceRouteLayer = dynamic(() =>
+  import('@/components/map/PaceRouteLayer').then((m) => ({ default: m.PaceRouteLayer })),
+)
+
+const KilometerMarkers = dynamic(() =>
+  import('@/components/map/KilometerMarkers').then((m) => ({ default: m.KilometerMarkers })),
+)
 import { useActivityWithSplits } from '@/hooks/use-activities'
 import { springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
@@ -36,6 +51,28 @@ import { parseGPX } from '@/lib/sync/parser'
 import { formatDate, formatTime } from '@/lib/utils'
 import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
 import type { Split } from '@/types/activity'
+
+// Lazy load non-default tab components to reduce initial bundle
+// Reason: Recharts (~40KB gz) and other heavy components shouldn't load until user clicks the tab
+const HeartRateChart = dynamic(() =>
+  import('@/components/activity/HeartRateChart').then((m) => ({ default: m.HeartRateChart })),
+)
+
+const HeartRateZones = dynamic(() =>
+  import('@/components/activity/HeartRateZones').then((m) => ({ default: m.HeartRateZones })),
+)
+
+const PaceDistribution = dynamic(() =>
+  import('@/components/activity/PaceDistribution').then((m) => ({ default: m.PaceDistribution })),
+)
+
+const ArtGallery = dynamic(() =>
+  import('@/components/art/ArtGallery').then((m) => ({ default: m.ArtGallery })),
+)
+
+const AIInsight = dynamic(() =>
+  import('@/components/activity/AIInsight').then((m) => ({ default: m.AIInsight })),
+)
 
 export default function ActivityDetailPage() {
   const params = useParams()

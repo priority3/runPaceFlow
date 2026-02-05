@@ -20,10 +20,12 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useCallback } from 'react'
 
 import { RippleContainer } from '@/components/ui/ripple'
 import { layoutTransition, springs } from '@/lib/animation'
 import { calculatePace, formatDuration, formatPace } from '@/lib/pace/calculator'
+import { trpc } from '@/lib/trpc/client'
 import type { Activity } from '@/types/activity'
 
 /**
@@ -181,6 +183,18 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
   // Calculate achievements for all activities
   const achievements = calculateAchievements(activities)
 
+  // Get trpc utils for prefetching
+  const trpcUtils = trpc.useUtils()
+
+  // Prefetch activity data on hover for faster navigation
+  const handleMouseEnter = useCallback(
+    (activityId: string) => {
+      // Prefetch activity with splits data
+      trpcUtils.activities.getWithSplits.prefetch({ id: activityId })
+    },
+    [trpcUtils],
+  )
+
   if (activities.length === 0) {
     return (
       <motion.div
@@ -218,7 +232,10 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
           variants={itemVariants}
           className="group"
         >
-          <Link href={`/activity/${activity.id}`}>
+          <Link
+            href={`/activity/${activity.id}`}
+            onMouseEnter={() => handleMouseEnter(activity.id)}
+          >
             <RippleContainer className="rounded-xl" color="rgba(0, 0, 0, 0.08)">
               <motion.div
                 className="rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl backdrop-saturate-150 transition-colors duration-150 hover:bg-white/70 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"

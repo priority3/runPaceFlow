@@ -9,21 +9,46 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { Activity, Calendar, Clock, Layers, MapPin } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
 
-import { ActivityHeatmap } from '@/components/activity/ActivityHeatmap'
 import { ActivityTable } from '@/components/activity/ActivityTable'
-import { PersonalRecords } from '@/components/activity/PersonalRecords'
 import { StatsCard } from '@/components/activity/StatsCard'
 import { Header } from '@/components/layout/Header'
-import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
-import { RouteLayer } from '@/components/map/RouteLayer'
-import { RunMap } from '@/components/map/RunMap'
 import { useActivities, useActivityStats } from '@/hooks/use-activities'
 import { parsePaceSegments } from '@/lib/map/pace-utils'
 import { cn } from '@/lib/utils'
 import type { Activity as ActivityType } from '@/types/activity'
 import type { RouteData } from '@/types/map'
+
+// Lazy load heavy components to reduce initial bundle size
+// Reason: MapLibre GL (~60KB gz) + react-map-gl should not block first paint
+const RunMap = dynamic(
+  () => import('@/components/map/RunMap').then((m) => ({ default: m.RunMap })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] animate-pulse rounded-3xl bg-gray-100 sm:h-[500px] dark:bg-gray-900" />
+    ),
+  },
+)
+
+const RouteLayer = dynamic(() =>
+  import('@/components/map/RouteLayer').then((m) => ({ default: m.RouteLayer })),
+)
+
+const PaceRouteLayer = dynamic(() =>
+  import('@/components/map/PaceRouteLayer').then((m) => ({ default: m.PaceRouteLayer })),
+)
+
+// Reason: Below-the-fold components don't need eager loading
+const ActivityHeatmap = dynamic(() =>
+  import('@/components/activity/ActivityHeatmap').then((m) => ({ default: m.ActivityHeatmap })),
+)
+
+const PersonalRecords = dynamic(() =>
+  import('@/components/activity/PersonalRecords').then((m) => ({ default: m.PersonalRecords })),
+)
 
 type StatsPeriod = 'week' | 'month'
 type MapLayerMode = 'route' | 'pace'

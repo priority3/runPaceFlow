@@ -29,7 +29,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 1000, // 5 seconds
+            // 60 seconds - running activity data doesn't change frequently
+            // Reason: Reduces unnecessary refetches, previous 5s was too aggressive
+            staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
           },
         },
