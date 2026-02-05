@@ -1,16 +1,10 @@
 /**
  * Skeleton Component
  *
- * Animated loading skeleton with shimmer effect
- * Respects user's reduced motion preferences
+ * CSS-only loading skeleton with shimmer effect
+ * Automatically respects user's reduced motion preferences via CSS media query
  */
 
-'use client'
-
-import { motion } from 'framer-motion'
-
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { shimmerVariants } from '@/lib/animation/variants'
 import { cn } from '@/lib/utils'
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -34,18 +28,14 @@ export function Skeleton({
   variant = 'default',
   width,
   height,
-  onAnimationStart,
-  onAnimationEnd,
   ...props
 }: SkeletonProps) {
-  const prefersReducedMotion = useReducedMotion()
-
   const styles = {
     width: width || undefined,
     height: height || undefined,
   }
 
-  const baseClasses = 'relative overflow-hidden bg-fill'
+  const baseClasses = 'relative overflow-hidden bg-fill animate-pulse'
 
   const variantClasses = {
     default: 'rounded-xl',
@@ -54,42 +44,12 @@ export function Skeleton({
     rectangular: 'rounded-2xl',
   }
 
-  // Use simple pulse for reduced motion
-  if (prefersReducedMotion) {
-    return (
-      <div
-        className={cn(baseClasses, variantClasses[variant], 'animate-pulse', className)}
-        style={styles}
-        {...props}
-      />
-    )
-  }
-
   return (
-    <motion.div
+    <div
       className={cn(baseClasses, variantClasses[variant], className)}
       style={styles}
-      variants={shimmerVariants}
-      initial="initial"
-      animate="animate"
-      {...(props as any)}
-    >
-      <motion.div
-        className="absolute inset-0 -translate-x-full"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
-        }}
-        animate={{
-          x: ['0%', '200%'],
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-      />
-    </motion.div>
+      {...props}
+    />
   )
 }
 
