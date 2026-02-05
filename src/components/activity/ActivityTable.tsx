@@ -67,7 +67,7 @@ function formatDateWithWeekday(date: Date): string {
 }
 
 /**
- * Generate smart activity title based on distance
+ * Generate activity title with emoji badges for 5K/10K
  */
 function getSmartActivityTitle(activity: Activity): string {
   // If has race name, use it
@@ -77,26 +77,20 @@ function getSmartActivityTitle(activity: Activity): string {
 
   const distanceKm = activity.distance / 1000
 
-  // Check for common race distances (with ±0.5km tolerance)
+  // Add emoji badge for common race distances (with ±0.5km tolerance)
   if (Math.abs(distanceKm - 5) <= 0.5) {
-    return '5公里跑'
+    return '🎯 5K'
   }
   if (Math.abs(distanceKm - 10) <= 0.5) {
-    return '10公里跑'
+    return '🔥 10K'
   }
   if (Math.abs(distanceKm - 21.0975) <= 0.5) {
-    return '半程马拉松'
+    return '🏅 半马'
   }
   if (Math.abs(distanceKm - 42.195) <= 0.5) {
-    return '全程马拉松'
+    return '🏆 全马'
   }
 
-  // For other distances, use formatted distance
-  if (distanceKm >= 1) {
-    return `${distanceKm.toFixed(2)}公里跑`
-  }
-
-  // Fallback to original title
   return activity.title || '跑步活动'
 }
 
