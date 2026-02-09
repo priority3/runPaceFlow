@@ -9,7 +9,7 @@
 import { trpc } from '@/lib/trpc/client'
 
 /**
- * Fetch activities list
+ * Fetch activities list (excludes gpxData for performance)
  */
 export function useActivities(options?: {
   limit?: number
@@ -35,8 +35,22 @@ export function useActivity(id: string) {
 }
 
 /**
- * Fetch activity with splits
+ * Fetch activity with splits (excludes gpxData)
  */
 export function useActivityWithSplits(id: string) {
   return trpc.activities.getWithSplits.useQuery({ id })
+}
+
+/**
+ * Fetch GPX data for a single activity (lazy-loaded)
+ */
+export function useGpxData(id: string, enabled = true) {
+  return trpc.activities.getGpxData.useQuery({ id }, { enabled })
+}
+
+/**
+ * Fetch GPX routes for homepage map display
+ */
+export function useMapRoutes(limit = 20) {
+  return trpc.activities.getMapRoutes.useQuery({ limit })
 }

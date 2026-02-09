@@ -41,7 +41,7 @@ const PaceRouteLayer = dynamic(() =>
 const KilometerMarkers = dynamic(() =>
   import('@/components/map/KilometerMarkers').then((m) => ({ default: m.KilometerMarkers })),
 )
-import { useActivityWithSplits } from '@/hooks/use-activities'
+import { useActivityWithSplits, useGpxData } from '@/hooks/use-activities'
 import { springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import type { TrackPoint } from '@/lib/map/pace-utils'
@@ -79,8 +79,11 @@ export default function ActivityDetailPage() {
   const router = useRouter()
   const activityId = params.id as string
 
-  // Fetch activity data with splits
+  // Fetch activity data with splits (excludes gpxData)
   const { data, isLoading, error } = useActivityWithSplits(activityId)
+
+  // Lazy-load GPX data separately (can be several MB)
+  const { data: gpxData } = useGpxData(activityId, !!data && !data.activity.isIndoor)
 
   // Playback state
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
@@ -98,10 +101,10 @@ export default function ActivityDetailPage() {
     let points: TrackPoint[] = []
     const hrData: { distance: number; heartRate: number }[] = []
 
-    // Try to parse real GPX data from activity
-    if (data?.activity.gpxData) {
+    // Try to parse real GPX data (loaded separately to avoid blocking initial render)
+    if (gpxData) {
       try {
-        const gpxResult = parseGPX(data.activity.gpxData)
+        const gpxResult = parseGPX(gpxData)
         if (gpxResult.tracks.length > 0 && gpxResult.tracks[0].points.length > 0) {
           // Convert GPX points to TrackPoint format
           let cumulativeDistance = 0
@@ -172,7 +175,7 @@ export default function ActivityDetailPage() {
       bounds: mapBounds,
       heartRateData: hrData,
     }
-  }, [data])
+  }, [data, gpxData])
 
   // Get current point for animation
   const currentPoint = useMemo(() => {

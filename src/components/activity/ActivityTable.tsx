@@ -26,7 +26,7 @@ import { RippleContainer } from '@/components/ui/ripple'
 import { layoutTransition, springs } from '@/lib/animation'
 import { calculatePace, formatDuration, formatPace } from '@/lib/pace/calculator'
 import { trpc } from '@/lib/trpc/client'
-import type { Activity } from '@/types/activity'
+import type { ActivityListItem } from '@/types/activity'
 
 /**
  * Stagger animation variants for list items
@@ -71,7 +71,7 @@ function formatDateWithWeekday(date: Date): string {
 /**
  * Generate activity title with emoji badges for 5K/10K
  */
-function getSmartActivityTitle(activity: Activity): string {
+function getSmartActivityTitle(activity: ActivityListItem): string {
   // If has race name, use it
   if (activity.raceName) {
     return activity.raceName
@@ -111,7 +111,7 @@ interface Achievement {
 /**
  * Calculate achievements for activities
  */
-function calculateAchievements(activities: Activity[]): Map<string, Achievement[]> {
+function calculateAchievements(activities: ActivityListItem[]): Map<string, Achievement[]> {
   const achievements = new Map<string, Achievement[]>()
 
   if (activities.length === 0) return achievements
@@ -175,7 +175,7 @@ function calculateAchievements(activities: Activity[]): Map<string, Achievement[
 }
 
 export interface ActivityTableProps {
-  activities: Activity[]
+  activities: ActivityListItem[]
   className?: string
 }
 
