@@ -39,6 +39,7 @@
     "maplibre-gl": "^5.0.1",
     "nanoid": "^5.1.6",
     "next": "16.1.0-canary.34",
+    "openai": "^6.18.0",
     "react": "^19.0.0-rc.1",
     "react-dom": "^19.0.0-rc.1",
     "react-map-gl": "^8.1.0",

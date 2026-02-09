@@ -1,13 +1,13 @@
 /**
- * Claude AI Client
+ * Claude AI Provider
  *
- * Handles communication with Anthropic Claude API
+ * Handles communication with Anthropic Claude API, implementing the AIProvider interface
  */
 
 import Anthropic from '@anthropic-ai/sdk'
 
 import { buildSystemPrompt, buildUserPrompt } from './prompts'
-import type { ActivityInsightInput } from './types'
+import type { ActivityInsightInput, AIGenerationResult, AIProvider } from './types'
 import { CLAUDE_MODEL } from './types'
 
 // Lazy initialization to avoid issues during build
@@ -31,56 +31,54 @@ function getClaudeClient(): Anthropic {
   return claudeClient
 }
 
-/**
- * Generate activity insight using Claude
- *
- * @param input Activity data with splits
- * @returns Generated insight text in Chinese
- */
-export async function generateActivityInsight(input: ActivityInsightInput): Promise<string> {
-  const client = getClaudeClient()
+export const claudeProvider: AIProvider = {
+  name: 'Claude',
 
-  const systemPrompt = buildSystemPrompt()
-  const userPrompt = buildUserPrompt(input)
+  isAvailable(): boolean {
+    return !!process.env.ANTHROPIC_API_KEY
+  },
 
-  try {
-    const response = await client.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-    })
+  async generateInsight(input: ActivityInsightInput): Promise<AIGenerationResult> {
+    const client = getClaudeClient()
 
-    // Validate response structure
-    if (!response || !response.content) {
-      // Reason: Some proxies return different response structures
-      throw new Error(`Invalid API response structure: ${JSON.stringify(response).slice(0, 200)}`)
+    const systemPrompt = buildSystemPrompt()
+    const userPrompt = buildUserPrompt(input)
+
+    try {
+      const response = await client.messages.create({
+        model: CLAUDE_MODEL,
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt,
+          },
+        ],
+      })
+
+      // Validate response structure
+      if (!response || !response.content) {
+        // Reason: Some proxies return different response structures
+        throw new Error(`Invalid API response structure: ${JSON.stringify(response).slice(0, 200)}`)
+      }
+
+      // Extract text content from response
+      const textContent = response.content.find((block) => block.type === 'text')
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text content in Claude response')
+      }
+
+      return {
+        content: textContent.text,
+        model: CLAUDE_MODEL,
+        provider: 'claude',
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Claude API error: ${error.message}`)
+      }
+      throw new Error(`Claude API error: ${String(error)}`)
     }
-
-    // Extract text content from response
-    const textContent = response.content.find((block) => block.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text content in Claude response')
-    }
-
-    return textContent.text
-  } catch (error) {
-    // Re-throw with more context for debugging
-    if (error instanceof Error) {
-      throw new Error(`Claude API error: ${error.message}`)
-    }
-    throw new Error(`Claude API error: ${String(error)}`)
-  }
-}
-
-/**
- * Get the model name for storage
- */
-export function getModelName(): string {
-  return CLAUDE_MODEL
+  },
 }
