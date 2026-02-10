@@ -9,24 +9,39 @@
 import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
-import { AIInsight } from '@/components/activity/AIInsight'
-import { HeartRateChart } from '@/components/activity/HeartRateChart'
-import { HeartRateZones } from '@/components/activity/HeartRateZones'
 import { PaceChart } from '@/components/activity/PaceChart'
-import { PaceDistribution } from '@/components/activity/PaceDistribution'
 import { SplitsTable } from '@/components/activity/SplitsTable'
-import { ArtGallery } from '@/components/art'
-import { AnimatedRoute } from '@/components/map/AnimatedRoute'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
-import { KilometerMarkers } from '@/components/map/KilometerMarkers'
-import { PaceRouteLayer } from '@/components/map/PaceRouteLayer'
-import { RunMap } from '@/components/map/RunMap'
 import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useActivityWithSplits } from '@/hooks/use-activities'
+
+// Lazy load map components - MapLibre GL is ~60KB gzipped
+const RunMap = dynamic(
+  () => import('@/components/map/RunMap').then((m) => ({ default: m.RunMap })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[300px] animate-pulse rounded-2xl bg-gray-100 sm:h-[400px] dark:bg-gray-900" />
+    ),
+  },
+)
+
+const AnimatedRoute = dynamic(() =>
+  import('@/components/map/AnimatedRoute').then((m) => ({ default: m.AnimatedRoute })),
+)
+
+const PaceRouteLayer = dynamic(() =>
+  import('@/components/map/PaceRouteLayer').then((m) => ({ default: m.PaceRouteLayer })),
+)
+
+const KilometerMarkers = dynamic(() =>
+  import('@/components/map/KilometerMarkers').then((m) => ({ default: m.KilometerMarkers })),
+)
+import { useActivityWithSplits, useGpxData } from '@/hooks/use-activities'
 import { springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import type { TrackPoint } from '@/lib/map/pace-utils'
@@ -37,13 +52,38 @@ import { formatDate, formatTime } from '@/lib/utils'
 import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
 import type { Split } from '@/types/activity'
 
+// Lazy load non-default tab components to reduce initial bundle
+// Reason: Recharts (~40KB gz) and other heavy components shouldn't load until user clicks the tab
+const HeartRateChart = dynamic(() =>
+  import('@/components/activity/HeartRateChart').then((m) => ({ default: m.HeartRateChart })),
+)
+
+const HeartRateZones = dynamic(() =>
+  import('@/components/activity/HeartRateZones').then((m) => ({ default: m.HeartRateZones })),
+)
+
+const PaceDistribution = dynamic(() =>
+  import('@/components/activity/PaceDistribution').then((m) => ({ default: m.PaceDistribution })),
+)
+
+const ArtGallery = dynamic(() =>
+  import('@/components/art/ArtGallery').then((m) => ({ default: m.ArtGallery })),
+)
+
+const AIInsight = dynamic(() =>
+  import('@/components/activity/AIInsight').then((m) => ({ default: m.AIInsight })),
+)
+
 export default function ActivityDetailPage() {
   const params = useParams()
   const router = useRouter()
   const activityId = params.id as string
 
-  // Fetch activity data with splits
+  // Fetch activity data with splits (excludes gpxData)
   const { data, isLoading, error } = useActivityWithSplits(activityId)
+
+  // Lazy-load GPX data separately (can be several MB)
+  const { data: gpxData } = useGpxData(activityId, !!data && !data.activity.isIndoor)
 
   // Playback state
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
@@ -61,10 +101,10 @@ export default function ActivityDetailPage() {
     let points: TrackPoint[] = []
     const hrData: { distance: number; heartRate: number }[] = []
 
-    // Try to parse real GPX data from activity
-    if (data?.activity.gpxData) {
+    // Try to parse real GPX data (loaded separately to avoid blocking initial render)
+    if (gpxData) {
       try {
-        const gpxResult = parseGPX(data.activity.gpxData)
+        const gpxResult = parseGPX(gpxData)
         if (gpxResult.tracks.length > 0 && gpxResult.tracks[0].points.length > 0) {
           // Convert GPX points to TrackPoint format
           let cumulativeDistance = 0
@@ -135,7 +175,7 @@ export default function ActivityDetailPage() {
       bounds: mapBounds,
       heartRateData: hrData,
     }
-  }, [data])
+  }, [data, gpxData])
 
   // Get current point for animation
   const currentPoint = useMemo(() => {

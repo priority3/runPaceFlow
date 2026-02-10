@@ -7,7 +7,7 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { generateActivityInsight, getModelName } from '@/lib/ai/claude'
+import { generateActivityInsight } from '@/lib/ai/provider'
 import { activities, activityInsights, splits } from '@/lib/db/schema'
 
 import { createTRPCRouter, publicProcedure } from '../server'
@@ -60,27 +60,26 @@ export const insightsRouter = createTRPCRouter({
         .orderBy(splits.kilometer)
 
       // Generate insight
-      const content = await generateActivityInsight({
+      const result = await generateActivityInsight({
         activity: activity[0],
         splits: activitySplits,
       })
 
       const now = new Date()
-      const model = getModelName()
 
       // Cache the insight
       await ctx.db.insert(activityInsights).values({
         id: generateInsightId(),
         activityId: input.activityId,
-        content,
+        content: result.content,
         generatedAt: now,
-        model,
+        model: result.model,
       })
 
       return {
-        content,
+        content: result.content,
         generatedAt: now,
-        model,
+        model: result.model,
         cached: false,
       }
     }),
@@ -109,13 +108,12 @@ export const insightsRouter = createTRPCRouter({
         .orderBy(splits.kilometer)
 
       // Generate new insight
-      const content = await generateActivityInsight({
+      const result = await generateActivityInsight({
         activity: activity[0],
         splits: activitySplits,
       })
 
       const now = new Date()
-      const model = getModelName()
 
       // Delete old insight if exists
       await ctx.db.delete(activityInsights).where(eq(activityInsights.activityId, input.activityId))
@@ -124,15 +122,15 @@ export const insightsRouter = createTRPCRouter({
       await ctx.db.insert(activityInsights).values({
         id: generateInsightId(),
         activityId: input.activityId,
-        content,
+        content: result.content,
         generatedAt: now,
-        model,
+        model: result.model,
       })
 
       return {
-        content,
+        content: result.content,
         generatedAt: now,
-        model,
+        model: result.model,
         cached: false,
       }
     }),

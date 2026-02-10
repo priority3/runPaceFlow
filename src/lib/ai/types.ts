@@ -61,3 +61,26 @@ export interface StructuredAnalysis {
  */
 export const CLAUDE_MODEL = 'claude-sonnet-4-20250514' as const
 export type ClaudeModel = typeof CLAUDE_MODEL
+
+/**
+ * Default model for OpenAI-compatible providers
+ */
+export const OPENAI_DEFAULT_MODEL = 'gpt-4o' as const
+
+/**
+ * Result from any AI provider generation
+ */
+export interface AIGenerationResult {
+  content: string
+  model: string
+  provider: string
+}
+
+/**
+ * AI Provider interface for multi-provider fallback support
+ */
+export interface AIProvider {
+  name: string
+  isAvailable: () => boolean
+  generateInsight: (input: ActivityInsightInput) => Promise<AIGenerationResult>
+}

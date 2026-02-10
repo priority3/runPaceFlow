@@ -106,6 +106,17 @@ const markdownComponents: Components = {
   hr: () => <hr className="my-4 border-white/10" />,
 }
 
+/**
+ * Derive a display label from the model name stored in the insight
+ */
+function getProviderLabel(model: string): string {
+  if (model.startsWith('claude')) return 'Claude AI'
+  if (model.startsWith('deepseek')) return 'DeepSeek'
+  if (model.startsWith('qwen')) return '通义千问'
+  if (model.startsWith('gpt')) return 'OpenAI'
+  return 'AI'
+}
+
 export function AIInsight({ activityId, className, enableTypewriter = true }: AIInsightProps) {
   const utils = trpc.useUtils()
   // Track if this is a fresh generation (for typewriter effect)
@@ -226,7 +237,10 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
 
   // Error state
   if (error) {
-    const isApiKeyMissing = error.message?.includes('ANTHROPIC_API_KEY')
+    const isApiKeyMissing =
+      error.message?.includes('ANTHROPIC_API_KEY') ||
+      error.message?.includes('OPENAI_API_KEY') ||
+      error.message?.includes('未配置任何 AI 服务')
 
     return (
       <div
@@ -244,7 +258,7 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
         <div className="py-6 text-center">
           <p className="text-label/50 text-sm">
             {isApiKeyMissing
-              ? '未配置 API 密钥，请在 .env.local 中设置 ANTHROPIC_API_KEY'
+              ? '未配置 AI 服务，请在 .env.local 中设置 ANTHROPIC_API_KEY 或 OPENAI_API_KEY'
               : '生成分析时出错'}
           </p>
           {!isApiKeyMissing && (
@@ -319,7 +333,7 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
 
       {/* Footer */}
       <div className="text-label/30 mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs">
-        <span>由 Claude AI 生成</span>
+        <span>由 {getProviderLabel(insight.model)} 生成</span>
         <span>{new Date(insight.generatedAt).toLocaleDateString('zh-CN')}</span>
       </div>
     </motion.div>

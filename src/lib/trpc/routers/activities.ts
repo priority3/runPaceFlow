@@ -4,12 +4,39 @@
  * Handles all activity-related API endpoints
  */
 
-import { desc, eq } from 'drizzle-orm'
+import { count, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { activities, splits } from '@/lib/db/schema'
 
 import { createTRPCRouter, publicProcedure } from '../server'
+
+/**
+ * Reason: gpxData can be 500KB-2MB per activity. Selecting all columns
+ * in list/stats queries transfers 10+ MB of unused data to the frontend,
+ * causing browser freezes. Only select gpxData when explicitly needed.
+ */
+const activityColumnsWithoutGpx = {
+  id: activities.id,
+  title: activities.title,
+  type: activities.type,
+  source: activities.source,
+  sourceId: activities.sourceId,
+  startTime: activities.startTime,
+  endTime: activities.endTime,
+  duration: activities.duration,
+  distance: activities.distance,
+  averagePace: activities.averagePace,
+  bestPace: activities.bestPace,
+  elevationGain: activities.elevationGain,
+  averageHeartRate: activities.averageHeartRate,
+  maxHeartRate: activities.maxHeartRate,
+  calories: activities.calories,
+  isIndoor: activities.isIndoor,
+  raceName: activities.raceName,
+  createdAt: activities.createdAt,
+  updatedAt: activities.updatedAt,
+}
 
 /**
  * Helper to get date range boundaries
@@ -92,9 +119,8 @@ export const activitiesRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { limit = 20, offset = 0, type, source } = input || {}
 
-      // Build the query
       let query = ctx.db
-        .select()
+        .select(activityColumnsWithoutGpx)
         .from(activities)
         .orderBy(desc(activities.startTime))
         .limit(limit)
@@ -115,16 +141,16 @@ export const activitiesRouter = createTRPCRouter({
 
       const result = await query
 
-      // Get total count for pagination
-      const totalCount = await ctx.db.select().from(activities)
+      const totalResult = await ctx.db.select({ value: count() }).from(activities)
+      const total = totalResult[0].value
 
       return {
         activities: result,
         pagination: {
-          total: totalCount.length,
+          total,
           limit,
           offset,
-          hasMore: offset + limit < totalCount.length,
+          hasMore: offset + limit < total,
         },
       }
     }),
@@ -168,7 +194,7 @@ export const activitiesRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const activity = await ctx.db
-        .select()
+        .select(activityColumnsWithoutGpx)
         .from(activities)
         .where(eq(activities.id, input.id))
         .limit(1)
@@ -190,10 +216,32 @@ export const activitiesRouter = createTRPCRouter({
     }),
 
   /**
+   * Get GPX data for an activity (lazy-loaded, can be several MB)
+   */
+  getGpxData: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const result = await ctx.db
+      .select({ gpxData: activities.gpxData })
+      .from(activities)
+      .where(eq(activities.id, input.id))
+      .limit(1)
+
+    return result[0]?.gpxData ?? null
+  }),
+
+  /**
    * Get activity statistics with trend comparison
    */
   getStats: publicProcedure.query(async ({ ctx }) => {
-    const allActivities = await ctx.db.select().from(activities)
+    // Reason: Only select fields needed for stats, exclude heavy gpxData
+    const allActivities = await ctx.db
+      .select({
+        distance: activities.distance,
+        duration: activities.duration,
+        elevationGain: activities.elevationGain,
+        startTime: activities.startTime,
+        averagePace: activities.averagePace,
+      })
+      .from(activities)
     const { oneWeekAgo, twoWeeksAgo, oneMonthAgo, twoMonthsAgo } = getDateRanges()
 
     const totalDistance = allActivities.reduce((sum, activity) => sum + (activity.distance || 0), 0)
@@ -303,4 +351,57 @@ export const activitiesRouter = createTRPCRouter({
       weeklyTrend,
     }
   }),
+
+  /**
+   * Get parsed coordinates for map display on homepage
+   * Reason: Extracting coordinates server-side avoids sending 11+ MB of raw GPX XML
+   * to the frontend. Only lightweight lat/lng arrays are returned (~200KB vs 11MB).
+   */
+  getMapRoutes: publicProcedure
+    .input(z.object({ limit: z.number().min(1).max(50).optional().default(20) }).optional())
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 20
+
+      const result = await ctx.db
+        .select({
+          id: activities.id,
+          gpxData: activities.gpxData,
+          averagePace: activities.averagePace,
+        })
+        .from(activities)
+        .where(eq(activities.isIndoor, false))
+        .orderBy(desc(activities.startTime))
+        .limit(limit)
+
+      // Reason: Parse GPX on server and return only coordinates.
+      // A single GPX file can be 500KB-2MB of XML; extracting lat/lng reduces to ~10KB.
+      return result
+        .filter((a) => a.gpxData != null)
+        .map((a) => {
+          const coordinates: Array<{ lat: number; lng: number }> = []
+          const trkptRegex = /<trkpt\s+lat=["']([^"']+)["']\s+lon=["']([^"']+)["']/gi
+          let match
+          while ((match = trkptRegex.exec(a.gpxData!)) !== null) {
+            const lat = Number.parseFloat(match[1])
+            const lng = Number.parseFloat(match[2])
+            if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+              coordinates.push({ lat, lng })
+            }
+          }
+
+          // Downsample to max 500 points per route for rendering performance
+          const maxPoints = 500
+          const downsampled =
+            coordinates.length > maxPoints
+              ? coordinates.filter((_, i) => i % Math.ceil(coordinates.length / maxPoints) === 0)
+              : coordinates
+
+          return {
+            id: a.id,
+            coordinates: downsampled,
+            averagePace: a.averagePace,
+          }
+        })
+        .filter((a) => a.coordinates.length > 0)
+    }),
 })
