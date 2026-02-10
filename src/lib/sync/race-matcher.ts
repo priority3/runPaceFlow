@@ -5,7 +5,8 @@
  * Caches race data per year during sync to avoid redundant requests.
  */
 
-import { chromium, type Browser } from 'playwright'
+import type { Browser } from 'playwright'
+import { chromium } from 'playwright'
 
 /**
  * Race event definition
