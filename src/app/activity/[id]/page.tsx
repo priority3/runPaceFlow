@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
+import { WeatherInfo } from '@/components/activity/WeatherInfo'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
 import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -406,6 +407,7 @@ export default function ActivityDetailPage() {
                   <span className="text-red/60 text-xs">心率</span>
                 </div>
               )}
+              {activity.weatherData && <WeatherInfo weatherDataJson={activity.weatherData} />}
             </div>
           </div>
         </motion.div>
