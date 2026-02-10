@@ -92,7 +92,7 @@ const TabsList = ({
         const listRect = listRef.current.getBoundingClientRect()
         const activeRect = activeElement.getBoundingClientRect()
         // Account for scroll position when calculating left offset
-        const scrollLeft = listRef.current.scrollLeft
+        const { scrollLeft } = listRef.current
 
         setIndicatorStyle({
           left: activeRect.left - listRect.left + scrollLeft,
@@ -114,7 +114,7 @@ const TabsList = ({
       if (activeElement) {
         const listRect = list.getBoundingClientRect()
         const activeRect = activeElement.getBoundingClientRect()
-        const scrollLeft = list.scrollLeft
+        const { scrollLeft } = list
 
         setIndicatorStyle({
           left: activeRect.left - listRect.left + scrollLeft,
