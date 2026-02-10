@@ -3,8 +3,9 @@
  * Runs migrations on application startup to ensure schema is up to date
  */
 
-import { createClient } from '@libsql/client'
 import path from 'node:path'
+
+import { createClient } from '@libsql/client'
 
 const getDatabaseUrl = () => {
   if (process.env.DATABASE_URL) {
