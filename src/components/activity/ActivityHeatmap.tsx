@@ -14,20 +14,20 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 
 import { cn } from '@/lib/utils'
-import type { Activity } from '@/types/activity'
+import type { ActivityListItem } from '@/types/activity'
 
 export interface ActivityHeatmapProps {
-  activities: Activity[]
+  activities: ActivityListItem[]
   className?: string
   /** Callback when a day with activities is clicked */
-  onDayClick?: (date: Date, activities: Activity[]) => void
+  onDayClick?: (date: Date, activities: ActivityListItem[]) => void
 }
 
 interface DayData {
   date: Date
   distance: number
   count: number
-  activities: Activity[]
+  activities: ActivityListItem[]
 }
 
 interface StreakData {
@@ -50,7 +50,7 @@ function getIntensityColor(distance: number): string {
 /**
  * Calculate current and longest running streaks
  */
-function calculateStreaks(activities: Activity[]): StreakData {
+function calculateStreaks(activities: ActivityListItem[]): StreakData {
   if (activities.length === 0) return { current: 0, longest: 0 }
 
   // Create a set of dates with activities
@@ -103,7 +103,7 @@ function calculateStreaks(activities: Activity[]): StreakData {
 /**
  * Generate calendar data for the last 12 weeks
  */
-function generateCalendarData(activities: Activity[]): {
+function generateCalendarData(activities: ActivityListItem[]): {
   weeks: DayData[][]
   monthLabels: { label: string; weekIndex: number }[]
 } {
@@ -112,7 +112,10 @@ function generateCalendarData(activities: Activity[]): {
   const monthLabels: { label: string; weekIndex: number }[] = []
 
   // Create a map of date -> activities data
-  const activityMap = new Map<string, { distance: number; count: number; activities: Activity[] }>()
+  const activityMap = new Map<
+    string,
+    { distance: number; count: number; activities: ActivityListItem[] }
+  >()
   for (const activity of activities) {
     const dateKey = new Date(activity.startTime).toISOString().split('T')[0]
     const existing = activityMap.get(dateKey) || { distance: 0, count: 0, activities: [] }

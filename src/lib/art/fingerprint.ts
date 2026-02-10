@@ -231,7 +231,7 @@ export function drawFingerprint(
   const rotationsPerKm = 0.5 // Each km = half rotation (180°)
   const totalRotations = rings.length * rotationsPerKm
   const startRadius = rings[0].innerRadius
-  const endRadius = rings[rings.length - 1].outerRadius
+  const endRadius = rings.at(-1)!.outerRadius
   const totalAngle = totalRotations * Math.PI * 2
 
   // High resolution for smooth spiral
@@ -382,7 +382,7 @@ export function drawFingerprintAnimated(
   const rotationsPerKm = 0.5
   const totalRotations = rings.length * rotationsPerKm
   const startRadius = rings[0].innerRadius
-  const endRadius = rings[rings.length - 1].outerRadius
+  const endRadius = rings.at(-1)!.outerRadius
   const totalAngle = totalRotations * Math.PI * 2
 
   const pointsPerRotation = 120

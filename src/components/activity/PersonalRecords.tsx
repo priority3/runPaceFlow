@@ -11,10 +11,10 @@ import { useMemo } from 'react'
 
 import { formatDuration, formatPace } from '@/lib/pace/calculator'
 import { cn } from '@/lib/utils'
-import type { Activity } from '@/types/activity'
+import type { ActivityListItem } from '@/types/activity'
 
 export interface PersonalRecordsProps {
-  activities: Activity[]
+  activities: ActivityListItem[]
   className?: string
 }
 
@@ -31,7 +31,7 @@ interface PersonalRecord {
 /**
  * Calculate personal records from activities
  */
-function calculatePersonalRecords(activities: Activity[]): PersonalRecord[] {
+function calculatePersonalRecords(activities: ActivityListItem[]): PersonalRecord[] {
   if (activities.length === 0) return []
 
   const records: PersonalRecord[] = []
