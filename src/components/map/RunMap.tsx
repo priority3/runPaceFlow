@@ -3,6 +3,10 @@
  *
  * Main map component using MapLibre GL JS
  * Each instance manages its own viewport state (not shared globally)
+ *
+ * Reason: MapLibre WebGL initialization can freeze the browser tab on some
+ * machines/GPU configs. The map is deferred behind a "load map" click to
+ * guarantee the rest of the page stays responsive.
  */
 
 'use client'
@@ -17,6 +21,22 @@ import Map from 'react-map-gl/maplibre'
 
 import { cn } from '@/lib/utils'
 import type { MapViewport } from '@/types/map'
+
+// Reason: MapLibre requires WebGL. If WebGL is unavailable or broken,
+// attempting to initialize the map can freeze the browser tab entirely.
+function isWebGLAvailable(): boolean {
+  try {
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+    if (!gl) return false
+    if (gl instanceof WebGLRenderingContext || gl instanceof WebGL2RenderingContext) {
+      return !gl.isContextLost()
+    }
+    return false
+  } catch {
+    return false
+  }
+}
 
 export interface RunMapProps {
   className?: string
@@ -36,6 +56,8 @@ export interface RunMapProps {
   showSkeleton?: boolean
   /** Enable fullscreen button */
   enableFullscreen?: boolean
+  /** Auto-load map without requiring user click (default: false) */
+  autoLoad?: boolean
 }
 
 // Use environment variable or fallback to a clean, minimal style
@@ -59,12 +81,24 @@ export function RunMap({
   boundsPadding = 60,
   showSkeleton = true,
   enableFullscreen = true,
+  autoLoad = false,
 }: RunMapProps) {
   const mapRef = useRef<MapRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const prevBoundsRef = useRef<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [webglUnavailable, setWebglUnavailable] = useState(false)
+  // Reason: Map starts unmounted to prevent WebGL init from freezing the page.
+  // User must click "加载地图" to mount MapLibre, unless autoLoad is true.
+  const [shouldMount, setShouldMount] = useState(autoLoad)
+
+  // Check WebGL support on mount before attempting MapLibre init
+  useEffect(() => {
+    if (!isWebGLAvailable()) {
+      setWebglUnavailable(true)
+    }
+  }, [])
 
   // Generate a key for current bounds
   const boundsKey = bounds
@@ -216,6 +250,80 @@ export function RunMap({
     }
   }, [bounds, boundsKey, boundsPadding])
 
+  // Reason: MapLibre WebGL errors can crash the entire browser tab.
+  // Re-throwing lets the parent MapErrorBoundary catch and show fallback UI.
+  const handleError = useCallback((evt: { error: Error }) => {
+    console.error('[RunMap] MapLibre error:', evt.error)
+    throw evt.error
+  }, [])
+
+  // WebGL unavailable fallback
+  if (webglUnavailable) {
+    return (
+      <div ref={containerRef} className={cn('relative', className)}>
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl bg-gray-100 dark:bg-gray-900">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+            <MapPin className="h-6 w-6 text-orange-500" />
+          </div>
+          <div className="text-center">
+            <p className="text-label text-sm font-medium">地图无法显示</p>
+            <p className="text-label/50 mt-1 max-w-xs text-xs">浏览器不支持 WebGL，无法渲染地图</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // "Click to load" placeholder - shown before user opts in to mount MapLibre
+  if (!shouldMount) {
+    return (
+      <div ref={containerRef} className={cn('relative', className)}>
+        <div className="absolute inset-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900">
+          {/* Grid pattern background */}
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px',
+            }}
+          />
+
+          {/* Load map button */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShouldMount(true)}
+              className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-5 py-2.5 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/40 dark:hover:bg-black/60"
+            >
+              <MapPin className="text-blue h-4 w-4" />
+              <span className="text-label">加载地图</span>
+            </button>
+            <span className="text-label/30 text-xs">点击加载路线地图</span>
+          </div>
+
+          {/* Decorative route preview */}
+          <svg
+            className="absolute inset-0 h-full w-full opacity-10"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M 20 80 Q 30 60 40 50 T 60 40 T 80 30"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="text-blue"
+            />
+          </svg>
+        </div>
+      </div>
+    )
+  }
+
   const mapContent = (
     <>
       {/* Map skeleton loading state */}
@@ -265,13 +373,17 @@ export function RunMap({
             </motion.span>
           </div>
 
-          {/* Fake route preview */}
-          <svg className="absolute inset-0 h-full w-full opacity-10">
+          {/* Fake route preview - uses viewBox coordinates, not percentages */}
+          <svg
+            className="absolute inset-0 h-full w-full opacity-10"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
             <motion.path
-              d="M 20% 80% Q 30% 60%, 40% 50% T 60% 40% T 80% 30%"
+              d="M 20 80 Q 30 60 40 50 T 60 40 T 80 30"
               fill="none"
               stroke="currentColor"
-              strokeWidth="3"
+              strokeWidth="2"
               strokeLinecap="round"
               className="text-blue"
               initial={{ pathLength: 0 }}
@@ -287,6 +399,7 @@ export function RunMap({
         {...viewport}
         onMove={handleMove}
         onLoad={handleLoad}
+        onError={handleError}
         style={{ width: '100%', height: '100%' }}
         mapStyle={MAP_STYLE}
         attributionControl={false}
