@@ -67,14 +67,19 @@ export const insightsRouter = createTRPCRouter({
 
       const now = new Date()
 
-      // Cache the insight
-      await ctx.db.insert(activityInsights).values({
-        id: generateInsightId(),
-        activityId: input.activityId,
-        content: result.content,
-        generatedAt: now,
-        model: result.model,
-      })
+      // Reason: Vercel serverless has a read-only filesystem, so SQLite writes
+      // may fail. Cache best-effort; still return the insight on write failure.
+      try {
+        await ctx.db.insert(activityInsights).values({
+          id: generateInsightId(),
+          activityId: input.activityId,
+          content: result.content,
+          generatedAt: now,
+          model: result.model,
+        })
+      } catch (err) {
+        console.warn('Failed to cache insight (read-only DB):', (err as Error).message)
+      }
 
       return {
         content: result.content,
@@ -115,17 +120,21 @@ export const insightsRouter = createTRPCRouter({
 
       const now = new Date()
 
-      // Delete old insight if exists
-      await ctx.db.delete(activityInsights).where(eq(activityInsights.activityId, input.activityId))
-
-      // Insert new insight
-      await ctx.db.insert(activityInsights).values({
-        id: generateInsightId(),
-        activityId: input.activityId,
-        content: result.content,
-        generatedAt: now,
-        model: result.model,
-      })
+      // Reason: Same read-only filesystem guard as getForActivity above.
+      try {
+        await ctx.db
+          .delete(activityInsights)
+          .where(eq(activityInsights.activityId, input.activityId))
+        await ctx.db.insert(activityInsights).values({
+          id: generateInsightId(),
+          activityId: input.activityId,
+          content: result.content,
+          generatedAt: now,
+          model: result.model,
+        })
+      } catch (err) {
+        console.warn('Failed to cache regenerated insight (read-only DB):', (err as Error).message)
+      }
 
       return {
         content: result.content,

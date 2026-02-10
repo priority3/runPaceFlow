@@ -6,7 +6,12 @@
 
 import { formatDistance, formatDuration, formatPace } from '@/lib/pace/calculator'
 
-import type { ActivityInsightInput, PaceAnalysis, StructuredAnalysis } from './types'
+import type {
+  ActivityInsightInput,
+  PaceAnalysis,
+  StructuredAnalysis,
+  WeatherAnalysis,
+} from './types'
 
 /**
  * Analyze pace data from splits
@@ -76,6 +81,24 @@ function analyzePace(input: ActivityInsightInput): PaceAnalysis {
 export function buildStructuredAnalysis(input: ActivityInsightInput): StructuredAnalysis {
   const { activity, splits } = input
 
+  // Parse weather data from JSON string
+  let weather: WeatherAnalysis = { hasData: false }
+  if (activity.weatherData) {
+    try {
+      const parsed = JSON.parse(activity.weatherData)
+      weather = {
+        temperature: parsed.temperature,
+        humidity: parsed.humidity,
+        windSpeed: parsed.windSpeed,
+        weatherCode: parsed.weatherCode,
+        description: parsed.description,
+        hasData: true,
+      }
+    } catch {
+      // Reason: weatherData may be malformed from older syncs; fall back gracefully
+    }
+  }
+
   return {
     distance: activity.distance,
     duration: activity.duration,
@@ -89,6 +112,7 @@ export function buildStructuredAnalysis(input: ActivityInsightInput): Structured
       totalGain: activity.elevationGain,
       hasData: activity.elevationGain !== null && activity.elevationGain > 0,
     },
+    weather,
     splitsCount: splits.length,
   }
 }
@@ -134,6 +158,7 @@ export function buildSystemPrompt(): string {
 - 配速模式和稳定性
 - 分段趋势（正分割/负分割/均匀）
 - 心率表现（如有数据）
+- 天气影响（如有数据，分析温度、湿度、风速对表现的影响）
 - 针对性的改进方向`
 }
 
@@ -193,6 +218,17 @@ export function buildUserPrompt(input: ActivityInsightInput): string {
     prompt += `
 ## 海拔数据
 - 累计爬升：${Math.round(analysis.elevation.totalGain!)}米
+`
+  }
+
+  // Add weather if available
+  if (analysis.weather.hasData) {
+    prompt += `
+## 天气条件
+- 温度：${analysis.weather.temperature}°C
+- 湿度：${analysis.weather.humidity}%
+- 风速：${analysis.weather.windSpeed} km/h
+- 天气：${analysis.weather.description}
 `
   }
 

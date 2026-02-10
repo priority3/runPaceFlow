@@ -34,6 +34,7 @@ const activityColumnsWithoutGpx = {
   calories: activities.calories,
   isIndoor: activities.isIndoor,
   raceName: activities.raceName,
+  weatherData: activities.weatherData,
   createdAt: activities.createdAt,
   updatedAt: activities.updatedAt,
 }

@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { activities, splits } from '@/lib/db/schema'
 import { calculatePace } from '@/lib/pace/calculator'
 import { generateId } from '@/lib/utils'
+import { fetchWeatherForActivity } from '@/lib/weather/open-meteo'
 
 import type { RawActivity } from './adapters/base'
 import {
@@ -66,6 +67,29 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       }
     }
 
+    // 获取天气数据（仅室外活动）
+    let weatherData: string | null = null
+    if (!rawActivity.isIndoor) {
+      try {
+        const coords = extractCoordinatesFromGPX(gpxData)
+        if (coords) {
+          const weather = await fetchWeatherForActivity(
+            coords.lat,
+            coords.lng,
+            rawActivity.startTime,
+          )
+          if (weather) {
+            weatherData = JSON.stringify(weather)
+            console.info(
+              `Weather for activity ${rawActivity.id}: ${weather.temperature}°C, ${weather.description}`,
+            )
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch weather for activity ${rawActivity.id}:`, error)
+      }
+    }
+
     // 创建活动记录
     const activityId = generateId('act')
     const endTime = new Date(rawActivity.startTime.getTime() + duration * 1000)
@@ -89,6 +113,7 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       gpxData,
       isIndoor: rawActivity.isIndoor ?? false,
       raceName,
+      weatherData,
     })
 
     // 生成分段数据

@@ -45,6 +45,18 @@ export interface ElevationAnalysis {
 }
 
 /**
+ * Weather analysis data (if available)
+ */
+export interface WeatherAnalysis {
+  temperature?: number
+  humidity?: number
+  windSpeed?: number
+  weatherCode?: number
+  description?: string
+  hasData: boolean
+}
+
+/**
  * Structured analysis result for prompt building
  */
 export interface StructuredAnalysis {
@@ -53,6 +65,7 @@ export interface StructuredAnalysis {
   pace: PaceAnalysis
   heartRate: HeartRateAnalysis
   elevation: ElevationAnalysis
+  weather: WeatherAnalysis
   splitsCount: number
 }
 
