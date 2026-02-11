@@ -40,11 +40,10 @@ jobs:
           # 创建 data 目录（如果不存在）
           mkdir -p data
 
-          # 初始化数据库（如果不存在）
-          if [ ! -f "data/activities.db" ]; then
-            echo "初始化数据库..."
-            bun run db:push
-          fi
+          # Reason: Always run db:push to ensure schema matches code,
+          # even when the database file already exists from git checkout.
+          # db:push is idempotent and won't affect existing data.
+          bun run db:push
 
           # 运行同步脚本
           bun run sync
