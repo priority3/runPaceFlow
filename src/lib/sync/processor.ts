@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { activities, splits } from '@/lib/db/schema'
 import { calculatePace } from '@/lib/pace/calculator'
 import { generateId } from '@/lib/utils'
+import { fetchWeatherForActivity } from '@/lib/weather/open-meteo'
 
 import type { RawActivity } from './adapters/base'
 import {
@@ -66,6 +67,29 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       }
     }
 
+    // 获取天气数据（仅室外活动）
+    let weatherData: string | null = null
+    if (!rawActivity.isIndoor) {
+      try {
+        const coords = extractCoordinatesFromGPX(gpxData)
+        if (coords) {
+          const weather = await fetchWeatherForActivity(
+            coords.lat,
+            coords.lng,
+            rawActivity.startTime,
+          )
+          if (weather) {
+            weatherData = JSON.stringify(weather)
+            console.info(
+              `Weather for activity ${rawActivity.id}: ${weather.temperature}°C, ${weather.description}`,
+            )
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch weather for activity ${rawActivity.id}:`, error)
+      }
+    }
+
     // 创建活动记录
     const activityId = generateId('act')
     const endTime = new Date(rawActivity.startTime.getTime() + duration * 1000)
@@ -89,6 +113,7 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       gpxData,
       isIndoor: rawActivity.isIndoor ?? false,
       raceName,
+      weatherData,
     })
 
     // 生成分段数据
@@ -248,6 +273,79 @@ async function generateAverageSplits(
     await db.insert(splits).values(splitRecords)
     console.info(`Generated ${splitRecords.length} average splits for activity ${activityId}`)
   }
+}
+
+/**
+ * 回填缺失天气数据的统计结果
+ */
+export interface BackfillWeatherResult {
+  total: number
+  success: number
+  failed: number
+  skipped: number
+}
+
+/**
+ * 为缺少天气数据的室外活动批量获取天气
+ *
+ * 查询 weather_data 为空、非室内、且有 GPX 数据的活动，
+ * 逐条获取历史天气并更新数据库。
+ *
+ * @param delayMs 请求间隔（毫秒），避免 Open-Meteo 限流
+ */
+export async function backfillMissingWeather(delayMs = 1000): Promise<BackfillWeatherResult> {
+  const allActivities = await db.select().from(activities).all()
+
+  const eligible = allActivities.filter(
+    (a) => a.weatherData === null && a.isIndoor === false && a.gpxData !== null,
+  )
+
+  if (eligible.length === 0) {
+    return { total: 0, success: 0, failed: 0, skipped: 0 }
+  }
+
+  console.info(`\n🌤️  Backfilling weather for ${eligible.length} activities...`)
+
+  let success = 0
+  let failed = 0
+  let skipped = 0
+
+  for (let i = 0; i < eligible.length; i++) {
+    const activity = eligible[i]
+
+    const coords = extractCoordinatesFromGPX(activity.gpxData)
+    if (!coords) {
+      skipped++
+      continue
+    }
+
+    try {
+      const weather = await fetchWeatherForActivity(coords.lat, coords.lng, activity.startTime)
+
+      if (weather) {
+        await db
+          .update(activities)
+          .set({ weatherData: JSON.stringify(weather) })
+          .where(eq(activities.id, activity.id))
+        success++
+        console.info(
+          `  [${i + 1}/${eligible.length}] ${activity.title}: ${weather.description} ${weather.temperature}°C`,
+        )
+      } else {
+        failed++
+      }
+    } catch {
+      failed++
+    }
+
+    // Reason: Delay between requests to respect Open-Meteo rate limits
+    if (i < eligible.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+    }
+  }
+
+  console.info(`🌤️  Weather backfill done: ${success} ok, ${failed} failed, ${skipped} skipped`)
+  return { total: eligible.length, success, failed, skipped }
 }
 
 /**

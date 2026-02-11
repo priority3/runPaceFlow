@@ -9,7 +9,8 @@
 - 支持 Strava / Nike Run Club 数据导入
 - 地图路线可视化与动画回放
 - 分段配速分析与图表展示
-- **AI 跑步分析**（Claude AI）
+- **AI 跑步分析**（Claude / OpenAI 兼容 API，支持自动降级）
+- 地图组件懒加载，优化包体积与加载性能
 - GitHub Actions 每日自动同步
 - 响应式设计，适配桌面与移动端
 
@@ -31,9 +32,16 @@ STRAVA_REFRESH_TOKEN=your_refresh_token
 # Nike Run Club 配置 (可选)
 NIKE_ACCESS_TOKEN=your_access_token
 
-# Claude AI 配置 (可选 - 用于 AI 跑步分析)
+# Claude AI 配置 (可选 - 主要 AI 分析服务)
 ANTHROPIC_API_KEY=your_api_key
 ANTHROPIC_BASE_URL=  # 可选：自定义 API 地址（用于代理）
+
+# OpenAI 兼容 API 配置 (可选 - 备用 AI 分析服务)
+# 支持 OpenAI、DeepSeek、通义千问等 OpenAI 兼容的 API
+OPENAI_API_KEY=your_api_key
+OPENAI_BASE_URL=  # 第三方服务必填（如 https://api.deepseek.com）
+OPENAI_MODEL=  # 可选，默认 gpt-4o
+OPENAI_API_FORMAT=  # 可选：chat（默认）或 responses
 
 # 运动目标配置 (可选 - 自定义周/月目标)
 NEXT_PUBLIC_WEEKLY_DISTANCE_GOAL=10000   # 每周里程目标（米），默认 10km
@@ -48,15 +56,27 @@ NEXT_PUBLIC_MONTHLY_DURATION_GOAL=18000  # 每月时长目标（秒），默认 
 2. 获取 `Client ID` 和 `Client Secret`
 3. 通过 OAuth 流程获取 `Refresh Token`（可参考 [strava-oauth](https://github.com/yihong0618/running_page?tab=readme-ov-file#strava)）
 
-### Claude AI 配置（可选）
+### AI 分析配置（可选）
 
-AI 功能可为每次跑步生成个性化分析，包括配速分析、分段表现和训练建议。
+AI 功能可为每次跑步生成个性化分析，包括配速分析、分段表现和训练建议。支持多 provider 自动降级：
 
-1. 前往 [Anthropic Console](https://console.anthropic.com/) 获取 API Key
+- **Claude**（主要）— 需要 `ANTHROPIC_API_KEY`
+- **OpenAI 兼容 API**（备用）— 需要 `OPENAI_API_KEY`，支持 OpenAI、DeepSeek、通义千问等
+
+当 Claude 调用失败或不可用时，系统自动切换到 OpenAI 兼容 API。
+
+**配置方式：**
+
+1. 前往 [Anthropic Console](https://console.anthropic.com/) 获取 Claude API Key
 2. 将 `ANTHROPIC_API_KEY` 添加到环境变量
-3. （可选）设置 `ANTHROPIC_BASE_URL` 用于代理或其他兼容接口
+3. （可选）配置备用 provider：
+   ```bash
+   OPENAI_API_KEY=your_api_key
+   OPENAI_BASE_URL=https://api.deepseek.com  # DeepSeek 示例
+   OPENAI_MODEL=deepseek-chat                # 模型名称
+   ```
 
-> 注意：未配置 Claude AI 时，应用正常运行，但不会显示 AI 分析。
+> 注意：未配置任何 AI provider 时，应用正常运行，但不会显示 AI 分析。
 
 ## 本地开发
 

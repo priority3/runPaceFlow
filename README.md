@@ -9,7 +9,8 @@ Personal running data visualization platform with automatic Strava sync.
 - Strava / Nike Run Club data import
 - Map route visualization with animated playback
 - Split pace analysis and charts
-- AI-powered running insights (Claude AI)
+- AI-powered running insights (Claude / OpenAI-compatible API with automatic fallback)
+- Lazy-loaded map components and optimized bundle size
 - Daily auto-sync via GitHub Actions
 - Responsive design for desktop and mobile
 
@@ -31,9 +32,16 @@ STRAVA_REFRESH_TOKEN=your_refresh_token
 # Nike Run Club (optional)
 NIKE_ACCESS_TOKEN=your_access_token
 
-# Claude AI (optional - for running insights)
+# Claude AI (optional - primary AI provider)
 ANTHROPIC_API_KEY=your_api_key
 ANTHROPIC_BASE_URL=  # Optional: custom API endpoint for proxy
+
+# OpenAI-compatible API (optional - fallback AI provider)
+# Supports OpenAI, DeepSeek, Tongyi Qwen, and other compatible APIs
+OPENAI_API_KEY=your_api_key
+OPENAI_BASE_URL=  # Required for third-party services (e.g. https://api.deepseek.com)
+OPENAI_MODEL=  # Optional, defaults to gpt-4o
+OPENAI_API_FORMAT=  # Optional: 'chat' (default) or 'responses'
 
 # Goals (optional - customize weekly/monthly targets)
 NEXT_PUBLIC_WEEKLY_DISTANCE_GOAL=10000   # Weekly distance goal in meters (default: 10km)
@@ -48,9 +56,14 @@ NEXT_PUBLIC_MONTHLY_DURATION_GOAL=18000  # Monthly duration goal in seconds (def
 2. Get your `Client ID` and `Client Secret`
 3. Obtain `Refresh Token` via OAuth flow (see [strava-oauth guide](https://github.com/yihong0618/running_page?tab=readme-ov-file#strava))
 
-### Claude AI Setup (Optional)
+### AI Setup (Optional)
 
-The AI feature generates personalized running insights for each activity, analyzing your pace, splits, and performance patterns.
+The AI feature generates personalized running insights for each activity, analyzing your pace, splits, and performance patterns. Supports multiple providers with automatic fallback:
+
+- **Claude** (primary) — requires `ANTHROPIC_API_KEY`
+- **OpenAI-compatible** (fallback) — requires `OPENAI_API_KEY`, supports OpenAI, DeepSeek, Tongyi Qwen, etc.
+
+If Claude fails or is unavailable, the system automatically tries the OpenAI-compatible provider.
 
 **For Vercel Deployment:**
 
@@ -60,17 +73,26 @@ Configure these environment variables in Vercel Dashboard (`Settings → Environ
 | -------------------- | ---------------------------------------------------------------- |
 | `ANTHROPIC_API_KEY`  | API key from [Anthropic Console](https://console.anthropic.com/) |
 | `ANTHROPIC_BASE_URL` | (Optional) Custom API endpoint for proxy                         |
+| `OPENAI_API_KEY`     | (Optional) API key for fallback provider                         |
+| `OPENAI_BASE_URL`    | (Optional) Required for third-party services like DeepSeek       |
+| `OPENAI_MODEL`       | (Optional) Model name, defaults to `gpt-4o`                      |
+| `OPENAI_API_FORMAT`  | (Optional) `chat` (default) or `responses`                       |
 
 **For Local Development:**
 
 Add to your `.env.local` file:
 
 ```bash
+# Primary provider
 ANTHROPIC_API_KEY=your_api_key
-ANTHROPIC_BASE_URL=  # Optional: custom API endpoint
+
+# Fallback provider (optional)
+OPENAI_API_KEY=your_api_key
+OPENAI_BASE_URL=https://api.deepseek.com  # Example for DeepSeek
+OPENAI_MODEL=deepseek-chat                # Example model
 ```
 
-> Note: Without Claude AI configured, the app works normally but without AI insights.
+> Note: Without any AI provider configured, the app works normally but without AI insights.
 
 ## Local Development
 

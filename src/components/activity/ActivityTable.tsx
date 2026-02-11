@@ -29,6 +29,37 @@ import { trpc } from '@/lib/trpc/client'
 import type { ActivityListItem } from '@/types/activity'
 
 /**
+ * WMO weather code → emoji (compact version for list view)
+ */
+function getWeatherEmoji(code: number): string {
+  if (code === 0) return '☀️'
+  if (code <= 3) return '⛅'
+  if (code <= 48) return '🌫️'
+  if (code <= 57) return '🌦️'
+  if (code <= 65) return '🌧️'
+  if (code <= 67) return '🧊'
+  if (code <= 77) return '🌨️'
+  if (code <= 82) return '🌧️'
+  if (code <= 86) return '🌨️'
+  if (code >= 95) return '⛈️'
+  return '🌡️'
+}
+
+/**
+ * Parse weather JSON and return compact display string
+ */
+function getWeatherLabel(weatherData: string | null): string | null {
+  if (!weatherData) return null
+  try {
+    const w = JSON.parse(weatherData) as { temperature: number; weatherCode: number }
+    if (w.temperature == null) return null
+    return `${getWeatherEmoji(w.weatherCode)} ${w.temperature}°`
+  } catch {
+    return null
+  }
+}
+
+/**
  * Stagger animation variants for list items
  */
 const containerVariants = {
@@ -317,6 +348,15 @@ export function ActivityTable({ activities, className = '' }: ActivityTableProps
                             {Math.round(activity.elevationGain)}
                           </span>
                           <span className="text-label/50">m</span>
+                        </div>
+                      )}
+
+                      {/* Weather */}
+                      {activity.weatherData && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-label/80 tabular-nums">
+                            {getWeatherLabel(activity.weatherData)}
+                          </span>
                         </div>
                       )}
 

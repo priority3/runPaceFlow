@@ -37,6 +37,9 @@ export const activities = sqliteTable('activities', {
   // 赛事名称（同步时通过 zuicool.com 匹配获取）
   raceName: text('race_name'), // 如 "2025 北京马拉松"
 
+  // 天气数据（同步时通过 Open-Meteo 获取）
+  weatherData: text('weather_data'), // JSON: { temperature, humidity, windSpeed, weatherCode, description }
+
   // 时间戳
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()

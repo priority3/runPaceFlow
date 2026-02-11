@@ -10,13 +10,15 @@ import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
+import { WeatherInfo } from '@/components/activity/WeatherInfo'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
+import { MapErrorBoundary } from '@/components/map/MapErrorBoundary'
 import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 // Lazy load map components - MapLibre GL is ~60KB gzipped
@@ -77,13 +79,20 @@ const AIInsight = dynamic(() =>
 export default function ActivityDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const activityId = params.id as string
+
+  // Reason: Debug mode allows isolating which component causes browser crashes.
+  // Use ?debug=nomap to skip map, ?debug=basic to only render the info card.
+  const debugMode = searchParams.get('debug')
 
   // Fetch activity data with splits (excludes gpxData)
   const { data, isLoading, error } = useActivityWithSplits(activityId)
 
   // Lazy-load GPX data separately (can be several MB)
-  const { data: gpxData } = useGpxData(activityId, !!data && !data.activity.isIndoor)
+  // Reason: Skip GPX fetch in debug modes that don't need the map
+  const skipMap = debugMode === 'nomap' || debugMode === 'basic'
+  const { data: gpxData } = useGpxData(activityId, !!data && !data.activity.isIndoor && !skipMap)
 
   // Playback state
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
@@ -273,8 +282,8 @@ export default function ActivityDetailPage() {
               <span>返回</span>
             </button>
 
-            {/* Playback controls - only show for outdoor activities */}
-            {!activity.isIndoor && (
+            {/* Playback controls - only show for outdoor activities when map is visible */}
+            {!activity.isIndoor && !skipMap && (
               <div className="flex items-center gap-2">
                 <motion.button
                   onClick={handlePlayPause}
@@ -311,29 +320,31 @@ export default function ActivityDetailPage() {
           </div>
         </div>
 
-        {/* Map Section - Only show for outdoor activities */}
-        {!activity.isIndoor && (
+        {/* Map Section - Only show for outdoor activities, skip in debug modes */}
+        {!activity.isIndoor && !skipMap && (
           <section className="mb-6">
             <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-black/10 dark:shadow-black/30">
               <div className="h-[300px] sm:h-[400px]">
-                <RunMap className="h-full w-full" bounds={bounds || undefined}>
-                  {/* Static pace route or animated playback */}
-                  {isPlaying ? (
-                    <AnimatedRoute
-                      segments={paceSegments}
-                      activityId={activityId}
-                      isPlaying={isPlaying}
-                      onProgressChange={setAnimationProgress}
-                      onAnimationComplete={handleAnimationComplete}
-                      speed={1.5}
-                    />
-                  ) : (
-                    <>
-                      <PaceRouteLayer segments={paceSegments} activityId={activityId} />
-                      <KilometerMarkers markers={kmMarkers} />
-                    </>
-                  )}
-                </RunMap>
+                <MapErrorBoundary>
+                  <RunMap className="h-full w-full" bounds={bounds || undefined}>
+                    {/* Static pace route or animated playback */}
+                    {isPlaying ? (
+                      <AnimatedRoute
+                        segments={paceSegments}
+                        activityId={activityId}
+                        isPlaying={isPlaying}
+                        onProgressChange={setAnimationProgress}
+                        onAnimationComplete={handleAnimationComplete}
+                        speed={1.5}
+                      />
+                    ) : (
+                      <>
+                        <PaceRouteLayer segments={paceSegments} activityId={activityId} />
+                        <KilometerMarkers markers={kmMarkers} />
+                      </>
+                    )}
+                  </RunMap>
+                </MapErrorBoundary>
 
                 {/* Floating info card during playback */}
                 {isPlaying && currentPoint && (
@@ -406,127 +417,133 @@ export default function ActivityDetailPage() {
                   <span className="text-red/60 text-xs">心率</span>
                 </div>
               )}
+              {activity.weatherData && <WeatherInfo weatherDataJson={activity.weatherData} />}
             </div>
           </div>
         </motion.div>
 
-        {/* Tabbed Content Section */}
-        <AnimatedTabs defaultValue="pace" className="w-full">
-          <TabsList className="mb-4 w-full justify-start overflow-x-auto">
-            <TabsTrigger value="pace">配速分析</TabsTrigger>
-            {(heartRateData.length > 0 || activity.averageHeartRate) && (
-              <TabsTrigger value="heartrate">心率</TabsTrigger>
-            )}
-            <TabsTrigger value="splits">分段数据</TabsTrigger>
-            <TabsTrigger value="art">艺术</TabsTrigger>
-            <TabsTrigger value="ai">AI 分析</TabsTrigger>
-            {activity.calories && <TabsTrigger value="more">更多数据</TabsTrigger>}
-          </TabsList>
+        {/* Tabbed Content Section - skip in basic debug mode */}
+        {debugMode !== 'basic' && (
+          <AnimatedTabs defaultValue="pace" className="w-full">
+            <TabsList className="mb-4 w-full justify-start overflow-x-auto">
+              <TabsTrigger value="pace">配速分析</TabsTrigger>
+              {(heartRateData.length > 0 || activity.averageHeartRate) && (
+                <TabsTrigger value="heartrate">心率</TabsTrigger>
+              )}
+              <TabsTrigger value="splits">分段数据</TabsTrigger>
+              <TabsTrigger value="art">艺术</TabsTrigger>
+              <TabsTrigger value="ai">AI 分析</TabsTrigger>
+              {activity.calories && <TabsTrigger value="more">更多数据</TabsTrigger>}
+            </TabsList>
 
-          {/* Pace Analysis Tab */}
-          <AnimatedTabsContent value="pace">
-            {chartSplits.length > 0 ? (
-              <div className="space-y-6">
-                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                  <h3 className="text-label/80 mb-4 text-sm font-medium">每公里配速</h3>
-                  <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
-                </div>
-                <PaceDistribution splits={chartSplits} averagePace={activity.averagePace || 360} />
-              </div>
-            ) : (
-              <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                暂无配速数据
-              </div>
-            )}
-          </AnimatedTabsContent>
-
-          {/* Heart Rate Tab */}
-          {(heartRateData.length > 0 || activity.averageHeartRate) && (
-            <AnimatedTabsContent value="heartrate">
-              <div className="space-y-6">
-                {/* Heart Rate Chart */}
-                {heartRateData.length > 0 && (
+            {/* Pace Analysis Tab */}
+            <AnimatedTabsContent value="pace">
+              {chartSplits.length > 0 ? (
+                <div className="space-y-6">
                   <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                    <h3 className="text-label/80 mb-4 text-sm font-medium">心率变化</h3>
-                    <HeartRateChart
-                      data={heartRateData}
-                      averageHeartRate={activity.averageHeartRate ?? undefined}
-                      maxHeartRate={activity.maxHeartRate ?? undefined}
-                    />
+                    <h3 className="text-label/80 mb-4 text-sm font-medium">每公里配速</h3>
+                    <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
                   </div>
-                )}
-
-                {/* Heart Rate Zones */}
-                {activity.averageHeartRate && activity.maxHeartRate && (
-                  <HeartRateZones
-                    averageHeartRate={activity.averageHeartRate}
-                    maxHeartRate={activity.maxHeartRate}
+                  <PaceDistribution
+                    splits={chartSplits}
+                    averagePace={activity.averagePace || 360}
                   />
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                  暂无配速数据
+                </div>
+              )}
             </AnimatedTabsContent>
-          )}
 
-          {/* Splits Table Tab */}
-          <AnimatedTabsContent value="splits">
-            {chartSplits.length > 0 ? (
-              <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
-                <SplitsTable splits={chartSplits} />
-              </div>
-            ) : (
-              <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                暂无分段数据
-              </div>
-            )}
-          </AnimatedTabsContent>
-
-          {/* AI Insight Tab */}
-          <AnimatedTabsContent value="ai">
-            <AIInsight activityId={activityId} />
-          </AnimatedTabsContent>
-
-          {/* Art Gallery Tab */}
-          <AnimatedTabsContent value="art">
-            <ArtGallery
-              splits={chartSplits}
-              trackPoints={trackPoints}
-              paceSegments={paceSegments}
-              kmMarkers={kmMarkers}
-              heartRateData={heartRateData}
-              activity={activity}
-            />
-          </AnimatedTabsContent>
-
-          {/* More Data Tab - Calories and other stats */}
-          {activity.calories && (
-            <AnimatedTabsContent value="more">
-              <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                <h3 className="text-label/80 mb-4 text-sm font-medium">其他数据</h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {activity.calories && (
-                    <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
-                      <div className="text-label/50 text-xs">卡路里</div>
-                      <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
-                        {activity.calories}
-                        <span className="text-label/50 ml-1 text-sm">kcal</span>
-                      </div>
+            {/* Heart Rate Tab */}
+            {(heartRateData.length > 0 || activity.averageHeartRate) && (
+              <AnimatedTabsContent value="heartrate">
+                <div className="space-y-6">
+                  {/* Heart Rate Chart */}
+                  {heartRateData.length > 0 && (
+                    <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                      <h3 className="text-label/80 mb-4 text-sm font-medium">心率变化</h3>
+                      <HeartRateChart
+                        data={heartRateData}
+                        averageHeartRate={activity.averageHeartRate ?? undefined}
+                        maxHeartRate={activity.maxHeartRate ?? undefined}
+                      />
                     </div>
                   )}
-                  {activity.bestPace && (
-                    <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
-                      <div className="text-label/50 text-xs">最快配速</div>
-                      <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
-                        {formatPace(activity.bestPace)}
-                        <span className="text-label/50 ml-1 text-sm">/km</span>
-                      </div>
-                    </div>
+
+                  {/* Heart Rate Zones */}
+                  {activity.averageHeartRate && activity.maxHeartRate && (
+                    <HeartRateZones
+                      averageHeartRate={activity.averageHeartRate}
+                      maxHeartRate={activity.maxHeartRate}
+                    />
                   )}
                 </div>
-              </div>
+              </AnimatedTabsContent>
+            )}
+
+            {/* Splits Table Tab */}
+            <AnimatedTabsContent value="splits">
+              {chartSplits.length > 0 ? (
+                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                  <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
+                  <SplitsTable splits={chartSplits} />
+                </div>
+              ) : (
+                <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                  暂无分段数据
+                </div>
+              )}
             </AnimatedTabsContent>
-          )}
-        </AnimatedTabs>
+
+            {/* AI Insight Tab */}
+            <AnimatedTabsContent value="ai">
+              <AIInsight activityId={activityId} />
+            </AnimatedTabsContent>
+
+            {/* Art Gallery Tab */}
+            <AnimatedTabsContent value="art">
+              <ArtGallery
+                splits={chartSplits}
+                trackPoints={trackPoints}
+                paceSegments={paceSegments}
+                kmMarkers={kmMarkers}
+                heartRateData={heartRateData}
+                activity={activity}
+              />
+            </AnimatedTabsContent>
+
+            {/* More Data Tab - Calories and other stats */}
+            {activity.calories && (
+              <AnimatedTabsContent value="more">
+                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                  <h3 className="text-label/80 mb-4 text-sm font-medium">其他数据</h3>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {activity.calories && (
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                        <div className="text-label/50 text-xs">卡路里</div>
+                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                          {activity.calories}
+                          <span className="text-label/50 ml-1 text-sm">kcal</span>
+                        </div>
+                      </div>
+                    )}
+                    {activity.bestPace && (
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                        <div className="text-label/50 text-xs">最快配速</div>
+                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                          {formatPace(activity.bestPace)}
+                          <span className="text-label/50 ml-1 text-sm">/km</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </AnimatedTabsContent>
+            )}
+          </AnimatedTabs>
+        )}
 
         {/* Bottom Action Bar */}
         <ActivityActionBar
