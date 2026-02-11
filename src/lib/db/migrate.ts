@@ -1,85 +1,31 @@
 /**
  * Database migration runner
- * Runs migrations on application startup to ensure schema is up to date
+ * Uses Drizzle's official migrator to apply versioned SQL migrations from ./drizzle
  */
 
-import path from 'node:path'
+import { migrate } from 'drizzle-orm/libsql/migrator'
 
-import { createClient } from '@libsql/client'
-
-const getDatabaseUrl = () => {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL
-  }
-
-  if (process.env.VERCEL) {
-    return `file:${path.join(process.cwd(), 'data', 'activities.db')}`
-  }
-
-  return 'file:./data/activities.db'
-}
+import { db } from '@/lib/db'
 
 /**
  * Run database migrations
- * This ensures the database schema is up to date
+ * Applies all pending migrations from the drizzle/ folder.
+ * Tracked by the __drizzle_migrations table — already-applied migrations are skipped.
  */
 export async function runMigrations() {
-  const client = createClient({
-    url: getDatabaseUrl(),
-    authToken: process.env.DATABASE_AUTH_TOKEN,
-  })
+  await migrate(db, { migrationsFolder: './drizzle' })
+}
 
-  try {
-    // Check if race_name column exists
-    const tableInfo = await client.execute({
-      sql: 'PRAGMA table_info(activities)',
-      args: [],
+// Reason: Allow direct execution via `bun run src/lib/db/migrate.ts`
+// while still exporting runMigrations for programmatic use (e.g. from sync script)
+if (import.meta.main) {
+  runMigrations()
+    .then(() => {
+      console.log('✓ Migrations applied successfully')
+      process.exit(0)
     })
-
-    const hasRaceNameColumn = tableInfo.rows.some((row: any) => row.name === 'race_name')
-
-    if (!hasRaceNameColumn) {
-      console.log('Adding race_name column to activities table...')
-      await client.execute({
-        sql: 'ALTER TABLE activities ADD COLUMN race_name TEXT',
-        args: [],
-      })
-      console.log('✓ race_name column added successfully')
-    } else {
-      console.log('✓ race_name column already exists')
-    }
-
-    // Check if is_indoor column exists
-    const hasIsIndoorColumn = tableInfo.rows.some((row: any) => row.name === 'is_indoor')
-
-    if (!hasIsIndoorColumn) {
-      console.log('Adding is_indoor column to activities table...')
-      await client.execute({
-        sql: 'ALTER TABLE activities ADD COLUMN is_indoor INTEGER DEFAULT 0',
-        args: [],
-      })
-      console.log('✓ is_indoor column added successfully')
-    } else {
-      console.log('✓ is_indoor column already exists')
-    }
-
-    // Check if weather_data column exists
-    const hasWeatherDataColumn = tableInfo.rows.some((row: any) => row.name === 'weather_data')
-
-    if (!hasWeatherDataColumn) {
-      console.log('Adding weather_data column to activities table...')
-      await client.execute({
-        sql: 'ALTER TABLE activities ADD COLUMN weather_data TEXT',
-        args: [],
-      })
-      console.log('✓ weather_data column added successfully')
-    } else {
-      console.log('✓ weather_data column already exists')
-    }
-  } catch (error) {
-    console.error('Migration failed:', error)
-    throw error
-  } finally {
-    client.close()
-  }
+    .catch((error) => {
+      console.error('Migration failed:', error)
+      process.exit(1)
+    })
 }

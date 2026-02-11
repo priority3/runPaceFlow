@@ -14,6 +14,7 @@
 import { desc } from 'drizzle-orm'
 
 import { db } from '../src/lib/db'
+import { runMigrations } from '../src/lib/db/migrate'
 import { activities } from '../src/lib/db/schema'
 import { NikeAdapter } from '../src/lib/sync/adapters/nike'
 import { StravaAdapter } from '../src/lib/sync/adapters/strava'
@@ -162,6 +163,9 @@ function determineSyncSource(): 'strava' | 'nike' | null {
  * Main sync function
  */
 async function main() {
+  // Reason: Ensure DB schema is up to date before any sync operations
+  await runMigrations()
+
   console.info('🚀 Starting activity sync...')
   console.info(`📅 ${new Date().toISOString()}`)
   console.info('')

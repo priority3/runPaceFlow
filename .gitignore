@@ -66,8 +66,7 @@ lerna-debug.log*
 *.db-wal
 !data/activities.db
 
-# Drizzle
-drizzle/
+# Drizzle Studio cache
 .drizzle/
 
 # Logs
