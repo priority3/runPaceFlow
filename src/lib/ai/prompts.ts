@@ -6,7 +6,12 @@
 
 import { formatDistance, formatDuration, formatPace } from '@/lib/pace/calculator'
 
-import type { ActivityInsightInput, PaceAnalysis, StructuredAnalysis } from './types'
+import type {
+  ActivityInsightInput,
+  PaceAnalysis,
+  StructuredAnalysis,
+  WeatherAnalysis,
+} from './types'
 
 /**
  * Analyze pace data from splits
@@ -76,6 +81,24 @@ function analyzePace(input: ActivityInsightInput): PaceAnalysis {
 export function buildStructuredAnalysis(input: ActivityInsightInput): StructuredAnalysis {
   const { activity, splits } = input
 
+  // Parse weather data from JSON string
+  let weather: WeatherAnalysis = { hasData: false }
+  if (activity.weatherData) {
+    try {
+      const parsed = JSON.parse(activity.weatherData)
+      weather = {
+        temperature: parsed.temperature,
+        humidity: parsed.humidity,
+        windSpeed: parsed.windSpeed,
+        weatherCode: parsed.weatherCode,
+        description: parsed.description,
+        hasData: true,
+      }
+    } catch {
+      // Reason: weatherData may be malformed from older syncs; fall back gracefully
+    }
+  }
+
   return {
     distance: activity.distance,
     duration: activity.duration,
@@ -89,6 +112,7 @@ export function buildStructuredAnalysis(input: ActivityInsightInput): Structured
       totalGain: activity.elevationGain,
       hasData: activity.elevationGain !== null && activity.elevationGain > 0,
     },
+    weather,
     splitsCount: splits.length,
   }
 }
@@ -125,6 +149,11 @@ export function buildSystemPrompt(): string {
 - 每个段落保持简短（2-3句话）
 - 回复长度控制在 200-350 字
 
+## 严格禁止
+- **绝对不要在回复末尾追问用户、索要更多信息或暗示补充数据**
+- 不允许出现任何形式的"如果你能补充…"、"如果你愿意提供…"、"还可以进一步…"等引导句
+- 分析必须基于已有数据直接给出结论，到训练建议结束后立即停止
+
 ## 分析结构
 1. **整体评价**（1-2句总结本次跑步表现）
 2. **配速分析**（分析配速变化规律，指出亮点和问题）
@@ -134,6 +163,7 @@ export function buildSystemPrompt(): string {
 - 配速模式和稳定性
 - 分段趋势（正分割/负分割/均匀）
 - 心率表现（如有数据）
+- 天气影响（如有数据，分析温度、湿度、风速对表现的影响）
 - 针对性的改进方向`
 }
 
@@ -196,6 +226,17 @@ export function buildUserPrompt(input: ActivityInsightInput): string {
 `
   }
 
+  // Add weather if available
+  if (analysis.weather.hasData) {
+    prompt += `
+## 天气条件
+- 温度：${analysis.weather.temperature}°C
+- 湿度：${analysis.weather.humidity}%
+- 风速：${analysis.weather.windSpeed} km/h
+- 天气：${analysis.weather.description}
+`
+  }
+
   // Add splits data
   prompt += `
 ## 分段配速
@@ -205,7 +246,9 @@ ${formatSplitsForPrompt(input)}
   prompt += `
 请根据以上数据，提供：
 1. 📊 **配速分析**：分析配速变化规律和稳定性
-2. 💪 **训练建议**：基于本次数据给出 1-2 条具体可行的建议`
+2. 💪 **训练建议**：基于本次数据给出 1-2 条具体可行的建议
+
+注意：给完训练建议后直接结束，不要追问或索要更多信息。`
 
   return prompt
 }

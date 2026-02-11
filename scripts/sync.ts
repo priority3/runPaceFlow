@@ -17,7 +17,7 @@ import { db } from '../src/lib/db'
 import { activities } from '../src/lib/db/schema'
 import { NikeAdapter } from '../src/lib/sync/adapters/nike'
 import { StravaAdapter } from '../src/lib/sync/adapters/strava'
-import { syncActivities } from '../src/lib/sync/processor'
+import { backfillMissingWeather, syncActivities } from '../src/lib/sync/processor'
 
 // Load environment variables
 const {
@@ -192,6 +192,13 @@ async function main() {
     console.info(`📊 Source: ${result.source.toUpperCase()}`)
     console.info(`📈 New activities: ${result.count}`)
     console.info('='.repeat(50))
+
+    // Reason: After syncing new activities, backfill weather for any activities
+    // that are still missing weather data (e.g. from earlier failed fetches)
+    const weatherResult = await backfillMissingWeather()
+    if (weatherResult.total > 0) {
+      console.info(`🌤️  Weather backfill: ${weatherResult.success}/${weatherResult.total} updated`)
+    }
 
     process.exit(0)
   } catch (error) {

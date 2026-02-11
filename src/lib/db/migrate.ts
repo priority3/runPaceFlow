@@ -62,6 +62,20 @@ export async function runMigrations() {
     } else {
       console.log('✓ is_indoor column already exists')
     }
+
+    // Check if weather_data column exists
+    const hasWeatherDataColumn = tableInfo.rows.some((row: any) => row.name === 'weather_data')
+
+    if (!hasWeatherDataColumn) {
+      console.log('Adding weather_data column to activities table...')
+      await client.execute({
+        sql: 'ALTER TABLE activities ADD COLUMN weather_data TEXT',
+        args: [],
+      })
+      console.log('✓ weather_data column added successfully')
+    } else {
+      console.log('✓ weather_data column already exists')
+    }
   } catch (error) {
     console.error('Migration failed:', error)
     throw error
