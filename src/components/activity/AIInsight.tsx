@@ -1,8 +1,8 @@
 /**
  * AIInsight Component
  *
- * Displays AI-generated running analysis with loading, error states,
- * typewriter animation, and option to regenerate insights
+ * Displays AI-generated running analysis with real SSE streaming,
+ * loading/error states, and option to regenerate insights.
  */
 
 'use client'
@@ -22,15 +22,11 @@ import { cn } from '@/lib/utils'
 interface AIInsightProps {
   activityId: string
   className?: string
-  /** Enable typewriter animation for new insights */
-  enableTypewriter?: boolean
 }
 
-/**
- * Custom markdown components for better styling
- */
+// ─── Markdown Components ────────────────────────────────────────────────────
+
 const markdownComponents: Components = {
-  // Headings
   h1: ({ children }) => (
     <h1 className="text-label mt-6 mb-3 flex items-center gap-2 text-lg font-semibold first:mt-0">
       {children}
@@ -44,21 +40,13 @@ const markdownComponents: Components = {
   h3: ({ children }) => (
     <h3 className="text-label/90 mt-4 mb-2 text-sm font-medium first:mt-0">{children}</h3>
   ),
-
-  // Paragraphs
   p: ({ children }) => <p className="text-label/80 my-2 leading-relaxed">{children}</p>,
-
-  // Strong/Bold
   strong: ({ children }) => <strong className="text-label font-semibold">{children}</strong>,
-
-  // Lists
   ul: ({ children }) => <ul className="text-label/80 my-2 ml-4 list-disc space-y-1">{children}</ul>,
   ol: ({ children }) => (
     <ol className="text-label/80 my-2 ml-4 list-decimal space-y-1">{children}</ol>
   ),
   li: ({ children }) => <li className="text-label/80 pl-1">{children}</li>,
-
-  // Tables - custom styled
   table: ({ children }) => (
     <div className="my-3 overflow-x-auto rounded-xl border border-white/10 bg-white/30 dark:bg-black/10">
       <table className="w-full text-sm">{children}</table>
@@ -77,8 +65,6 @@ const markdownComponents: Components = {
     </th>
   ),
   td: ({ children }) => <td className="text-label/80 px-3 py-2 whitespace-nowrap">{children}</td>,
-
-  // Code blocks
   code: ({ children, className }) => {
     const isInline = !className
     if (isInline) {
@@ -94,21 +80,16 @@ const markdownComponents: Components = {
       </code>
     )
   },
-
-  // Blockquotes
   blockquote: ({ children }) => (
     <blockquote className="border-purple/30 bg-purple/5 my-3 border-l-4 py-2 pl-4 italic">
       {children}
     </blockquote>
   ),
-
-  // Horizontal rule
   hr: () => <hr className="my-4 border-white/10" />,
 }
 
-/**
- * Derive a display label from the model name stored in the insight
- */
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 function getProviderLabel(model: string): string {
   if (model.startsWith('claude')) return 'Claude AI'
   if (model.startsWith('deepseek')) return 'DeepSeek'
@@ -117,130 +98,200 @@ function getProviderLabel(model: string): string {
   return 'AI'
 }
 
-export function AIInsight({ activityId, className, enableTypewriter = true }: AIInsightProps) {
-  const utils = trpc.useUtils()
-  // Track if this is a fresh generation (for typewriter effect)
-  const [isNewGeneration, setIsNewGeneration] = React.useState(false)
-  const [typewriterComplete, setTypewriterComplete] = React.useState(false)
-  const [displayedContent, setDisplayedContent] = React.useState('')
-  const typewriterRef = React.useRef<NodeJS.Timeout | null>(null)
+// ─── SSE Streaming Hook ────────────────────────────────────────────────────
 
-  const {
-    data: insight,
-    isLoading,
-    error,
-    isFetching,
-  } = trpc.insights.getForActivity.useQuery(
-    { activityId },
-    {
-      staleTime: Infinity, // Insights are cached in DB, no need to refetch
-      retry: 1,
-    },
-  )
+type StreamStatus = 'idle' | 'streaming' | 'done' | 'error'
 
-  const regenerateMutation = trpc.insights.regenerate.useMutation({
-    onMutate: () => {
-      setIsNewGeneration(true)
-      setTypewriterComplete(false)
-      setDisplayedContent('')
-    },
-    onSuccess: () => {
-      utils.insights.getForActivity.invalidate({ activityId })
-    },
+interface StreamState {
+  status: StreamStatus
+  content: string
+  model: string | null
+  provider: string | null
+  error: string | null
+}
+
+function useInsightStream(activityId: string) {
+  const [state, setState] = React.useState<StreamState>({
+    status: 'idle',
+    content: '',
+    model: null,
+    provider: null,
+    error: null,
   })
 
-  // Typewriter effect for new generations
-  React.useEffect(() => {
-    if (!insight?.content || !enableTypewriter || !isNewGeneration) {
-      if (insight?.content) {
-        setDisplayedContent(insight.content)
-        setTypewriterComplete(true)
-      }
-      return
-    }
+  // Reason: AbortController ref lets us cancel an in-flight stream on unmount or re-trigger
+  const abortRef = React.useRef<AbortController | null>(null)
 
-    const { content } = insight
-    let currentIndex = 0
-    const speed = 20 // characters per frame
-    const frameDelay = 16 // ~60fps
+  const startStream = React.useCallback(
+    async (regenerate = false) => {
+      // Cancel any existing stream
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
 
-    // Clear any existing animation
-    if (typewriterRef.current) {
-      clearInterval(typewriterRef.current)
-    }
+      setState({
+        status: 'streaming',
+        content: '',
+        model: null,
+        provider: null,
+        error: null,
+      })
 
-    typewriterRef.current = setInterval(() => {
-      currentIndex += speed
+      try {
+        const response = await fetch('/api/insights/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activityId, regenerate }),
+          signal: controller.signal,
+        })
 
-      // Reason: Skip to end of current word/line for smoother reading
-      while (
-        currentIndex < content.length &&
-        content[currentIndex] !== ' ' &&
-        content[currentIndex] !== '\n'
-      ) {
-        currentIndex++
-      }
-
-      if (currentIndex >= content.length) {
-        setDisplayedContent(content)
-        setTypewriterComplete(true)
-        setIsNewGeneration(false)
-        if (typewriterRef.current) {
-          clearInterval(typewriterRef.current)
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}))
+          throw new Error(errBody.error || `HTTP ${response.status}`)
         }
-      } else {
-        setDisplayedContent(content.slice(0, currentIndex))
-      }
-    }, frameDelay)
 
-    return () => {
-      if (typewriterRef.current) {
-        clearInterval(typewriterRef.current)
+        const reader = response.body?.getReader()
+        if (!reader) throw new Error('No response body')
+
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+
+          // Reason: SSE events are delimited by double newlines; process all complete events
+          const events = buffer.split('\n\n')
+          // Keep the last (potentially incomplete) chunk in the buffer
+          buffer = events.pop() || ''
+
+          for (const event of events) {
+            const line = event.trim()
+            if (!line.startsWith('data: ')) continue
+
+            const payload = line.slice(6) // strip "data: "
+
+            // Handle completion event
+            if (payload.startsWith('[DONE]')) {
+              try {
+                const meta = JSON.parse(payload.slice(7))
+                setState((prev) => ({
+                  ...prev,
+                  status: 'done',
+                  model: meta.model || prev.model,
+                  provider: meta.provider || prev.provider,
+                }))
+              } catch {
+                setState((prev) => ({ ...prev, status: 'done' }))
+              }
+              return
+            }
+
+            // Handle error event
+            if (payload.startsWith('[ERROR]')) {
+              const errData = JSON.parse(payload.slice(8))
+              setState((prev) => ({
+                ...prev,
+                status: 'error',
+                error: errData.error || 'Stream error',
+              }))
+              return
+            }
+
+            // Handle text delta
+            try {
+              const { text } = JSON.parse(payload) as { text: string }
+              setState((prev) => ({
+                ...prev,
+                content: prev.content + text,
+              }))
+            } catch {
+              // Ignore malformed events
+            }
+          }
+        }
+
+        // Reason: If we exit the read loop without [DONE], mark as done anyway
+        setState((prev) => (prev.status === 'streaming' ? { ...prev, status: 'done' } : prev))
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') return
+        setState((prev) => ({
+          ...prev,
+          status: 'error',
+          error: error instanceof Error ? error.message : String(error),
+        }))
       }
+    },
+    [activityId],
+  )
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => abortRef.current?.abort()
+  }, [])
+
+  return { ...state, startStream }
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
+export function AIInsight({ activityId, className }: AIInsightProps) {
+  const utils = trpc.useUtils()
+
+  const { data: insight, isLoading } = trpc.insights.getForActivity.useQuery(
+    { activityId },
+    { staleTime: Infinity, retry: 1 },
+  )
+
+  const {
+    status: streamStatus,
+    content: streamContent,
+    model: streamModel,
+    error: streamError,
+    startStream,
+  } = useInsightStream(activityId)
+  const streamTriggered = React.useRef(false)
+
+  // Reason: Auto-trigger stream when cache misses (insight === null after loading)
+  React.useEffect(() => {
+    if (!isLoading && insight === null && !streamTriggered.current) {
+      streamTriggered.current = true
+      startStream(false)
     }
-  }, [insight?.content, enableTypewriter, isNewGeneration])
+  }, [isLoading, insight, startStream])
+
+  // Invalidate tRPC cache after stream finishes so next mount uses cached data
+  React.useEffect(() => {
+    if (streamStatus === 'done') {
+      utils.insights.getForActivity.invalidate({ activityId })
+    }
+  }, [streamStatus, utils.insights.getForActivity, activityId])
 
   const handleRegenerate = () => {
-    regenerateMutation.mutate({ activityId })
+    streamTriggered.current = true
+    startStream(true)
   }
 
-  const isRegenerating = regenerateMutation.isPending
+  const isStreaming = streamStatus === 'streaming'
+  const showStreamContent = streamStatus === 'streaming' || streamStatus === 'done'
+
+  // Determine what content and model to display
+  const displayContent = showStreamContent ? streamContent : insight?.content || ''
+  const displayModel = showStreamContent ? streamModel : insight?.model || null
 
   // Loading skeleton
   if (isLoading) {
-    return (
-      <div
-        className={cn(
-          'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-          className,
-        )}
-      >
-        <div className="mb-5 flex items-center gap-2.5">
-          <div className="bg-purple/10 flex h-8 w-8 items-center justify-center rounded-lg">
-            <Sparkles className="text-purple h-4 w-4" />
-          </div>
-          <span className="text-label font-medium">AI 跑步分析</span>
-        </div>
-        <div className="space-y-3">
-          <Skeleton className="h-5 w-2/3" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <div className="pt-2">
-            <Skeleton className="h-20 w-full rounded-xl" />
-          </div>
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-3/4" />
-        </div>
-      </div>
-    )
+    return <AIInsightSkeleton className={className} />
   }
 
-  // Error state
-  if (error) {
+  // Error from stream
+  if (streamStatus === 'error') {
     const isApiKeyMissing =
-      error.message?.includes('ANTHROPIC_API_KEY') ||
-      error.message?.includes('OPENAI_API_KEY') ||
-      error.message?.includes('未配置任何 AI 服务')
+      streamError?.includes('ANTHROPIC_API_KEY') ||
+      streamError?.includes('OPENAI_API_KEY') ||
+      streamError?.includes('未配置任何 AI 服务')
 
     return (
       <div
@@ -265,10 +316,9 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
             <button
               type="button"
               onClick={handleRegenerate}
-              disabled={isRegenerating}
-              className="text-purple hover:text-purple/80 mt-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50"
+              className="text-purple hover:text-purple/80 mt-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
             >
-              <RefreshCw className={cn('h-3.5 w-3.5', isRegenerating && 'animate-spin')} />
+              <RefreshCw className="h-3.5 w-3.5" />
               重试
             </button>
           )}
@@ -277,7 +327,10 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
     )
   }
 
-  if (!insight) return null
+  // Still waiting for first content (stream just started, no data yet)
+  if (!displayContent && streamStatus !== 'done') {
+    return <AIInsightSkeleton className={className} />
+  }
 
   return (
     <motion.div
@@ -297,7 +350,7 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
           </div>
           <div className="flex items-center gap-2">
             <span className="text-label font-medium">AI 跑步分析</span>
-            {insight.cached && (
+            {insight?.cached && streamStatus === 'idle' && (
               <span className="bg-label/5 text-label/40 rounded-full px-2 py-0.5 text-xs">
                 已缓存
               </span>
@@ -307,22 +360,22 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
         <button
           type="button"
           onClick={handleRegenerate}
-          disabled={isRegenerating || isFetching}
+          disabled={isStreaming}
           className="text-label/40 hover:text-label/60 hover:bg-label/5 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-all disabled:opacity-50"
           title="重新生成"
         >
-          <RefreshCw className={cn('h-3.5 w-3.5', isRegenerating && 'animate-spin')} />
+          <RefreshCw className={cn('h-3.5 w-3.5', isStreaming && 'animate-spin')} />
           <span className="hidden sm:inline">重新生成</span>
         </button>
       </div>
 
       {/* Content */}
-      <div className={cn('ai-insight-content', isRegenerating && 'opacity-50')}>
+      <div className="ai-insight-content">
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {displayedContent || insight.content}
+          {displayContent}
         </ReactMarkdown>
-        {/* Typewriter cursor */}
-        {!typewriterComplete && isNewGeneration && (
+        {/* Blinking cursor while streaming */}
+        {isStreaming && (
           <motion.span
             className="bg-purple ml-1 inline-block h-4 w-[2px] align-middle"
             animate={{ opacity: [1, 0] }}
@@ -332,10 +385,14 @@ export function AIInsight({ activityId, className, enableTypewriter = true }: AI
       </div>
 
       {/* Footer */}
-      <div className="text-label/30 mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs">
-        <span>由 {getProviderLabel(insight.model)} 生成</span>
-        <span>{new Date(insight.generatedAt).toLocaleDateString('zh-CN')}</span>
-      </div>
+      {displayModel && streamStatus !== 'streaming' && (
+        <div className="text-label/30 mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs">
+          <span>由 {getProviderLabel(displayModel)} 生成</span>
+          {insight?.generatedAt && (
+            <span>{new Date(insight.generatedAt).toLocaleDateString('zh-CN')}</span>
+          )}
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -352,8 +409,10 @@ export function AIInsightSkeleton({ className }: { className?: string }) {
       )}
     >
       <div className="mb-5 flex items-center gap-2.5">
-        <Skeleton className="h-8 w-8 rounded-lg" />
-        <Skeleton className="h-5 w-24" />
+        <div className="bg-purple/10 flex h-8 w-8 items-center justify-center rounded-lg">
+          <Sparkles className="text-purple h-4 w-4" />
+        </div>
+        <span className="text-label font-medium">AI 跑步分析</span>
       </div>
       <div className="space-y-3">
         <Skeleton className="h-5 w-2/3" />

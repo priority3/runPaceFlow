@@ -7,7 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 import { buildSystemPrompt, buildUserPrompt } from './prompts'
-import type { ActivityInsightInput, AIGenerationResult, AIProvider } from './types'
+import type { ActivityInsightInput, AIGenerationResult, AIProvider, AIStreamResult } from './types'
 import { CLAUDE_MODEL } from './types'
 
 // Lazy initialization to avoid issues during build
@@ -79,6 +79,42 @@ export const claudeProvider: AIProvider = {
         throw new Error(`Claude API error: ${error.message}`)
       }
       throw new Error(`Claude API error: ${String(error)}`)
+    }
+  },
+
+  async streamInsight(input: ActivityInsightInput): Promise<AIStreamResult> {
+    const client = getClaudeClient()
+
+    const systemPrompt = buildSystemPrompt()
+    const userPrompt = buildUserPrompt(input)
+
+    try {
+      const messageStream = client.messages.stream({
+        model: CLAUDE_MODEL,
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      })
+
+      // Reason: Wrap the SDK stream into an async iterable that yields text deltas
+      async function* textDeltas(): AsyncIterable<string> {
+        for await (const event of messageStream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            yield event.delta.text
+          }
+        }
+      }
+
+      return {
+        stream: textDeltas(),
+        model: CLAUDE_MODEL,
+        provider: 'claude',
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Claude API stream error: ${error.message}`)
+      }
+      throw new Error(`Claude API stream error: ${String(error)}`)
     }
   },
 }
