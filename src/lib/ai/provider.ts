@@ -7,7 +7,7 @@
 
 import { claudeProvider } from './claude'
 import { openaiProvider } from './openai'
-import type { ActivityInsightInput, AIGenerationResult, AIProvider } from './types'
+import type { ActivityInsightInput, AIGenerationResult, AIProvider, AIStreamResult } from './types'
 
 // Reason: Order matters — Claude is primary, OpenAI-compatible is fallback
 const providers: AIProvider[] = [claudeProvider, openaiProvider]
@@ -42,5 +42,51 @@ export async function generateActivityInsight(
   }
 
   // All providers failed — throw the last error
+  throw lastError!
+}
+
+/**
+ * Stream activity insight using available AI providers with fallback.
+ *
+ * Same fallback logic as generateActivityInsight but returns a streaming result.
+ * Falls back to non-streaming generation wrapped as a single-chunk stream
+ * if the provider doesn't support streaming.
+ */
+export async function streamActivityInsight(input: ActivityInsightInput): Promise<AIStreamResult> {
+  const availableProviders = providers.filter((p) => p.isAvailable())
+
+  if (availableProviders.length === 0) {
+    throw new Error(
+      '未配置任何 AI 服务，请在 .env.local 中设置 ANTHROPIC_API_KEY 或 OPENAI_API_KEY',
+    )
+  }
+
+  let lastError: Error | null = null
+
+  for (const provider of availableProviders) {
+    try {
+      if (provider.streamInsight) {
+        return await provider.streamInsight(input)
+      }
+
+      // Reason: Fallback — wrap non-streaming result as a single-chunk async iterable
+      const result = await provider.generateInsight(input)
+      async function* singleChunk(): AsyncIterable<string> {
+        yield result.content
+      }
+      return {
+        stream: singleChunk(),
+        model: result.model,
+        provider: result.provider,
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      console.warn(
+        `[AI] ${provider.name} stream failed, trying next provider...`,
+        lastError.message,
+      )
+    }
+  }
+
   throw lastError!
 }

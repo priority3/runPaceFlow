@@ -90,10 +90,20 @@ export interface AIGenerationResult {
 }
 
 /**
+ * Result from streaming AI generation
+ */
+export interface AIStreamResult {
+  stream: AsyncIterable<string>
+  model: string
+  provider: string
+}
+
+/**
  * AI Provider interface for multi-provider fallback support
  */
 export interface AIProvider {
   name: string
   isAvailable: () => boolean
   generateInsight: (input: ActivityInsightInput) => Promise<AIGenerationResult>
+  streamInsight?: (input: ActivityInsightInput) => Promise<AIStreamResult>
 }

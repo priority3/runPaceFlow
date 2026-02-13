@@ -12,7 +12,7 @@
 import OpenAI from 'openai'
 
 import { buildSystemPrompt, buildUserPrompt } from './prompts'
-import type { AIGenerationResult, AIProvider, ActivityInsightInput } from './types'
+import type { ActivityInsightInput, AIGenerationResult, AIProvider, AIStreamResult } from './types'
 import { OPENAI_DEFAULT_MODEL } from './types'
 
 // Lazy initialization to avoid issues during build
@@ -143,6 +143,47 @@ export const openaiProvider: AIProvider = {
         throw new Error(`OpenAI-compatible API error: ${error.message}`)
       }
       throw new Error(`OpenAI-compatible API error: ${String(error)}`)
+    }
+  },
+
+  async streamInsight(input: ActivityInsightInput): Promise<AIStreamResult> {
+    const client = getOpenAIClient()
+    const model = getModelName()
+
+    const systemPrompt = buildSystemPrompt()
+    const userPrompt = buildUserPrompt(input)
+
+    try {
+      // Reason: Chat Completions streaming is universally supported across OpenAI-compatible providers
+      const stream = await client.chat.completions.create({
+        model,
+        max_tokens: 1024,
+        stream: true,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      })
+
+      async function* textDeltas(): AsyncIterable<string> {
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content
+          if (delta) {
+            yield delta
+          }
+        }
+      }
+
+      return {
+        stream: textDeltas(),
+        model,
+        provider: 'openai-compatible',
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`OpenAI-compatible API stream error: ${error.message}`)
+      }
+      throw new Error(`OpenAI-compatible API stream error: ${String(error)}`)
     }
   },
 }
