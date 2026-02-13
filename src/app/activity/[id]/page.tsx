@@ -20,6 +20,16 @@ import { WeatherInfo } from '@/components/activity/WeatherInfo'
 import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
 import { MapErrorBoundary } from '@/components/map/MapErrorBoundary'
 import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useActivityWithSplits, useGpxData } from '@/hooks/use-activities'
+import { springs } from '@/lib/animation'
+import { generateMockTrackPoints } from '@/lib/map/mock-data'
+import type { TrackPoint } from '@/lib/map/pace-utils'
+import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
+import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import { parseGPX } from '@/lib/sync/parser'
+import { formatDate, formatTime } from '@/lib/utils'
+import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
+import type { Split } from '@/types/activity'
 
 // Lazy load map components - MapLibre GL is ~60KB gzipped
 const RunMap = dynamic(
@@ -43,16 +53,6 @@ const PaceRouteLayer = dynamic(() =>
 const KilometerMarkers = dynamic(() =>
   import('@/components/map/KilometerMarkers').then((m) => ({ default: m.KilometerMarkers })),
 )
-import { useActivityWithSplits, useGpxData } from '@/hooks/use-activities'
-import { springs } from '@/lib/animation'
-import { generateMockTrackPoints } from '@/lib/map/mock-data'
-import type { TrackPoint } from '@/lib/map/pace-utils'
-import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
-import { formatDuration, formatPace } from '@/lib/pace/calculator'
-import { parseGPX } from '@/lib/sync/parser'
-import { formatDate, formatTime } from '@/lib/utils'
-import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
-import type { Split } from '@/types/activity'
 
 // Lazy load non-default tab components to reduce initial bundle
 // Reason: Recharts (~40KB gz) and other heavy components shouldn't load until user clicks the tab
