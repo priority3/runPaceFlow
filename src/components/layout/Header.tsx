@@ -7,6 +7,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
@@ -20,7 +21,15 @@ export function Header() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <span className="text-xl">🏃</span>
+          <Image
+            src="/logo-mark.png?v=1"
+            alt="RunPaceFlow"
+            width={56}
+            height={56}
+            priority
+            unoptimized
+            className="h-14 w-14 shrink-0 bg-transparent object-contain dark:invert"
+          />
           <h1 className="text-label text-lg font-semibold tracking-tight">RunPaceFlow</h1>
         </motion.div>
 
