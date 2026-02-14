@@ -5,8 +5,8 @@
  * Each instance manages its own viewport state (not shared globally)
  *
  * Reason: MapLibre WebGL initialization can freeze the browser tab on some
- * machines/GPU configs. The map is deferred behind a "load map" click to
- * guarantee the rest of the page stays responsive.
+ * machines/GPU configs. The map now auto-mounts by default and keeps the
+ * old click-to-load mode as an opt-out.
  */
 
 'use client'
@@ -56,7 +56,7 @@ export interface RunMapProps {
   showSkeleton?: boolean
   /** Enable fullscreen button */
   enableFullscreen?: boolean
-  /** Auto-load map without requiring user click (default: false) */
+  /** Auto-load map without requiring user click (default: true) */
   autoLoad?: boolean
 }
 
@@ -89,8 +89,7 @@ export function RunMap({
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [webglUnavailable, setWebglUnavailable] = useState(false)
-  // Reason: Map starts unmounted to prevent WebGL init from freezing the page.
-  // User must click "加载地图" to mount MapLibre, unless autoLoad is true.
+  // Map mounts immediately by default; set autoLoad=false to use click-to-load mode.
   const [shouldMount, setShouldMount] = useState(autoLoad)
 
   // Check WebGL support on mount before attempting MapLibre init

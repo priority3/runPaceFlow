@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./public/logo-mark.png" alt="RunPaceFlow logo" width="120" />
+</p>
+
 # RunPaceFlow
 
 Personal running data visualization platform with automatic Strava sync.
