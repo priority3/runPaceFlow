@@ -119,6 +119,72 @@ async function generateViaResponsesAPI(
   }
 }
 
+/**
+ * Stream insight using Chat Completions API (/v1/chat/completions)
+ */
+async function streamViaChatCompletions(
+  client: OpenAI,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<AIStreamResult> {
+  const stream = await client.chat.completions.create({
+    model,
+    max_tokens: 1024,
+    stream: true,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+  })
+
+  async function* textDeltas(): AsyncIterable<string> {
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content
+      if (delta) {
+        yield delta
+      }
+    }
+  }
+
+  return { stream: textDeltas(), model, provider: 'openai-compatible' }
+}
+
+/**
+ * Stream insight using the Responses API (/v1/responses)
+ * Reason: Some gateways (e.g. Sub2API) only expose the Responses API, not Chat Completions.
+ */
+async function streamViaResponsesAPI(
+  client: OpenAI,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<AIStreamResult> {
+  const stream = await client.responses.create({
+    model,
+    instructions: systemPrompt,
+    input: [
+      {
+        role: 'user',
+        content: [{ type: 'input_text', text: userPrompt }],
+      },
+    ],
+    stream: true,
+    store: false,
+  })
+
+  // Reason: Responses API streaming emits 'response.output_text.delta' events with { delta: string }
+  async function* textDeltas(): AsyncIterable<string> {
+    for await (const event of stream) {
+      if (event.type === 'response.output_text.delta') {
+        yield event.delta
+      }
+    }
+  }
+
+  return { stream: textDeltas(), model, provider: 'openai-compatible' }
+}
+
 export const openaiProvider: AIProvider = {
   name: 'OpenAI-Compatible',
 
@@ -154,31 +220,10 @@ export const openaiProvider: AIProvider = {
     const userPrompt = buildUserPrompt(input)
 
     try {
-      // Reason: Chat Completions streaming is universally supported across OpenAI-compatible providers
-      const stream = await client.chat.completions.create({
-        model,
-        max_tokens: 1024,
-        stream: true,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      })
-
-      async function* textDeltas(): AsyncIterable<string> {
-        for await (const chunk of stream) {
-          const delta = chunk.choices[0]?.delta?.content
-          if (delta) {
-            yield delta
-          }
-        }
+      if (useResponsesAPI()) {
+        return await streamViaResponsesAPI(client, model, systemPrompt, userPrompt)
       }
-
-      return {
-        stream: textDeltas(),
-        model,
-        provider: 'openai-compatible',
-      }
+      return await streamViaChatCompletions(client, model, systemPrompt, userPrompt)
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`OpenAI-compatible API stream error: ${error.message}`)
