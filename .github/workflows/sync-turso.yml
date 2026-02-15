@@ -34,16 +34,16 @@ jobs:
 
       - name: Validate Turso configuration
         env:
-          DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          DATABASE_AUTH_TOKEN: ${{ secrets.TURSO_DATABASE_AUTH_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "Missing secret: TURSO_DATABASE_URL"
+            echo "Missing secret: DATABASE_URL"
             exit 1
           fi
 
           if [ -z "$DATABASE_AUTH_TOKEN" ]; then
-            echo "Missing secret: TURSO_DATABASE_AUTH_TOKEN"
+            echo "Missing secret: DATABASE_AUTH_TOKEN"
             exit 1
           fi
 
@@ -51,8 +51,8 @@ jobs:
 
       - name: Run sync script (writes to Turso)
         env:
-          DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          DATABASE_AUTH_TOKEN: ${{ secrets.TURSO_DATABASE_AUTH_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
 
           STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
           STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
