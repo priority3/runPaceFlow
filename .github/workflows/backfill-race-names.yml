@@ -1,7 +1,13 @@
-name: Backfill Race Names
+name: Backfill Race Names (Legacy SQLite)
 
+# DEPRECATED: This workflow uses local SQLite file. Needs migration to Turso.
 on:
-  workflow_dispatch: # 仅允许手动触发
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'This workflow is deprecated. It needs Turso migration before use.'
+        required: true
+        default: 'I understand this is deprecated'
 
 permissions:
   contents: write

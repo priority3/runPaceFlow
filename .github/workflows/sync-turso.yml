@@ -1,13 +1,9 @@
 name: Sync Activities (Turso)
 
 on:
+  schedule:
+    - cron: '0 0 * * *' # Daily at 00:00 UTC (Beijing 08:00)
   workflow_dispatch:
-  # Keep the existing sync.yml (SQLite file + commit) as-is for now.
-  # If you want Turso to be the primary source of truth, you can enable
-  # the schedule below and disable the one in sync.yml.
-  #
-  # schedule:
-  #   - cron: '0 0 * * *' # Daily at 00:00 UTC
 
 permissions:
   contents: read
