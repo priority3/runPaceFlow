@@ -1,10 +1,17 @@
-name: Sync Activities
+name: Sync Activities (Legacy SQLite)
 
+# DEPRECATED: Migrated to Turso cloud database. See sync-turso.yml.
+# Keeping this workflow for reference only.
 on:
-  schedule:
-    # 每天北京时间早上 8 点运行（UTC 0:00）
-    - cron: '0 0 * * *'
-  workflow_dispatch: # 允许手动触发
+  # schedule:
+  #   - cron: '0 0 * * *'
+  # workflow_dispatch:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'This workflow is deprecated. Use sync-turso.yml instead.'
+        required: true
+        default: 'I understand this is deprecated'
 
 permissions:
   contents: write  # 允许写入仓库内容

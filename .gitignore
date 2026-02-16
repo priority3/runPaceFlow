@@ -59,12 +59,11 @@ lerna-debug.log*
 .idea
 *.iml
 
-# Database (allow data/activities.db for Git-based persistence)
+# Database (migrated to Turso cloud)
 *.db
 *.db-journal
 *.db-shm
 *.db-wal
-!data/activities.db
 
 # Drizzle Studio cache
 .drizzle/
