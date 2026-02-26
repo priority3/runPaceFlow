@@ -277,9 +277,21 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
   const isStreaming = streamStatus === 'streaming'
   const showStreamContent = streamStatus === 'streaming' || streamStatus === 'done'
 
-  // Determine what content and model to display
-  const displayContent = showStreamContent ? streamContent : insight?.content || ''
-  const displayModel = showStreamContent ? streamModel : insight?.model || null
+  const isStartingStream = insight === null && streamStatus === 'idle'
+  const isWaitingFirstToken = isStartingStream || (isStreaming && streamContent.length === 0)
+  const showCachedWhileRegenerating =
+    isWaitingFirstToken && insight != null && Boolean(insight?.content)
+
+  const displayContent = (() => {
+    if (showStreamContent && streamContent.length > 0) return streamContent
+    if (showCachedWhileRegenerating) return insight?.content || ''
+    return insight?.content || ''
+  })()
+
+  const displayModel = (() => {
+    if (showStreamContent && streamModel) return streamModel
+    return insight?.model || null
+  })()
 
   // Loading skeleton
   if (isLoading) {
@@ -327,11 +339,6 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
     )
   }
 
-  // Still waiting for first content (stream just started, no data yet)
-  if (!displayContent && streamStatus !== 'done') {
-    return <AIInsightSkeleton className={className} />
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -371,11 +378,38 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
 
       {/* Content */}
       <div className="ai-insight-content">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-          {displayContent}
-        </ReactMarkdown>
+        {isWaitingFirstToken && !displayContent ? (
+          <div className="space-y-3">
+            <div className="text-label/60 flex items-center gap-2 text-sm">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              {isStartingStream ? '正在初始化分析…' : '正在生成分析…'}
+            </div>
+            <div className="space-y-3 pt-1">
+              <Skeleton className="h-5 w-2/3 bg-black/5 dark:bg-white/10" />
+              <Skeleton className="h-4 w-full bg-black/5 dark:bg-white/10" />
+              <Skeleton className="h-4 w-5/6 bg-black/5 dark:bg-white/10" />
+              <div className="pt-2">
+                <Skeleton className="h-20 w-full rounded-xl bg-black/5 dark:bg-white/10" />
+              </div>
+              <Skeleton className="h-4 w-4/5 bg-black/5 dark:bg-white/10" />
+              <Skeleton className="h-4 w-3/4 bg-black/5 dark:bg-white/10" />
+            </div>
+          </div>
+        ) : (
+          <>
+            {showCachedWhileRegenerating && (
+              <div className="bg-label/5 text-label/60 mb-3 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                正在重新生成分析…
+              </div>
+            )}
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {displayContent}
+            </ReactMarkdown>
+          </>
+        )}
         {/* Blinking cursor while streaming */}
-        {isStreaming && (
+        {isStreaming && streamContent.length > 0 && (
           <motion.span
             className="bg-purple ml-1 inline-block h-4 w-[2px] align-middle"
             animate={{ opacity: [1, 0] }}
@@ -415,14 +449,14 @@ export function AIInsightSkeleton({ className }: { className?: string }) {
         <span className="text-label font-medium">AI 跑步分析</span>
       </div>
       <div className="space-y-3">
-        <Skeleton className="h-5 w-2/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-5 w-2/3 bg-black/5 dark:bg-white/10" />
+        <Skeleton className="h-4 w-full bg-black/5 dark:bg-white/10" />
+        <Skeleton className="h-4 w-5/6 bg-black/5 dark:bg-white/10" />
         <div className="pt-2">
-          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl bg-black/5 dark:bg-white/10" />
         </div>
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-4/5 bg-black/5 dark:bg-white/10" />
+        <Skeleton className="h-4 w-3/4 bg-black/5 dark:bg-white/10" />
       </div>
     </div>
   )
