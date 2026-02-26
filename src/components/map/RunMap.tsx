@@ -17,7 +17,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { MapPin, Maximize2, Minimize2 } from 'lucide-react'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { MapRef } from 'react-map-gl/maplibre'
+import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre'
 import Map from 'react-map-gl/maplibre'
 
 import { cn } from '@/lib/utils'
@@ -67,6 +67,12 @@ export interface RunMapProps {
   enableFullscreen?: boolean
   /** Auto-load map without requiring user click (default: true) */
   autoLoad?: boolean
+  /** Map hover interactivity (forwarded to react-map-gl) */
+  interactiveLayerIds?: string[]
+  /** Mouse move handler (forwarded to react-map-gl) */
+  onMouseMove?: (event: MapLayerMouseEvent) => void
+  /** Mouse leave handler (forwarded to react-map-gl) */
+  onMouseLeave?: (event: MapLayerMouseEvent) => void
 }
 
 // Use environment variable or fallback to a clean, minimal style
@@ -106,6 +112,9 @@ export function RunMap({
   showSkeleton = true,
   enableFullscreen = true,
   autoLoad = true,
+  interactiveLayerIds,
+  onMouseMove,
+  onMouseLeave,
 }: RunMapProps) {
   const mapRef = useRef<MapRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -323,9 +332,9 @@ export function RunMap({
   if (webglUnavailable) {
     return (
       <div ref={containerRef} className={cn('relative', className)}>
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl bg-gray-100 dark:bg-gray-900">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-            <MapPin className="h-6 w-6 text-orange-500" />
+        <div className="border-separator bg-secondary-system-background/60 flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl border backdrop-blur-xl">
+          <div className="bg-secondary-system-fill/60 flex h-12 w-12 items-center justify-center rounded-full">
+            <MapPin className="text-secondary-label h-6 w-6" />
           </div>
           <div className="text-center">
             <p className="text-label text-sm font-medium">地图无法显示</p>
@@ -340,7 +349,7 @@ export function RunMap({
   if (!shouldMount) {
     return (
       <div ref={containerRef} className={cn('relative', className)}>
-        <div className="absolute inset-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900">
+        <div className="bg-secondary-system-background/60 absolute inset-0 overflow-hidden rounded-2xl">
           {/* Grid pattern background */}
           <div
             className="absolute inset-0 opacity-20"
@@ -358,9 +367,9 @@ export function RunMap({
             <button
               type="button"
               onClick={() => setShouldMount(true)}
-              className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-5 py-2.5 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/40 dark:hover:bg-black/60"
+              className="border-separator/40 bg-secondary-system-background/70 hover:bg-secondary-system-background/80 focus-visible:ring-mint/40 flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-medium backdrop-blur-xl transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
-              <MapPin className="text-blue h-4 w-4" />
+              <MapPin className="text-mint h-4 w-4" />
               <span className="text-label">加载地图</span>
             </button>
             <span className="text-label/30 text-xs">点击加载路线地图</span>
@@ -378,7 +387,7 @@ export function RunMap({
               stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
-              className="text-blue"
+              className="text-mint"
             />
           </svg>
         </div>
@@ -390,7 +399,7 @@ export function RunMap({
     <>
       {/* Map skeleton loading state */}
       {showSkeleton && !isMapLoaded && (
-        <div className="absolute inset-0 z-10 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900">
+        <div className="bg-secondary-system-background/60 absolute inset-0 z-10 overflow-hidden rounded-2xl">
           {/* Animated gradient background */}
           <motion.div
             className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
@@ -420,11 +429,11 @@ export function RunMap({
           {/* Center loading indicator */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <motion.div
-              className="bg-blue/10 flex h-12 w-12 items-center justify-center rounded-full"
+              className="bg-mint/10 flex h-12 w-12 items-center justify-center rounded-full"
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
-              <MapPin className="text-blue h-6 w-6" />
+              <MapPin className="text-mint h-6 w-6" />
             </motion.div>
             <motion.span
               className="text-label/50 text-sm"
@@ -447,7 +456,7 @@ export function RunMap({
               stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
-              className="text-blue"
+              className="text-mint"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -461,6 +470,9 @@ export function RunMap({
         initialViewState={calculatedViewport}
         onLoad={handleLoad}
         onError={handleError}
+        interactiveLayerIds={interactiveLayerIds}
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle}
         attributionControl={false}
@@ -475,7 +487,7 @@ export function RunMap({
           type="button"
           onClick={toggleFullscreen}
           className={cn(
-            'absolute z-20 flex items-center justify-center rounded-lg border border-white/20 bg-white/80 p-2 shadow-sm backdrop-blur-xl transition-colors hover:bg-white dark:border-white/10 dark:bg-black/60 dark:hover:bg-black/80',
+            'border-separator/40 bg-secondary-system-background/80 hover:bg-secondary-system-background/90 absolute z-20 flex items-center justify-center rounded-lg border p-2 shadow-sm shadow-black/10 backdrop-blur-xl transition-colors',
             isFullscreen ? 'top-4 right-4' : 'right-3 bottom-3',
           )}
           whileHover={{ scale: 1.05 }}
@@ -492,7 +504,7 @@ export function RunMap({
 
       {/* Basemap fallback banner */}
       {fallbackStyleActive && (
-        <div className="absolute top-3 left-3 z-20 max-w-[calc(100%-1.5rem)] rounded-xl border border-white/20 bg-white/80 px-3 py-2 text-xs shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/60">
+        <div className="border-separator/40 bg-secondary-system-background/85 absolute top-3 left-3 z-20 max-w-[calc(100%-1.5rem)] rounded-xl border px-3 py-2 text-xs shadow-sm shadow-black/10 backdrop-blur-xl">
           <div className="text-label/70">
             底图加载失败，已切换到简洁模式{lastStyleError ? '（网络受限）' : ''}
           </div>
@@ -500,7 +512,7 @@ export function RunMap({
             <button
               type="button"
               onClick={retryBasemap}
-              className="text-blue hover:text-blue/80 text-xs font-medium transition-colors"
+              className="text-mint hover:text-mint/80 text-xs font-medium transition-colors"
             >
               重试底图
             </button>

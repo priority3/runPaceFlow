@@ -27,6 +27,7 @@ import { RippleContainer } from '@/components/ui/ripple'
 import { springs } from '@/lib/animation'
 import { calculatePace, formatDuration, formatPace } from '@/lib/pace/calculator'
 import { trpc } from '@/lib/trpc/client'
+import { cn } from '@/lib/utils'
 import type { ActivityListItem } from '@/types/activity'
 
 /**
@@ -149,7 +150,7 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
       type: 'longest',
       label: '最长',
       icon: <Trophy className="h-3 w-3" />,
-      color: 'bg-yellow/20 text-yellow',
+      color: 'bg-mint/12 text-mint',
     })
     achievements.set(longestActivity.id, existing)
   }
@@ -160,7 +161,7 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
       type: 'fastest',
       label: '最快',
       icon: <Zap className="h-3 w-3" />,
-      color: 'bg-green/20 text-green',
+      color: 'bg-mint/16 text-mint',
     })
     achievements.set(fastestActivity.id, existing)
   }
@@ -171,7 +172,7 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
       type: 'mostElevation',
       label: '爬坡王',
       icon: <Flame className="h-3 w-3" />,
-      color: 'bg-orange/20 text-orange',
+      color: 'bg-mint/10 text-mint',
     })
     achievements.set(mostElevationActivity.id, existing)
   }
@@ -185,6 +186,10 @@ export interface ActivityTableProps {
   hasMore?: boolean
   isLoadingMore?: boolean
   onLoadMore?: () => void
+  /** Hovered activity id for map/list linking */
+  hoveredActivityId?: string | null
+  /** Callback when hovered activity changes */
+  onHoverActivity?: (activityId: string | null) => void
 }
 
 export function ActivityTable({
@@ -193,6 +198,8 @@ export function ActivityTable({
   hasMore = false,
   isLoadingMore = false,
   onLoadMore,
+  hoveredActivityId,
+  onHoverActivity,
 }: ActivityTableProps) {
   const achievements = useMemo(() => calculateAchievements(activities), [activities])
 
@@ -200,7 +207,7 @@ export function ActivityTable({
   const trpcUtils = trpc.useUtils()
 
   // Prefetch activity data on hover for faster navigation
-  const handleMouseEnter = useCallback(
+  const handleRowMouseEnter = useCallback(
     (activityId: string) => {
       // Prefetch activity with splits data
       trpcUtils.activities.getWithSplits.prefetch({ id: activityId })
@@ -211,12 +218,12 @@ export function ActivityTable({
   if (activities.length === 0) {
     return (
       <motion.div
-        className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/50 py-16 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
+        className="border-separator bg-secondary-system-background/60 flex flex-col items-center justify-center rounded-2xl border py-16 backdrop-blur-xl"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="mb-4 rounded-full bg-white/60 p-4 dark:bg-white/10">
+        <div className="bg-secondary-system-fill/60 mb-4 rounded-full p-4">
           <TrendingUp className="text-label/40 h-8 w-8" />
         </div>
         <p className="text-label text-lg font-medium">还没有活动记录</p>
@@ -283,6 +290,7 @@ export function ActivityTable({
         {virtualItems.map((virtualRow) => {
           const isLoaderRow = virtualRow.index >= activities.length
           const activity = activities[virtualRow.index]
+          const isHovered = !!activity && hoveredActivityId === activity.id
 
           return (
             <div
@@ -302,11 +310,18 @@ export function ActivityTable({
                 <div className="group">
                   <Link
                     href={`/activity/${activity.id}`}
-                    onMouseEnter={() => handleMouseEnter(activity.id)}
+                    onMouseEnter={() => {
+                      handleRowMouseEnter(activity.id)
+                      onHoverActivity?.(activity.id)
+                    }}
+                    onMouseLeave={() => onHoverActivity?.(null)}
                   >
-                    <RippleContainer className="rounded-xl" color="rgba(0, 0, 0, 0.08)">
+                    <RippleContainer className="rounded-2xl" color="rgba(0, 0, 0, 0.08)">
                       <motion.div
-                        className="rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl backdrop-saturate-150 transition-colors duration-150 hover:bg-white/70 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
+                        className={cn(
+                          'border-separator bg-secondary-system-background/60 hover:bg-secondary-system-background/70 rounded-2xl border px-5 py-4 backdrop-blur-xl backdrop-saturate-150 transition-colors duration-200',
+                          isHovered && 'border-mint/30 ring-mint/25 ring-1 ring-inset',
+                        )}
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
                         transition={springs.snappy}
@@ -327,7 +342,7 @@ export function ActivityTable({
                                   )}
                               </div>
                               {activity.isIndoor && (
-                                <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                                <span className="bg-secondary-system-fill/60 text-secondary-label flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
                                   <Home className="h-3 w-3" />
                                   室内
                                 </span>
@@ -360,15 +375,25 @@ export function ActivityTable({
                               </div>
 
                               <div className="flex items-center gap-1.5">
-                                <Gauge className="text-blue/60 h-3.5 w-3.5" />
-                                <span className="text-blue font-medium tabular-nums">
+                                <Gauge
+                                  className={cn(
+                                    'h-3.5 w-3.5',
+                                    isHovered ? 'text-mint/70' : 'text-label/30',
+                                  )}
+                                />
+                                <span
+                                  className={cn(
+                                    'font-medium tabular-nums',
+                                    isHovered ? 'text-mint' : 'text-label/80',
+                                  )}
+                                >
                                   {activity.averagePace
                                     ? formatPace(activity.averagePace)
                                     : formatPace(
                                         calculatePace(activity.distance, activity.duration),
                                       )}
                                 </span>
-                                <span className="text-blue/60">/km</span>
+                                <span className="text-tertiary-label">/km</span>
                               </div>
 
                               {activity.elevationGain && activity.elevationGain > 0 && (

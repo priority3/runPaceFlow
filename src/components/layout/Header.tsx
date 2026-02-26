@@ -13,7 +13,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full">
+    <header className="border-separator/40 bg-system-background/70 sticky top-0 z-50 w-full border-b backdrop-blur-xl">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <motion.div
           className="flex items-center gap-3"

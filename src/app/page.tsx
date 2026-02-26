@@ -10,7 +10,8 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Activity, Calendar, Clock, MapPin } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
+import type { MapLayerMouseEvent } from 'react-map-gl/maplibre'
+import { useCallback, useMemo, useState } from 'react'
 
 import { ActivityTable } from '@/components/activity/ActivityTable'
 import { StatsCard } from '@/components/activity/StatsCard'
@@ -26,7 +27,7 @@ const RunMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[400px] animate-pulse rounded-3xl bg-gray-100 sm:h-[500px] dark:bg-gray-900" />
+      <div className="bg-secondary-system-background/50 h-[400px] animate-pulse rounded-2xl sm:h-[500px]" />
     ),
   },
 )
@@ -68,6 +69,19 @@ export default function HomePage() {
 
   // UI state
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('week')
+  const [hoverActivityId, setHoverActivityId] = useState<string | null>(null)
+
+  // Map → list hover linking (keep state updates minimal)
+  const handleMapMouseMove = useCallback((event: MapLayerMouseEvent) => {
+    const feature = event.features?.[0]
+    const id = feature?.properties?.id
+    const nextId = typeof id === 'string' ? id : null
+    setHoverActivityId((prev) => (prev === nextId ? prev : nextId))
+  }, [])
+
+  const handleMapMouseLeave = useCallback(() => {
+    setHoverActivityId((prev) => (prev === null ? prev : null))
+  }, [])
 
   const activities = useMemo(
     () => activitiesData?.pages.flatMap((page) => page.activities) ?? [],
@@ -130,7 +144,7 @@ export default function HomePage() {
   return (
     <div className="bg-system-background min-h-screen">
       {/* Subtle gradient overlay for glassmorphic depth */}
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
+      <div className="from-secondary-system-background/80 to-tertiary-system-background/60 pointer-events-none fixed inset-0 bg-gradient-to-br via-transparent" />
 
       <Header />
 
@@ -140,22 +154,23 @@ export default function HomePage() {
           {/* Period Toggle */}
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-label text-xl font-semibold">数据概览</h2>
-            <div className="flex items-center gap-1 rounded-lg bg-black/5 p-1 dark:bg-white/5">
+            <div className="bg-secondary-system-fill/60 flex items-center gap-1 rounded-xl p-1">
               {(['week', 'month'] as const).map((period) => (
                 <button
                   key={period}
                   type="button"
                   onClick={() => setStatsPeriod(period)}
                   className={cn(
-                    'relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                    statsPeriod === period ? 'text-label' : 'text-label/50 hover:text-label/70',
+                    'relative rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                    'focus-visible:ring-mint/40 focus-visible:ring-2 focus-visible:outline-none',
+                    statsPeriod === period ? 'text-label' : 'text-secondary-label hover:text-label',
                   )}
                 >
                   {statsPeriod === period && (
                     <motion.div
                       layoutId="stats-period-indicator"
-                      className="absolute inset-0 rounded-md bg-white shadow-sm dark:bg-white/10"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                      className="border-mint/20 bg-mint/12 absolute inset-0 rounded-lg border"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.28 }}
                     />
                   )}
                   <span className="relative z-10">{period === 'week' ? '本周' : '本月'}</span>
@@ -244,10 +259,19 @@ export default function HomePage() {
               {routes.length > 0 ? `${routes.length} 条路线` : '暂无路线数据'}
             </span>
           </div>
-          <div className="border-separator/30 relative overflow-hidden rounded-3xl border bg-gray-100 shadow-sm dark:bg-gray-900">
+          <div className="border-separator/40 bg-secondary-system-background/40 relative overflow-hidden rounded-2xl border">
             <div className="h-[400px] sm:h-[500px]">
-              <RunMap className="h-full w-full" bounds={bounds || undefined}>
-                {routes.length > 0 && <RouteLayer routes={routes} />}
+              <RunMap
+                className="h-full w-full"
+                bounds={bounds || undefined}
+                // Hover routes → highlight corresponding list row
+                interactiveLayerIds={['routes-hitbox']}
+                onMouseMove={handleMapMouseMove}
+                onMouseLeave={handleMapMouseLeave}
+              >
+                {routes.length > 0 && (
+                  <RouteLayer routes={routes} highlightRouteId={hoverActivityId} />
+                )}
               </RunMap>
             </div>
           </div>
@@ -308,6 +332,8 @@ export default function HomePage() {
               hasMore={!!hasNextPage}
               isLoadingMore={isFetchingNextPage}
               onLoadMore={() => fetchNextPage()}
+              hoveredActivityId={hoverActivityId}
+              onHoverActivity={setHoverActivityId}
             />
           )}
         </section>
