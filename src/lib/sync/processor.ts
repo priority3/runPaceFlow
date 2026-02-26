@@ -11,6 +11,7 @@ import {
   calculateDistance,
   calculateElevationGain,
   calculateTrackDistance,
+  extractRouteCoordinatesJSON,
   parseGPX,
 } from './parser'
 import { extractCoordinatesFromGPX, matchRaceForActivity } from './race-matcher'
@@ -94,6 +95,9 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
     const activityId = generateId('act')
     const endTime = new Date(rawActivity.startTime.getTime() + duration * 1000)
 
+    // 预计算降采样坐标用于地图快速加载
+    const routeCoordinates = gpxData ? extractRouteCoordinatesJSON(gpxData) : null
+
     await db.insert(activities).values({
       id: activityId,
       title: rawActivity.title,
@@ -111,6 +115,7 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
       maxHeartRate: rawActivity.maxHeartRate,
       calories: rawActivity.calories,
       gpxData,
+      routeCoordinates,
       isIndoor: rawActivity.isIndoor ?? false,
       raceName,
       weatherData,

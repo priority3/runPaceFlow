@@ -15,13 +15,24 @@ import type { PaceSegment } from '@/lib/map/pace-utils'
 export interface PaceRouteLayerProps {
   segments: PaceSegment[]
   activityId: string
+  variant?: 'pace' | 'mono'
+  color?: string
+  opacity?: number
+  showGlow?: boolean
 }
 
 /**
  * 渲染配速渐变色路线
  * 优化版：将所有分段合并为一条线，使用 line-gradient 实现颜色渐变
  */
-export function PaceRouteLayer({ segments, activityId }: PaceRouteLayerProps) {
+export function PaceRouteLayer({
+  segments,
+  activityId,
+  variant = 'pace',
+  color = '#374151',
+  opacity = 0.9,
+  showGlow = true,
+}: PaceRouteLayerProps) {
   // Combine all segments into a single LineString with gradient stops
   const { geojson, gradientStops } = useMemo(() => {
     if (!segments || segments.length === 0) {
@@ -63,6 +74,10 @@ export function PaceRouteLayer({ segments, activityId }: PaceRouteLayerProps) {
 
     // Create gradient stops based on segment colors
     // Format: [offset, color, offset, color, ...]
+    if (variant !== 'pace') {
+      return { geojson: lineGeojson, gradientStops: null }
+    }
+
     const stops: (number | string)[] = []
     let currentDistance = 0
 
@@ -81,22 +96,45 @@ export function PaceRouteLayer({ segments, activityId }: PaceRouteLayerProps) {
     })
 
     return { geojson: lineGeojson, gradientStops: stops }
-  }, [segments])
+  }, [segments, variant])
 
-  if (!geojson || !gradientStops || gradientStops.length < 2) {
+  if (!geojson) {
     return null
   }
 
   return (
-    <Source id={`pace-route-${activityId}`} type="geojson" data={geojson} lineMetrics={true}>
+    <Source
+      id={`pace-route-${activityId}`}
+      type="geojson"
+      data={geojson}
+      lineMetrics={variant === 'pace'}
+    >
+      {showGlow && (
+        <Layer
+          id={`pace-line-glow-${activityId}`}
+          type="line"
+          paint={{
+            'line-color': '#0f172a',
+            'line-width': ['interpolate', ['linear'], ['zoom'], 10, 7, 14, 10, 18, 18],
+            'line-opacity': 0.16,
+            'line-blur': 6,
+          }}
+          layout={{
+            'line-join': 'round',
+            'line-cap': 'round',
+          }}
+        />
+      )}
       <Layer
         id={`pace-line-${activityId}`}
         type="line"
         paint={{
-          'line-color': segments[0]?.color || '#374151',
-          'line-width': 4,
-          'line-opacity': 0.9,
-          'line-gradient': ['interpolate', ['linear'], ['line-progress'], ...gradientStops],
+          'line-color': variant === 'pace' ? segments[0]?.color || color : color,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 3.5, 14, 5, 18, 9],
+          'line-opacity': opacity,
+          ...(variant === 'pace' && gradientStops && gradientStops.length >= 2
+            ? { 'line-gradient': ['interpolate', ['linear'], ['line-progress'], ...gradientStops] }
+            : {}),
         }}
         layout={{
           'line-join': 'round',

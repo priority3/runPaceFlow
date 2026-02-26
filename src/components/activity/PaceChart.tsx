@@ -132,6 +132,19 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
   const minPace = Math.min(...splits.map((s) => s.pace))
   const maxPace = Math.max(...splits.map((s) => s.pace))
   const padding = 15 // seconds
+  const shouldRotateXTicks = splits.length > 16
+
+  const axisTick = {
+    fill: 'rgb(var(--color-label))',
+    fontSize: 12,
+    fontWeight: 500,
+  }
+
+  const axisLabelStyle = {
+    fill: 'rgba(var(--color-secondaryLabel))',
+    fontSize: 11,
+    fontWeight: 500,
+  }
 
   return (
     <motion.div
@@ -141,8 +154,15 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(156, 163, 175, 0.2)" vertical={false} />
+        <BarChart
+          data={chartData}
+          margin={{ top: 10, right: 30, left: 10, bottom: shouldRotateXTicks ? 22 : 10 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="rgba(var(--color-separator))"
+            vertical={false}
+          />
 
           <XAxis
             dataKey="kilometer"
@@ -150,11 +170,16 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
               value: '公里',
               position: 'insideBottom',
               offset: -5,
-              style: { fill: 'rgba(107, 114, 128, 0.6)' },
+              style: axisLabelStyle,
             }}
-            tick={{ fill: 'rgba(107, 114, 128, 0.6)', fontSize: 12 }}
-            axisLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
-            tickLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
+            interval={0}
+            tick={axisTick}
+            axisLine={{ stroke: 'rgba(var(--color-separator))' }}
+            tickLine={{ stroke: 'rgba(var(--color-separator))' }}
+            angle={shouldRotateXTicks ? -45 : 0}
+            textAnchor={shouldRotateXTicks ? 'end' : 'middle'}
+            height={shouldRotateXTicks ? 44 : undefined}
+            tickMargin={shouldRotateXTicks ? 10 : 6}
           />
 
           <YAxis
@@ -163,11 +188,11 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
               value: '配速',
               angle: -90,
               position: 'insideLeft',
-              style: { fill: 'rgba(107, 114, 128, 0.6)' },
+              style: axisLabelStyle,
             }}
-            tick={{ fill: 'rgba(107, 114, 128, 0.6)', fontSize: 12 }}
-            axisLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
-            tickLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
+            tick={axisTick}
+            axisLine={{ stroke: 'rgba(var(--color-separator))' }}
+            tickLine={{ stroke: 'rgba(var(--color-separator))' }}
             domain={[minPace - padding, maxPace + padding]}
             reversed // Invert so faster (lower pace) is at top
           />
@@ -180,13 +205,13 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
           {/* Average pace reference line */}
           <ReferenceLine
             y={averagePace}
-            stroke="rgba(107, 114, 128, 0.6)"
+            stroke="rgba(var(--color-secondaryLabel))"
             strokeDasharray="5 5"
             strokeWidth={2}
             label={{
               value: `平均 ${formatPace(averagePace)}/km`,
               position: 'right',
-              fill: 'rgba(107, 114, 128, 0.8)',
+              fill: 'rgba(var(--color-secondaryLabel))',
               fontSize: 11,
             }}
           />

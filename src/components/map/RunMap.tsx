@@ -15,6 +15,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { MapPin, Maximize2, Minimize2 } from 'lucide-react'
+import type { StyleSpecification } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MapRef } from 'react-map-gl/maplibre'
 import Map from 'react-map-gl/maplibre'
@@ -22,18 +23,26 @@ import Map from 'react-map-gl/maplibre'
 import { cn } from '@/lib/utils'
 import type { MapViewport } from '@/types/map'
 
-// Reason: MapLibre requires WebGL. If WebGL is unavailable or broken,
-// attempting to initialize the map can freeze the browser tab entirely.
+// Reason: MapLibre requires WebGL. Creating a canvas + WebGL context is
+// expensive, so we cache the result at module level — check once per session.
+let webglAvailable: boolean | null = null
 function isWebGLAvailable(): boolean {
+  if (webglAvailable !== null) return webglAvailable
   try {
     const canvas = document.createElement('canvas')
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
-    if (!gl) return false
-    if (gl instanceof WebGLRenderingContext || gl instanceof WebGL2RenderingContext) {
-      return !gl.isContextLost()
+    if (!gl) {
+      webglAvailable = false
+      return false
     }
+    if (gl instanceof WebGLRenderingContext || gl instanceof WebGL2RenderingContext) {
+      webglAvailable = !gl.isContextLost()
+      return webglAvailable
+    }
+    webglAvailable = false
     return false
   } catch {
+    webglAvailable = false
     return false
   }
 }
@@ -63,7 +72,22 @@ export interface RunMapProps {
 // Use environment variable or fallback to a clean, minimal style
 const MAP_STYLE =
   process.env.NEXT_PUBLIC_MAP_STYLE ||
-  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+  'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
+
+// "No basemap" fallback style. This avoids external tile/style requests
+// and guarantees the route still renders even if a CDN is blocked.
+const FALLBACK_MAP_STYLE: StyleSpecification = {
+  version: 8,
+  name: 'blank',
+  sources: {},
+  layers: [
+    {
+      id: 'background',
+      type: 'background',
+      paint: { 'background-color': '#0b1220' },
+    },
+  ],
+}
 
 const DEFAULT_VIEW_STATE: MapViewport = {
   longitude: 116.397428,
@@ -81,7 +105,7 @@ export function RunMap({
   boundsPadding = 60,
   showSkeleton = true,
   enableFullscreen = true,
-  autoLoad = false,
+  autoLoad = true,
 }: RunMapProps) {
   const mapRef = useRef<MapRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -91,6 +115,9 @@ export function RunMap({
   const [webglUnavailable, setWebglUnavailable] = useState(false)
   // Map mounts immediately by default; set autoLoad=false to use click-to-load mode.
   const [shouldMount, setShouldMount] = useState(autoLoad)
+  const [mapStyle, setMapStyle] = useState<string | StyleSpecification>(MAP_STYLE)
+  const [fallbackStyleActive, setFallbackStyleActive] = useState(false)
+  const [lastStyleError, setLastStyleError] = useState<string | null>(null)
 
   // Check WebGL support on mount before attempting MapLibre init
   useEffect(() => {
@@ -131,8 +158,6 @@ export function RunMap({
     }
     return { ...DEFAULT_VIEW_STATE, ...initialViewport }
   }, [bounds, initialViewport])
-
-  const [viewport, setViewport] = useState<MapViewport>(calculatedViewport)
 
   // Toggle fullscreen mode
   const toggleFullscreen = useCallback(() => {
@@ -195,9 +220,6 @@ export function RunMap({
     if (prevBoundsRef.current === boundsKey) return
     prevBoundsRef.current = boundsKey
 
-    // Update viewport state
-    setViewport(calculatedViewport)
-
     // Call fitBounds on the map if it's ready
     const map = mapRef.current?.getMap()
     if (map) {
@@ -215,16 +237,13 @@ export function RunMap({
         )
       })
     }
-  }, [bounds, boundsKey, boundsPadding, calculatedViewport])
+  }, [bounds, boundsKey, boundsPadding])
 
-  const handleMove = useCallback((evt: { viewState: MapViewport }) => {
-    setViewport({
-      longitude: evt.viewState.longitude,
-      latitude: evt.viewState.latitude,
-      zoom: evt.viewState.zoom,
-      pitch: evt.viewState.pitch ?? 0,
-      bearing: evt.viewState.bearing ?? 0,
-    })
+  const retryBasemap = useCallback(() => {
+    setFallbackStyleActive(false)
+    setLastStyleError(null)
+    setIsMapLoaded(false)
+    setMapStyle(MAP_STYLE)
   }, [])
 
   const handleLoad = useCallback(() => {
@@ -249,12 +268,56 @@ export function RunMap({
     }
   }, [bounds, boundsKey, boundsPadding])
 
-  // Reason: MapLibre WebGL errors can crash the entire browser tab.
-  // Re-throwing lets the parent MapErrorBoundary catch and show fallback UI.
-  const handleError = useCallback((evt: { error: Error }) => {
-    console.error('[RunMap] MapLibre error:', evt.error)
-    throw evt.error
+  const shouldTreatAsFatal = useCallback((error: Error): boolean => {
+    const message = error.message.toLowerCase()
+    // WebGL / GPU errors are the ones that can crash or freeze the tab.
+    // Network errors (tiles/style) should never crash the whole page.
+    if (message.includes('webgl') || message.includes('context lost')) return true
+    if (message.includes('failed to initialize') && message.includes('gl')) return true
+    return false
   }, [])
+
+  // MapLibre emits "error" events for many recoverable cases (tiles, sprites, glyphs).
+  // Throwing on any error makes the map unusable on networks where the basemap CDN is blocked.
+  const handleError = useCallback(
+    (evt: { error: Error }) => {
+      const error = evt.error
+      console.error('[RunMap] MapLibre error:', error)
+
+      if (shouldTreatAsFatal(error)) {
+        // Let MapErrorBoundary catch fatal init failures.
+        throw error
+      }
+
+      const message = error.message ?? ''
+      const messageLower = message.toLowerCase()
+
+      const isNetworkish =
+        messageLower.includes('failed to fetch') ||
+        messageLower.includes('networkerror') ||
+        messageLower.includes('load failed') ||
+        messageLower.includes('fetch') ||
+        messageLower.includes('timeout')
+
+      // If the basemap cannot be loaded, automatically fall back to a blank style so
+      // the route still renders. (This is common behind corporate proxies or in CN.)
+      if (
+        isNetworkish &&
+        !fallbackStyleActive &&
+        !isMapLoaded &&
+        typeof mapStyle === 'string' &&
+        mapStyle.startsWith('http')
+      ) {
+        setLastStyleError(message)
+        setFallbackStyleActive(true)
+        setMapStyle(FALLBACK_MAP_STYLE)
+        return
+      }
+
+      // Otherwise: keep the map running. Tile errors are expected occasionally.
+    },
+    [fallbackStyleActive, isMapLoaded, mapStyle, shouldTreatAsFatal],
+  )
 
   // WebGL unavailable fallback
   if (webglUnavailable) {
@@ -395,14 +458,13 @@ export function RunMap({
 
       <Map
         ref={mapRef}
-        {...viewport}
-        onMove={handleMove}
+        initialViewState={calculatedViewport}
         onLoad={handleLoad}
         onError={handleError}
         style={{ width: '100%', height: '100%' }}
-        mapStyle={MAP_STYLE}
+        mapStyle={mapStyle}
         attributionControl={false}
-        reuseMaps
+        reuseMaps={false}
       >
         {children}
       </Map>
@@ -426,6 +488,26 @@ export function RunMap({
             <Maximize2 className="text-label h-4 w-4" />
           )}
         </motion.button>
+      )}
+
+      {/* Basemap fallback banner */}
+      {fallbackStyleActive && (
+        <div className="absolute top-3 left-3 z-20 max-w-[calc(100%-1.5rem)] rounded-xl border border-white/20 bg-white/80 px-3 py-2 text-xs shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/60">
+          <div className="text-label/70">
+            底图加载失败，已切换到简洁模式{lastStyleError ? '（网络受限）' : ''}
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={retryBasemap}
+              className="text-blue hover:text-blue/80 text-xs font-medium transition-colors"
+            >
+              重试底图
+            </button>
+            <span className="text-label/20">·</span>
+            <span className="text-label/40 text-[11px]">路线仍可正常查看</span>
+          </div>
+        </div>
       )}
     </>
   )

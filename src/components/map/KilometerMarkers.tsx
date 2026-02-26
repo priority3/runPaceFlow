@@ -43,7 +43,8 @@ export function KilometerMarkers({ markers }: KilometerMarkersProps) {
               e.stopPropagation()
               setSelectedMarker(marker)
             }}
-            className="bg-blue flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow-lg transition-transform hover:scale-110"
+            className="bg-blue flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-white text-[11px] leading-none font-semibold text-white shadow-md transition-transform hover:scale-110"
+            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
           >
             {marker.kilometer}
           </button>

@@ -20,41 +20,45 @@ interface DistanceCategory {
   standardDistance: number
 }
 
+// Reason: Only these 5 standard race distances get special names.
+// Tolerance: ±200m for short races (3K/5K/10K).
+// For marathons, tolerance is asymmetric: slightly below standard to ~500m above
+// because GPS drift commonly adds extra distance on longer races.
 const DISTANCE_CATEGORIES: DistanceCategory[] = [
+  {
+    name: '🏅 3K',
+    nameEn: '3K',
+    minDistance: 2800,
+    maxDistance: 3200,
+    standardDistance: 3000,
+  },
   {
     name: '🏅 5K',
     nameEn: '5K',
-    minDistance: 4500,
-    maxDistance: 5500,
+    minDistance: 4800,
+    maxDistance: 5200,
     standardDistance: 5000,
   },
   {
     name: '🏅 10K',
     nameEn: '10K',
-    minDistance: 9500,
-    maxDistance: 10500,
+    minDistance: 9800,
+    maxDistance: 10200,
     standardDistance: 10000,
   },
   {
     name: '🏅 半程马拉松',
     nameEn: 'Half Marathon',
-    minDistance: 20500,
-    maxDistance: 21500,
+    minDistance: 20800,
+    maxDistance: 21800,
     standardDistance: 21097.5,
   },
   {
     name: '🏅 全程马拉松',
     nameEn: 'Full Marathon',
-    minDistance: 41500,
-    maxDistance: 42500,
+    minDistance: 41900,
+    maxDistance: 42900,
     standardDistance: 42195,
-  },
-  {
-    name: '🏅 超级马拉松',
-    nameEn: 'Ultra Marathon',
-    minDistance: 42500,
-    maxDistance: Infinity,
-    standardDistance: 50000,
   },
 ]
 
@@ -93,9 +97,8 @@ export function formatDistanceLabel(distanceMeters: number): string {
  *
  * Priority order:
  * 1. Stored race event name from database (e.g., "2024 北京马拉松")
- * 2. Distance category name (e.g., "半程马拉松", "10K")
- * 3. Formatted distance (e.g., "8.5 公里跑")
- * 4. Original name as fallback
+ * 2. Distance category name for 3K/5K/10K/半马/全马 only
+ * 3. Original platform name as fallback (e.g., "Evening Run")
  *
  * @param activity - Activity data with distance, startTime, and optional raceName
  * @param originalName - Original activity name from source platform
@@ -112,34 +115,14 @@ export function generateSmartName(
     return raceName
   }
 
-  // Step 2: Try distance category
+  // Step 2: Try distance category (only 3K/5K/10K/半马/全马)
   const category = getDistanceCategory(distance)
   if (category) {
     return category
   }
 
-  // Step 3: For shorter distances, check if original name is generic
-  const genericNames = [
-    'Morning Run',
-    'Afternoon Run',
-    'Evening Run',
-    'Night Run',
-    'Lunch Run',
-    '晨跑',
-    '夜跑',
-    '跑步',
-    'Run',
-  ]
-
-  const isGenericName = genericNames.some(
-    (name) => originalName.toLowerCase() === name.toLowerCase() || originalName === name,
-  )
-
-  if (isGenericName) {
-    return formatDistanceLabel(distance)
-  }
-
-  // Step 4: Keep original name if it's meaningful
+  // Step 3: Keep original name for all other distances
+  // Reason: Preserve platform names like "Evening Run", "Morning Run", etc.
   return originalName
 }
 

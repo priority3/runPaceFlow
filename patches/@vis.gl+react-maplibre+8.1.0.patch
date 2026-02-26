@@ -1,0 +1,13 @@
+diff --git a/node_modules/@vis.gl/react-maplibre/dist/maplibre/maplibre.js b/node_modules/@vis.gl/react-maplibre/dist/maplibre/maplibre.js
+index e6d3324..68e55b4 100644
+--- a/node_modules/@vis.gl/react-maplibre/dist/maplibre/maplibre.js
++++ b/node_modules/@vis.gl/react-maplibre/dist/maplibre/maplibre.js
+@@ -372,7 +372,7 @@ class Maplibre {
+         const map = this._map;
+         const currProps = this._styleComponents;
+         // We can safely manipulate map style once it's loaded
+-        if (map.style._loaded) {
++        if (map.style && map.style._loaded) {
+             if (light && !deepEqual(light, currProps.light)) {
+                 currProps.light = light;
+                 map.setLight(light);
