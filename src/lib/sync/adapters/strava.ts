@@ -15,6 +15,8 @@ interface StravaActivity {
   id: number
   name: string
   type: string
+  sport_type?: string
+  trainer?: boolean
   start_date: string
   start_date_local: string
   distance: number
@@ -26,6 +28,7 @@ interface StravaActivity {
   average_heartrate?: number
   max_heartrate?: number
   calories?: number
+  start_latlng?: number[]
   map?: {
     summary_polyline: string
     polyline?: string
@@ -169,8 +172,9 @@ export class StravaAdapter implements SyncAdapter {
           }
 
           // Skip non-running activities
-          if (!this.isRunningActivity(activity.type)) {
-            console.info(`⏭️ Skipping non-running activity ${activity.id} (type: ${activity.type})`)
+          const sportType = activity.sport_type || activity.type
+          if (!this.isRunningActivity(sportType)) {
+            console.info(`⏭️ Skipping non-running activity ${activity.id} (type: ${sportType})`)
             continue
           }
 
@@ -380,6 +384,8 @@ export class StravaAdapter implements SyncAdapter {
     activity: StravaActivity,
     streams: Record<string, StravaStream>,
   ): RawActivity {
+    const sportType = activity.sport_type || activity.type
+
     // Build GPX data from streams
     let gpxData: string | undefined
 
@@ -403,8 +409,8 @@ export class StravaAdapter implements SyncAdapter {
     return {
       id: activity.id.toString(),
       source: 'strava',
-      type: this.mapActivityType(activity.type),
-      isIndoor: this.isIndoorActivity(activity.type),
+      type: this.mapActivityType(sportType),
+      isIndoor: Boolean(activity.trainer) || this.isIndoorActivity(sportType),
       title,
       startTime: new Date(activity.start_date),
       duration: activity.moving_time, // Use moving_time (excludes pauses)
