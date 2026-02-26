@@ -4,7 +4,7 @@
  * Handles all activity-related API endpoints
  */
 
-import { count, desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, lt, or, type SQL } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { activities, splits } from '@/lib/db/schema'
@@ -153,6 +153,86 @@ export const activitiesRouter = createTRPCRouter({
           offset,
           hasMore: offset + limit < total,
         },
+      }
+    }),
+
+  /**
+   * Infinite list of activities (cursor-based pagination)
+   *
+   * Reason: Home page needs to load more than 20 rows without rendering
+   * thousands of DOM nodes. Cursor pagination is stable and works well with
+   * react-query's useInfiniteQuery.
+   */
+  listInfinite: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).optional().default(20),
+        cursor: z
+          .object({
+            startTime: z.date(),
+            id: z.string(),
+          })
+          .nullish(),
+        type: z.enum(['running', 'cycling', 'walking']).optional(),
+        source: z.enum(['nike', 'strava', 'garmin']).optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { limit, cursor, type, source } = input
+
+      const filterConditions: SQL[] = []
+      if (type) {
+        filterConditions.push(eq(activities.type, type))
+      }
+      if (source) {
+        filterConditions.push(eq(activities.source, source))
+      }
+
+      const filtersWhere = filterConditions.length > 0 ? and(...filterConditions) : undefined
+
+      const cursorCondition = cursor
+        ? or(
+            lt(activities.startTime, cursor.startTime),
+            and(eq(activities.startTime, cursor.startTime), lt(activities.id, cursor.id)),
+          )
+        : undefined
+
+      const pageConditions = cursorCondition
+        ? [...filterConditions, cursorCondition]
+        : filterConditions
+
+      const pageWhere = pageConditions.length > 0 ? and(...pageConditions) : undefined
+
+      let query = ctx.db
+        .select(activityColumnsWithoutGpx)
+        .from(activities)
+        .orderBy(desc(activities.startTime), desc(activities.id))
+        .limit(limit + 1)
+
+      if (pageWhere) {
+        query = query.where(pageWhere) as any
+      }
+
+      const result = await query
+
+      const activitiesPage = result.slice(0, limit)
+
+      const last = activitiesPage[activitiesPage.length - 1]
+      const nextCursor =
+        result.length > limit && last ? { startTime: last.startTime, id: last.id } : null
+
+      let totalQuery = ctx.db.select({ value: count() }).from(activities)
+      if (filtersWhere) {
+        totalQuery = totalQuery.where(filtersWhere) as any
+      }
+
+      const totalResult = await totalQuery
+      const total = totalResult[0]?.value ?? 0
+
+      return {
+        activities: activitiesPage,
+        nextCursor,
+        total,
       }
     }),
 

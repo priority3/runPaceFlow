@@ -19,6 +19,7 @@ import { activities } from '../src/lib/db/schema'
 import { NikeAdapter } from '../src/lib/sync/adapters/nike'
 import { StravaAdapter } from '../src/lib/sync/adapters/strava'
 import { backfillMissingWeather, syncActivities } from '../src/lib/sync/processor'
+import { cleanupRaceMatcher, initRaceMatcher } from '../src/lib/sync/race-matcher'
 
 // Load environment variables
 const {
@@ -162,7 +163,7 @@ function determineSyncSource(): 'strava' | 'nike' | null {
 /**
  * Main sync function
  */
-async function main() {
+async function main(): Promise<number> {
   // Reason: Ensure DB schema is up to date before any sync operations
   await runMigrations()
 
@@ -178,7 +179,20 @@ async function main() {
     console.error('Please set either:')
     console.error('  - STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_REFRESH_TOKEN')
     console.error('  - NIKE_REFRESH_TOKEN or NIKE_ACCESS_TOKEN')
-    process.exit(1)
+    return 1
+  }
+
+  // Reason: Race matching relies on Playwright (zuicool.com scraping).
+  // If browsers aren't installed (e.g. local dev), we should still sync
+  // activities instead of failing the whole job.
+  try {
+    await initRaceMatcher()
+  } catch (error) {
+    console.warn(
+      '⚠️  Race matcher not available (Playwright browsers missing). ' +
+        'Run `bunx playwright install chromium` to enable marathon matching.',
+    )
+    console.warn(error)
   }
 
   try {
@@ -204,16 +218,25 @@ async function main() {
       console.info(`🌤️  Weather backfill: ${weatherResult.success}/${weatherResult.total} updated`)
     }
 
-    process.exit(0)
+    return 0
   } catch (error) {
     console.error('')
     console.error('='.repeat(50))
     console.error('❌ Sync failed!')
     console.error('Error:', error instanceof Error ? error.message : String(error))
     console.error('='.repeat(50))
-    process.exit(1)
+    return 1
+  } finally {
+    await cleanupRaceMatcher()
   }
 }
 
 // Run the script
 main()
+  .then((code) => {
+    process.exitCode = code
+  })
+  .catch((error) => {
+    console.error('❌ Script failed:', error)
+    process.exitCode = 1
+  })
