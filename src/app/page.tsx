@@ -15,7 +15,7 @@ import { useMemo, useState } from 'react'
 import { ActivityTable } from '@/components/activity/ActivityTable'
 import { StatsCard } from '@/components/activity/StatsCard'
 import { Header } from '@/components/layout/Header'
-import { useActivities, useActivityStats, useMapRoutes } from '@/hooks/use-activities'
+import { useActivitiesInfinite, useActivityStats, useMapRoutes } from '@/hooks/use-activities'
 import { cn } from '@/lib/utils'
 import type { RouteData } from '@/types/map'
 
@@ -56,11 +56,24 @@ const GOALS = {
 
 export default function HomePage() {
   const { data: stats, isLoading: statsLoading } = useActivityStats()
-  const { data: activitiesData, isLoading: activitiesLoading, error } = useActivities({ limit: 20 })
+  const {
+    data: activitiesData,
+    isLoading: activitiesLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useActivitiesInfinite({ limit: 20 })
   const { data: mapRoutesData } = useMapRoutes(20)
 
   // UI state
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('week')
+
+  const activities = useMemo(
+    () => activitiesData?.pages.flatMap((page) => page.activities) ?? [],
+    [activitiesData],
+  )
+  const activitiesTotal = activitiesData?.pages[0]?.total ?? 0
 
   // Map routes are pre-parsed on server (coordinates extracted from GPX)
   const { routes, bounds } = useMemo(() => {
@@ -241,16 +254,16 @@ export default function HomePage() {
         </section>
 
         {/* Activity Heatmap */}
-        {activitiesData && activitiesData.activities.length > 0 && (
+        {activities.length > 0 && (
           <section className="mb-12">
-            <ActivityHeatmap activities={activitiesData.activities} />
+            <ActivityHeatmap activities={activities} />
           </section>
         )}
 
         {/* Personal Records */}
-        {activitiesData && activitiesData.activities.length > 0 && (
+        {activities.length > 0 && (
           <section className="mb-12">
-            <PersonalRecords activities={activitiesData.activities} />
+            <PersonalRecords activities={activities} />
           </section>
         )}
 
@@ -261,9 +274,9 @@ export default function HomePage() {
               <h2 className="text-label text-xl font-semibold">最近活动</h2>
               <p className="text-tertiary-label mt-1 text-sm">你的运动记录</p>
             </div>
-            {activitiesData && activitiesData.pagination.total > 0 && (
+            {activitiesTotal > 0 && (
               <span className="bg-secondary-system-background text-secondary-label rounded-full px-3 py-1 text-xs font-medium">
-                {activitiesData.activities.length} / {activitiesData.pagination.total}
+                {activities.length} / {activitiesTotal}
               </span>
             )}
           </div>
@@ -290,7 +303,12 @@ export default function HomePage() {
 
           {/* Activities Table */}
           {activitiesData && !activitiesLoading && (
-            <ActivityTable activities={activitiesData.activities} />
+            <ActivityTable
+              activities={activities}
+              hasMore={!!hasNextPage}
+              isLoadingMore={isFetchingNextPage}
+              onLoadMore={() => fetchNextPage()}
+            />
           )}
         </section>
       </main>
