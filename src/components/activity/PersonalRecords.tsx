@@ -45,7 +45,7 @@ function calculatePersonalRecords(activities: ActivityListItem[]): PersonalRecor
       unit: 'km',
       date: new Date(longestRun.startTime),
       icon: <TrendingUp className="h-5 w-5" />,
-      color: 'text-blue',
+      color: 'text-mint',
       activityId: longestRun.id,
     })
   }
@@ -65,7 +65,7 @@ function calculatePersonalRecords(activities: ActivityListItem[]): PersonalRecor
         unit: '/km',
         date: new Date(fastestRun.startTime),
         icon: <Zap className="h-5 w-5" />,
-        color: 'text-green',
+        color: 'text-mint',
         activityId: fastestRun.id,
       })
     }
@@ -80,7 +80,7 @@ function calculatePersonalRecords(activities: ActivityListItem[]): PersonalRecor
       unit: '',
       date: new Date(longestDuration.startTime),
       icon: <Clock className="h-5 w-5" />,
-      color: 'text-purple',
+      color: 'text-mint',
       activityId: longestDuration.id,
     })
   }
@@ -98,7 +98,7 @@ function calculatePersonalRecords(activities: ActivityListItem[]): PersonalRecor
         unit: 'm',
         date: new Date(mostElevation.startTime),
         icon: <Mountain className="h-5 w-5" />,
-        color: 'text-orange',
+        color: 'text-mint',
         activityId: mostElevation.id,
       })
     }
@@ -116,7 +116,7 @@ function calculatePersonalRecords(activities: ActivityListItem[]): PersonalRecor
       unit: '',
       date: new Date(best5k.startTime),
       icon: <Award className="h-5 w-5" />,
-      color: 'text-yellow',
+      color: 'text-mint',
       activityId: best5k.id,
     })
   }
@@ -135,7 +135,7 @@ function calculatePersonalRecords(activities: ActivityListItem[]): PersonalRecor
       unit: '',
       date: new Date(best10k.startTime),
       icon: <Flame className="h-5 w-5" />,
-      color: 'text-red',
+      color: 'text-mint',
       activityId: best10k.id,
     })
   }
@@ -153,7 +153,7 @@ export function PersonalRecords({ activities, className }: PersonalRecordsProps)
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/20 bg-white/50 p-4 backdrop-blur-xl sm:p-5 dark:border-white/10 dark:bg-black/20',
+        'border-separator bg-secondary-system-background/60 rounded-2xl border p-4 backdrop-blur-xl sm:p-5',
         className,
       )}
     >
@@ -163,7 +163,7 @@ export function PersonalRecords({ activities, className }: PersonalRecordsProps)
         {records.map((record) => (
           <div
             key={record.title}
-            className="group rounded-xl bg-white/40 p-3 transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
+            className="bg-secondary-system-background/50 group hover:bg-secondary-system-background/70 rounded-xl p-3 transition-colors"
           >
             <div className={cn('mb-2', record.color)}>{record.icon}</div>
             <div className="text-label/60 mb-1 text-xs">{record.title}</div>
