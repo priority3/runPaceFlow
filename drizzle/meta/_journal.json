@@ -8,6 +8,13 @@
       "when": 1770808880341,
       "tag": "0000_stale_starjammers",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1771241498189,
+      "tag": "0001_elite_wolfsbane",
+      "breakpoints": true
     }
   ]
 }

@@ -8,13 +8,16 @@
 
 import type { TrackPoint } from '@/lib/map/pace-utils'
 import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import type { CSSProperties } from 'react'
 
 export interface FloatingInfoCardProps {
   currentPoint?: TrackPoint
+  startTime?: Date
   averagePace: number
+  currentPace?: number
+  currentPaceColor?: string
   isPlaying: boolean
   progress: number // 0-100
-  onPlayPause?: () => void
 }
 
 /**
@@ -23,80 +26,86 @@ export interface FloatingInfoCardProps {
  */
 export function FloatingInfoCard({
   currentPoint,
+  startTime,
   averagePace,
+  currentPace,
+  currentPaceColor,
   isPlaying,
   progress,
-  onPlayPause,
 }: FloatingInfoCardProps) {
   if (!currentPoint) return null
 
-  // 计算当前配速（基于当前点和之前的点）
-  const currentPace = averagePace // 简化：使用平均配速，实际应该计算实时配速
+  const accent = currentPaceColor || '#007AFF'
+  const displayPace = currentPace ?? averagePace
 
-  // 计算已用时间（从开始到当前点）
-  const elapsedTime = Math.floor((currentPoint.distance / 1000) * averagePace)
+  // 计算已用时间（优先用 GPX 时间戳）
+  const elapsedTime = startTime
+    ? Math.max(0, Math.floor((currentPoint.time.getTime() - startTime.getTime()) / 1000))
+    : Math.floor((currentPoint.distance / 1000) * averagePace)
 
   return (
     <div className="pointer-events-none absolute top-4 left-4 z-10">
-      <div className="border-separator bg-secondary-system-background/95 pointer-events-auto rounded-xl border p-4 shadow-xl backdrop-blur-sm">
-        {/* 播放/暂停按钮 */}
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-label text-sm font-semibold">实时数据</h3>
-          <button
-            type="button"
-            onClick={onPlayPause}
-            className="bg-blue flex h-8 w-8 items-center justify-center rounded-full text-white transition-transform hover:scale-110"
-          >
-            {isPlaying ? (
-              // 暂停图标
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-              </svg>
-            ) : (
-              // 播放图标
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </button>
+      <div
+        className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-white/20 bg-white/80 px-4 py-3 shadow-lg shadow-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-black/65 dark:shadow-black/30"
+        style={{ '--accent': accent } as CSSProperties}
+      >
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${isPlaying ? 'bg-green' : 'bg-orange'}`} />
+            <div className="min-w-0">
+              <div className="text-label flex items-baseline gap-2 text-sm font-semibold">
+                路线回放
+                <span className="text-tertiary-label text-xs font-medium">
+                  {isPlaying ? '回放中' : '已暂停'}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="text-secondary-label rounded-full bg-white/60 px-2 py-1 text-xs tabular-nums dark:bg-black/30">
+            {progress.toFixed(0)}%
+          </div>
         </div>
 
-        {/* 数据网格 */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* 距离 */}
+        <div className="grid grid-cols-2 gap-x-5 gap-y-3">
           <div>
             <div className="text-tertiary-label text-xs">距离</div>
-            <div className="text-label text-lg font-bold">
+            <div className="text-label mt-0.5 text-lg font-semibold tabular-nums">
               {(currentPoint.distance / 1000).toFixed(2)}
+              <span className="text-tertiary-label ml-1 text-xs font-medium">km</span>
             </div>
-            <div className="text-tertiary-label text-xs">km</div>
           </div>
 
-          {/* 配速 */}
           <div>
-            <div className="text-tertiary-label text-xs">配速</div>
-            <div className="text-label text-lg font-bold">{formatPace(currentPace)}</div>
-            <div className="text-tertiary-label text-xs">/km</div>
+            <div className="text-tertiary-label text-xs">当前配速</div>
+            <div
+              className="mt-0.5 text-lg font-semibold tabular-nums"
+              style={{ color: 'var(--accent)' }}
+            >
+              {formatPace(displayPace)}
+              <span className="text-tertiary-label ml-1 text-xs font-medium">/km</span>
+            </div>
           </div>
 
-          {/* 用时 */}
           <div>
             <div className="text-tertiary-label text-xs">用时</div>
-            <div className="text-label text-lg font-bold">{formatDuration(elapsedTime)}</div>
+            <div className="text-label mt-0.5 text-lg font-semibold tabular-nums">
+              {formatDuration(elapsedTime)}
+            </div>
           </div>
 
-          {/* 进度 */}
           <div>
-            <div className="text-tertiary-label text-xs">进度</div>
-            <div className="text-label text-lg font-bold">{progress.toFixed(0)}%</div>
+            <div className="text-tertiary-label text-xs">平均配速</div>
+            <div className="text-label mt-0.5 text-lg font-semibold tabular-nums">
+              {formatPace(averagePace)}
+              <span className="text-tertiary-label ml-1 text-xs font-medium">/km</span>
+            </div>
           </div>
         </div>
 
-        {/* 进度条 */}
-        <div className="bg-fill mt-3 h-1 w-full overflow-hidden rounded-full">
+        <div className="bg-fill/70 mt-3 h-1.5 w-full overflow-hidden rounded-full">
           <div
-            className="bg-blue h-full transition-all duration-100"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full transition-[width] duration-100"
+            style={{ width: `${progress}%`, backgroundColor: 'var(--accent)' }}
           />
         </div>
       </div>

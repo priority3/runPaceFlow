@@ -309,3 +309,38 @@ export function simplifyTrack(points: GPXPoint[], tolerance = 0.0001): GPXPoint[
   const keep = douglasPeucker(points, 0, points.length - 1, tolerance)
   return points.filter((_, index) => keep[index])
 }
+
+/**
+ * 从 GPX XML 中提取降采样坐标，返回紧凑 JSON 字符串
+ *
+ * Reason: 预计算坐标避免每次请求都解析大型 GPX XML（~500KB→~10KB），
+ * 精度 5 位小数（~1.1m）足够地图渲染。
+ *
+ * @param gpxString GPX XML 字符串
+ * @param maxPoints 最大点数，超出时均匀降采样
+ * @returns JSON 字符串 "[[lat,lng],...]" 或 null（无有效坐标时）
+ */
+export function extractRouteCoordinatesJSON(gpxString: string, maxPoints = 500): string | null {
+  const coordinates: [number, number][] = []
+  const trkptRegex = /<trkpt\s+lat=["']([^"']+)["']\s+lon=["']([^"']+)["']/gi
+  let match
+
+  while ((match = trkptRegex.exec(gpxString)) !== null) {
+    const lat = Number.parseFloat(match[1])
+    const lng = Number.parseFloat(match[2])
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      // Reason: 5 位小数 ≈ 1.1m 精度，足够地图渲染且大幅减小存储体积
+      coordinates.push([Math.round(lat * 1e5) / 1e5, Math.round(lng * 1e5) / 1e5])
+    }
+  }
+
+  if (coordinates.length === 0) return null
+
+  // Reason: 均匀降采样保留路线形状，避免前端渲染过多点
+  const downsampled =
+    coordinates.length > maxPoints
+      ? coordinates.filter((_, i) => i % Math.ceil(coordinates.length / maxPoints) === 0)
+      : coordinates
+
+  return JSON.stringify(downsampled)
+}

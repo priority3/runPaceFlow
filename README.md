@@ -8,6 +8,10 @@ Personal running data visualization platform with automatic Strava sync.
 
 [中文文档](./docs/README_CN.md)
 
+<p align="center">
+  <img src="./public/screenshots/overview.png" alt="RunPaceFlow dashboard preview" width="960" />
+</p>
+
 ## Features
 
 - Strava / Nike Run Club data import

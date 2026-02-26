@@ -11,7 +11,7 @@ import { useAtom } from 'jotai'
 import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { PaceChart } from '@/components/activity/PaceChart'
@@ -21,12 +21,12 @@ import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
 import { MapErrorBoundary } from '@/components/map/MapErrorBoundary'
 import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useActivityWithSplits, useGpxData } from '@/hooks/use-activities'
+import { useGpxParser } from '@/hooks/use-gpx-parser'
 import { springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
-import type { TrackPoint } from '@/lib/map/pace-utils'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
+import type { TrackPoint } from '@/lib/map/pace-utils'
 import { formatDuration, formatPace } from '@/lib/pace/calculator'
-import { parseGPX } from '@/lib/sync/parser'
 import { formatDate, formatTime } from '@/lib/utils'
 import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
 import type { Split } from '@/types/activity'
@@ -52,6 +52,10 @@ const PaceRouteLayer = dynamic(() =>
 
 const KilometerMarkers = dynamic(() =>
   import('@/components/map/KilometerMarkers').then((m) => ({ default: m.KilometerMarkers })),
+)
+
+const PlaybackMarker = dynamic(() =>
+  import('@/components/map/PlaybackMarker').then((m) => ({ default: m.PlaybackMarker })),
 )
 
 // Lazy load non-default tab components to reduce initial bundle
@@ -84,7 +88,10 @@ export default function ActivityDetailPage() {
 
   // Reason: Debug mode allows isolating which component causes browser crashes.
   // Use ?debug=nomap to skip map, ?debug=basic to only render the info card.
+  // Use ?map=manual to enable click-to-load mode for MapLibre.
   const debugMode = searchParams.get('debug')
+  const mapMode = searchParams.get('map')
+  const mapAutoLoad = mapMode !== 'manual'
 
   // Fetch activity data with splits (excludes gpxData)
   const { data, isLoading, error } = useActivityWithSplits(activityId)
@@ -105,62 +112,18 @@ export default function ActivityDetailPage() {
     setIsMounted(true)
   }, [])
 
-  // Parse GPX data and generate track points
-  const { paceSegments, kmMarkers, trackPoints, bounds, heartRateData } = useMemo(() => {
-    let points: TrackPoint[] = []
-    const hrData: { distance: number; heartRate: number }[] = []
+  // Parse GPX data in a Web Worker to avoid blocking the main thread
+  const { trackPoints: parsedPoints, heartRateData } = useGpxParser(gpxData)
 
-    // Try to parse real GPX data (loaded separately to avoid blocking initial render)
-    if (gpxData) {
-      try {
-        const gpxResult = parseGPX(gpxData)
-        if (gpxResult.tracks.length > 0 && gpxResult.tracks[0].points.length > 0) {
-          // Convert GPX points to TrackPoint format
-          let cumulativeDistance = 0
-          const gpxPoints = gpxResult.tracks[0].points
-
-          points = gpxPoints.map((pt, i) => {
-            if (i > 0) {
-              // Calculate distance from previous point using Haversine
-              const prev = gpxPoints[i - 1]
-              const R = 6371e3
-              const φ1 = (prev.lat * Math.PI) / 180
-              const φ2 = (pt.lat * Math.PI) / 180
-              const Δφ = ((pt.lat - prev.lat) * Math.PI) / 180
-              const Δλ = ((pt.lon - prev.lon) * Math.PI) / 180
-              const a =
-                Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-              cumulativeDistance += R * c
-            }
-
-            // Extract heart rate data if available
-            if (pt.hr !== undefined) {
-              hrData.push({
-                distance: cumulativeDistance,
-                heartRate: pt.hr,
-              })
-            }
-
-            return {
-              longitude: pt.lon,
-              latitude: pt.lat,
-              elevation: pt.ele,
-              time: pt.time || new Date(),
-              distance: cumulativeDistance,
-            }
-          })
-        }
-      } catch (err) {
-        console.warn('Failed to parse GPX data:', err)
-      }
-    }
-
-    // Fall back to mock data if no real GPX (only for outdoor activities)
-    if (points.length === 0 && !data?.activity.isIndoor) {
-      points = generateMockTrackPoints()
-    }
+  // Derive map data from worker-parsed track points
+  const { paceSegments, kmMarkers, trackPoints, bounds } = useMemo(() => {
+    // Use worker-parsed points, or fall back to mock data for outdoor activities
+    const points =
+      parsedPoints.length > 0
+        ? parsedPoints
+        : !data?.activity.isIndoor
+          ? generateMockTrackPoints()
+          : []
 
     const averagePace = data?.activity.averagePace || 360
 
@@ -177,21 +140,45 @@ export default function ActivityDetailPage() {
       }
     }
 
+    // Reason: only create km markers from real parsed data. Mock data places
+    // markers at Beijing coords; when real data (e.g. Chengdu) arrives with the
+    // same React keys, the react-maplibre Marker's useMemo([]) holds stale
+    // internal maplibregl.Marker instances, causing km 1-N to vanish from the DOM.
+    const markers = parsedPoints.length > 0 ? createKilometerMarkers(points) : []
+
     return {
       paceSegments: createPaceSegments(points, averagePace, 50),
-      kmMarkers: createKilometerMarkers(points),
+      kmMarkers: markers,
       trackPoints: points,
       bounds: mapBounds,
-      heartRateData: hrData,
     }
-  }, [data, gpxData])
+  }, [data, parsedPoints])
+
+  const startPoint = trackPoints[0]
+  const endPoint = trackPoints[trackPoints.length - 1]
 
   // Get current point for animation
   const currentPoint = useMemo(() => {
-    if (trackPoints.length === 0 || animationProgress === 0) return
-    const index = Math.floor((animationProgress / 100) * trackPoints.length)
-    return trackPoints[Math.min(index, trackPoints.length - 1)]
+    if (trackPoints.length === 0 || animationProgress <= 0) return
+    const totalDistance = trackPoints[trackPoints.length - 1]?.distance ?? 0
+    if (totalDistance <= 0) return trackPoints[0]
+
+    const targetDistance = (animationProgress / 100) * totalDistance
+    return findTrackPointByDistance(trackPoints, targetDistance)
   }, [trackPoints, animationProgress])
+
+  const paceProbePoint = currentPoint ?? startPoint
+
+  const currentPaceInfo = useMemo(() => {
+    if (!paceProbePoint) return
+    for (let i = paceSegments.length - 1; i >= 0; i--) {
+      const segment = paceSegments[i]
+      if (paceProbePoint.distance >= segment.distance) {
+        return { pace: segment.pace, color: segment.color }
+      }
+    }
+    return
+  }, [paceProbePoint, paceSegments])
 
   // Playback controls
   const handlePlayPause = () => {
@@ -326,34 +313,59 @@ export default function ActivityDetailPage() {
             <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-black/10 dark:shadow-black/30">
               <div className="h-[300px] sm:h-[400px]">
                 <MapErrorBoundary>
-                  <RunMap className="h-full w-full" bounds={bounds || undefined}>
-                    {/* Static pace route or animated playback */}
-                    {isPlaying ? (
-                      <AnimatedRoute
-                        segments={paceSegments}
-                        activityId={activityId}
-                        isPlaying={isPlaying}
-                        onProgressChange={setAnimationProgress}
-                        onAnimationComplete={handleAnimationComplete}
-                        speed={1.5}
-                      />
+                  <RunMap
+                    className="h-full w-full"
+                    bounds={bounds || undefined}
+                    boundsPadding={48}
+                    autoLoad={mapAutoLoad}
+                  >
+                    {/* Reason: keyed Fragments force React to unmount/remount instead of
+                        reusing the PaceRouteLayer instance, which would change the
+                        MapLibre Source id and crash with "source id changed". */}
+                    {isPlaying || animationProgress > 0 ? (
+                      <Fragment key="playback">
+                        <PaceRouteLayer
+                          segments={paceSegments}
+                          activityId={`${activityId}-ghost`}
+                          variant="mono"
+                          color="#0f172a"
+                          opacity={0.22}
+                          showGlow={false}
+                        />
+                        <AnimatedRoute
+                          segments={paceSegments}
+                          activityId={activityId}
+                          isPlaying={isPlaying}
+                          onProgressChange={setAnimationProgress}
+                          onAnimationComplete={handleAnimationComplete}
+                          speed={0.2}
+                        />
+                        <PlaybackMarker
+                          current={currentPoint ?? (isPlaying ? startPoint : undefined)}
+                          start={startPoint}
+                          end={endPoint}
+                          accentColor={currentPaceInfo?.color}
+                        />
+                      </Fragment>
                     ) : (
-                      <>
+                      <Fragment key="static">
                         <PaceRouteLayer segments={paceSegments} activityId={activityId} />
                         <KilometerMarkers markers={kmMarkers} />
-                      </>
+                      </Fragment>
                     )}
                   </RunMap>
                 </MapErrorBoundary>
 
                 {/* Floating info card during playback */}
-                {isPlaying && currentPoint && (
+                {(isPlaying || animationProgress > 0) && (currentPoint || startPoint) && (
                   <FloatingInfoCard
-                    currentPoint={currentPoint}
+                    currentPoint={currentPoint ?? startPoint}
+                    startTime={startPoint?.time}
                     averagePace={activity.averagePace || 360}
+                    currentPace={currentPaceInfo?.pace}
+                    currentPaceColor={currentPaceInfo?.color}
                     isPlaying={isPlaying}
                     progress={animationProgress}
-                    onPlayPause={handlePlayPause}
                   />
                 )}
               </div>
@@ -557,4 +569,20 @@ export default function ActivityDetailPage() {
       </div>
     </div>
   )
+}
+
+function findTrackPointByDistance(points: TrackPoint[], targetDistance: number): TrackPoint {
+  let low = 0
+  let high = points.length - 1
+
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2)
+    if (points[mid].distance < targetDistance) {
+      low = mid + 1
+    } else {
+      high = mid
+    }
+  }
+
+  return points[Math.max(0, Math.min(points.length - 1, low))]
 }

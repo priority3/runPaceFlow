@@ -30,6 +30,7 @@ export const activities = sqliteTable('activities', {
 
   // GPX 数据
   gpxData: text('gpx_data'), // 完整的 GPX XML
+  routeCoordinates: text('route_coordinates'), // 预计算降采样坐标 JSON: [[lat,lng], ...]
 
   // 室内/户外标识
   isIndoor: integer('is_indoor', { mode: 'boolean' }).default(false), // true = 室内（跑步机等）
