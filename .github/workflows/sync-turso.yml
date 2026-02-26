@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
+
       - name: Validate Turso configuration
         env:
           DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
