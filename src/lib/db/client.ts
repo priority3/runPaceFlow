@@ -14,10 +14,18 @@ import * as schema from './schema'
  * - Vercel Serverless 运行时文件系统基本只读（除了 /tmp）。
  * - 预览环境（Preview）如果未配置 DATABASE_URL，也不应在构建阶段因 SQLite 路径不可写而失败。
  */
+const getEnvDatabaseUrl = () => process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL
+
+const getEnvDatabaseAuthToken = () =>
+  process.env.DATABASE_AUTH_TOKEN ||
+  process.env.TURSO_DATABASE_TOKEN ||
+  process.env.TURSO_AUTH_TOKEN
+
 const getDatabaseUrl = () => {
   // 如果有环境变量，直接使用
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL
+  const envUrl = getEnvDatabaseUrl()
+  if (envUrl) {
+    return envUrl
   }
 
   // 在 Vercel 环境中，优先使用 /tmp（可写），避免构建/运行时因为 data 目录不存在而失败
@@ -38,7 +46,7 @@ const getDatabaseUrl = () => {
 
 const client = createClient({
   url: getDatabaseUrl(),
-  authToken: process.env.DATABASE_AUTH_TOKEN,
+  authToken: getEnvDatabaseAuthToken(),
 })
 
 /**
