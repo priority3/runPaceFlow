@@ -103,7 +103,7 @@ export function ActivityCard({
                 variant="ghost"
                 size="icon"
                 onClick={handlePlay}
-                className="text-mint hover:bg-mint/10 h-8 w-8"
+                className="text-blue hover:bg-blue/10 h-8 w-8"
               >
                 <Play className="h-4 w-4" />
               </Button>

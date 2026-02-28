@@ -11,8 +11,6 @@ import { TrendingDown, TrendingUp } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { AnimatedNumber } from '@/components/ui/animated-number'
-import { GlassPanel } from '@/components/ui/glass-panel'
-import { Metric } from '@/components/ui/metric'
 import { cn } from '@/lib/utils'
 
 export interface StatsCardProps {
@@ -36,7 +34,7 @@ export interface StatsCardProps {
   goalUnit?: string
   /** Sparkline data points (7 days trend) */
   sparklineData?: number[]
-  /** Sparkline color - defaults to mint */
+  /** Sparkline color - defaults to blue */
   sparklineColor?: string
 }
 
@@ -53,7 +51,7 @@ function calculateTrend(current: number, previous: number): number | null {
  */
 function Sparkline({
   data,
-  color = 'var(--color-mint)',
+  color = 'var(--color-blue)',
   width = 80,
   height = 24,
 }: {
@@ -188,30 +186,45 @@ export function StatsCard({
   const decimals =
     typeof value === 'string' && value.includes('.') ? value.split('.')[1]?.length || 0 : 0
 
-  // Single-accent style: mint is the only highlight color (unless overridden).
-  const effectiveSparklineColor = sparklineColor || 'var(--color-mint)'
+  // Determine sparkline color based on trend
+  const effectiveSparklineColor =
+    sparklineColor ||
+    (isTrendPositive
+      ? 'var(--color-green)'
+      : isTrendNegative
+        ? 'var(--color-red)'
+        : 'var(--color-blue)')
 
   return (
-    <GlassPanel
-      interactive
-      fadeIn
-      className={cn('group relative p-5 transition-colors duration-200 sm:p-6', className)}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className={cn(
+        'group relative rounded-2xl p-5 sm:p-6',
+        'bg-white/60 dark:bg-black/20',
+        'backdrop-blur-xl backdrop-saturate-150',
+        'border border-white/20 dark:border-white/10',
+        'shadow-sm shadow-black/5',
+        'transition-colors duration-150',
+        'hover:bg-white/70 dark:hover:bg-black/30',
+        className,
+      )}
     >
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-tertiary-label text-xs font-medium tracking-wider uppercase">
-          {title}
-        </span>
-        {icon && <span className="text-quaternary-label">{icon}</span>}
+        <span className="text-label/60 text-xs font-medium tracking-wider uppercase">{title}</span>
+        {icon && <span className="text-label/40">{icon}</span>}
       </div>
 
       {/* Value with trend and sparkline */}
       <div className="flex items-end justify-between gap-2">
-        <Metric
-          size="hero"
-          value={isNumeric ? <AnimatedNumber value={numericValue} decimals={decimals} /> : value}
-          unit={unit}
-        />
+        <div className="flex items-baseline gap-2">
+          <span className="text-label text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+            {isNumeric ? <AnimatedNumber value={numericValue} decimals={decimals} /> : value}
+          </span>
+          {unit && <span className="text-label/50 text-sm font-medium sm:text-base">{unit}</span>}
+        </div>
 
         {/* Sparkline */}
         {sparklineData && sparklineData.length >= 2 && (
@@ -227,11 +240,9 @@ export function StatsCard({
           <div
             className={cn(
               'flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium',
-              isTrendPositive && 'bg-mint/12 text-mint',
-              isTrendNegative && 'bg-secondary-system-fill/60 text-secondary-label',
-              !isTrendPositive &&
-                !isTrendNegative &&
-                'bg-tertiary-system-fill/60 text-tertiary-label',
+              isTrendPositive && 'bg-green/10 text-green',
+              isTrendNegative && 'bg-red/10 text-red',
+              !isTrendPositive && !isTrendNegative && 'bg-gray/10 text-label/50',
             )}
           >
             {trend > 0 ? (
@@ -241,7 +252,7 @@ export function StatsCard({
             ) : null}
             <span>{Math.abs(Math.round(trend))}%</span>
           </div>
-          {subtitle && <span className="text-tertiary-label text-xs">{subtitle}</span>}
+          {subtitle && <span className="text-label/40 text-xs">{subtitle}</span>}
         </div>
       )}
 
@@ -258,7 +269,10 @@ export function StatsCard({
           <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
             <motion.div
               key={`progress-${title}-${goalProgress}`}
-              className={cn('h-full rounded-full', goalProgress >= 100 ? 'bg-mint' : 'bg-mint/70')}
+              className={cn(
+                'h-full rounded-full',
+                goalProgress >= 100 ? 'bg-green' : goalProgress >= 50 ? 'bg-blue' : 'bg-orange',
+              )}
               initial={{ width: '0%' }}
               animate={{ width: `${goalProgress}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -268,7 +282,7 @@ export function StatsCard({
       )}
 
       {/* Subtitle (when no trend) */}
-      {subtitle && trend === null && <p className="text-tertiary-label mt-2 text-xs">{subtitle}</p>}
-    </GlassPanel>
+      {subtitle && trend === null && <p className="text-label/40 mt-2 text-xs">{subtitle}</p>}
+    </motion.div>
   )
 }

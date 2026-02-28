@@ -100,7 +100,7 @@ export function ActivityActionBar({
       {/* Fixed bottom action bar - only visible on mobile */}
       <motion.div
         className={cn(
-          'border-separator/40 bg-secondary-system-background/80 fixed right-0 bottom-0 left-0 z-40 border-t px-4 py-3 backdrop-blur-xl sm:hidden',
+          'fixed right-0 bottom-0 left-0 z-40 border-t border-white/20 bg-white/80 px-4 py-3 backdrop-blur-xl sm:hidden dark:border-white/10 dark:bg-black/80',
           className,
         )}
         initial={{ y: 100 }}
@@ -112,10 +112,10 @@ export function ActivityActionBar({
           <motion.button
             type="button"
             onClick={handleShare}
-            className="active:bg-secondary-system-fill/60 flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors"
+            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors active:bg-white/50 dark:active:bg-white/10"
             whileTap={{ scale: 0.95 }}
           >
-            <Share2 className="text-mint h-5 w-5" />
+            <Share2 className="text-blue h-5 w-5" />
             <span className="text-label/70 text-xs">分享</span>
           </motion.button>
 
@@ -126,10 +126,10 @@ export function ActivityActionBar({
               setShowExportMenu(!showExportMenu)
               setShowShareMenu(false)
             }}
-            className="active:bg-secondary-system-fill/60 flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors"
+            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors active:bg-white/50 dark:active:bg-white/10"
             whileTap={{ scale: 0.95 }}
           >
-            <Download className="text-mint h-5 w-5" />
+            <Download className="text-green h-5 w-5" />
             <span className="text-label/70 text-xs">导出</span>
           </motion.button>
         </div>
@@ -141,12 +141,12 @@ export function ActivityActionBar({
         <motion.button
           type="button"
           onClick={handleShare}
-          className="border-separator/40 bg-secondary-system-background/80 hover:bg-secondary-system-background/90 flex h-12 w-12 items-center justify-center rounded-full border shadow-lg shadow-black/10 backdrop-blur-xl transition-colors"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/80 shadow-lg backdrop-blur-xl transition-colors hover:bg-white dark:border-white/10 dark:bg-black/60 dark:hover:bg-black/80"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           title="分享"
         >
-          <Share2 className="text-mint h-5 w-5" />
+          <Share2 className="text-blue h-5 w-5" />
         </motion.button>
 
         {/* Export button */}
@@ -156,12 +156,12 @@ export function ActivityActionBar({
             setShowExportMenu(!showExportMenu)
             setShowShareMenu(false)
           }}
-          className="border-separator/40 bg-secondary-system-background/80 hover:bg-secondary-system-background/90 flex h-12 w-12 items-center justify-center rounded-full border shadow-lg shadow-black/10 backdrop-blur-xl transition-colors"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/80 shadow-lg backdrop-blur-xl transition-colors hover:bg-white dark:border-white/10 dark:bg-black/60 dark:hover:bg-black/80"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           title="导出"
         >
-          <Download className="text-mint h-5 w-5" />
+          <Download className="text-green h-5 w-5" />
         </motion.button>
       </div>
 
@@ -169,14 +169,14 @@ export function ActivityActionBar({
       <AnimatePresence>
         {showShareMenu && (
           <motion.div
-            className="border-separator/40 bg-secondary-system-background/90 fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-2xl border shadow-xl shadow-black/10 backdrop-blur-xl sm:right-20 sm:bottom-24"
+            className="fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-2xl border border-white/20 bg-white/90 shadow-xl backdrop-blur-xl sm:right-20 sm:bottom-24 dark:border-white/10 dark:bg-black/90"
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-separator/40 flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <span className="text-label text-sm font-medium">分享活动</span>
               <button
                 type="button"
@@ -190,9 +190,9 @@ export function ActivityActionBar({
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="text-label/80 hover:bg-secondary-system-fill/60 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
+                className="text-label/80 hover:bg-label/5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
               >
-                {copied ? <Check className="text-mint h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="text-green h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 <span>{copied ? '已复制!' : '复制链接'}</span>
               </button>
             </div>
@@ -204,14 +204,14 @@ export function ActivityActionBar({
       <AnimatePresence>
         {showExportMenu && (
           <motion.div
-            className="border-separator/40 bg-secondary-system-background/90 fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-2xl border shadow-xl shadow-black/10 backdrop-blur-xl sm:right-20 sm:bottom-12"
+            className="fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-2xl border border-white/20 bg-white/90 shadow-xl backdrop-blur-xl sm:right-20 sm:bottom-12 dark:border-white/10 dark:bg-black/90"
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-separator/40 flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <span className="text-label text-sm font-medium">导出格式</span>
               <button
                 type="button"
@@ -225,9 +225,9 @@ export function ActivityActionBar({
               <button
                 type="button"
                 onClick={() => handleExport('gpx')}
-                className="text-label/80 hover:bg-secondary-system-fill/60 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
+                className="text-label/80 hover:bg-label/5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
               >
-                <FileText className="text-mint h-4 w-4" />
+                <FileText className="text-blue h-4 w-4" />
                 <div className="text-left">
                   <div>GPX 文件</div>
                   <div className="text-label/40 text-xs">可导入其他运动应用</div>
@@ -236,9 +236,9 @@ export function ActivityActionBar({
               <button
                 type="button"
                 onClick={() => handleExport('image')}
-                className="text-label/80 hover:bg-secondary-system-fill/60 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
+                className="text-label/80 hover:bg-label/5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
               >
-                <ImageIcon className="text-mint h-4 w-4" />
+                <ImageIcon className="text-purple h-4 w-4" />
                 <div className="text-left">
                   <div>图片分享</div>
                   <div className="text-label/40 text-xs">生成精美分享图</div>

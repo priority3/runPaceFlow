@@ -39,12 +39,12 @@ interface StreakData {
  * Get color intensity based on distance
  */
 function getIntensityColor(distance: number): string {
-  if (distance === 0) return 'bg-secondary-system-fill/40'
-  if (distance < 3000) return 'bg-mint/15'
-  if (distance < 5000) return 'bg-mint/30'
-  if (distance < 8000) return 'bg-mint/45'
-  if (distance < 10000) return 'bg-mint/60'
-  return 'bg-mint'
+  if (distance === 0) return 'bg-black/5 dark:bg-white/5'
+  if (distance < 3000) return 'bg-green/20'
+  if (distance < 5000) return 'bg-green/40'
+  if (distance < 8000) return 'bg-green/60'
+  if (distance < 10000) return 'bg-green/80'
+  return 'bg-green'
 }
 
 /**
@@ -218,8 +218,8 @@ function DayCell({
           className={cn(
             'h-3 w-3 rounded-sm transition-all duration-150',
             getIntensityColor(day.distance),
-            isToday && 'ring-mint ring-1 ring-offset-1',
-            hasActivities && 'hover:ring-mint/40 cursor-pointer hover:scale-125 hover:ring-2',
+            isToday && 'ring-blue ring-1 ring-offset-1',
+            hasActivities && 'hover:ring-blue/50 cursor-pointer hover:scale-125 hover:ring-2',
             !hasActivities && 'cursor-default',
           )}
           disabled={!hasActivities}
@@ -235,8 +235,8 @@ function DayCell({
                 initial={{ opacity: 0, scale: 0.95, y: -4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="border-separator bg-secondary-system-background/85 w-64 rounded-2xl border p-4 shadow-lg shadow-black/10 backdrop-blur-xl"
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="w-64 rounded-xl border border-white/20 bg-white/90 p-4 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-black/90"
               >
                 {/* Header */}
                 <div className="mb-3 flex items-center justify-between">
@@ -332,7 +332,7 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
   return (
     <div
       className={cn(
-        'border-separator bg-secondary-system-background/60 rounded-2xl border p-4 backdrop-blur-xl sm:p-5',
+        'rounded-2xl border border-white/20 bg-white/50 p-4 backdrop-blur-xl sm:p-5 dark:border-white/10 dark:bg-black/20',
         className,
       )}
     >
@@ -347,10 +347,10 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="bg-mint/12 flex items-center gap-1 rounded-full px-2 py-0.5"
+                className="bg-orange/10 flex items-center gap-1 rounded-full px-2 py-0.5"
               >
-                <Flame className="text-mint h-3 w-3" />
-                <span className="text-mint text-xs font-medium">{streaks.current}天连续</span>
+                <Flame className="text-orange h-3 w-3" />
+                <span className="text-orange text-xs font-medium">{streaks.current}天连续</span>
               </motion.div>
             )}
             {streaks.longest > 0 && streaks.longest > streaks.current && (
@@ -358,10 +358,10 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.1 }}
-                className="bg-mint/8 flex items-center gap-1 rounded-full px-2 py-0.5"
+                className="bg-yellow/10 flex items-center gap-1 rounded-full px-2 py-0.5"
               >
-                <Trophy className="text-mint h-3 w-3" />
-                <span className="text-mint text-xs font-medium">最长{streaks.longest}天</span>
+                <Trophy className="text-yellow h-3 w-3" />
+                <span className="text-yellow text-xs font-medium">最长{streaks.longest}天</span>
               </motion.div>
             )}
           </div>
@@ -423,12 +423,12 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
       {/* Legend */}
       <div className="mt-4 flex items-center justify-end gap-1 text-xs">
         <span className="text-label/40 mr-1">少</span>
-        <div className="bg-secondary-system-fill/40 h-3 w-3 rounded-sm" />
-        <div className="bg-mint/15 h-3 w-3 rounded-sm" />
-        <div className="bg-mint/30 h-3 w-3 rounded-sm" />
-        <div className="bg-mint/45 h-3 w-3 rounded-sm" />
-        <div className="bg-mint/60 h-3 w-3 rounded-sm" />
-        <div className="bg-mint h-3 w-3 rounded-sm" />
+        <div className="h-3 w-3 rounded-sm bg-black/5 dark:bg-white/5" />
+        <div className="bg-green/20 h-3 w-3 rounded-sm" />
+        <div className="bg-green/40 h-3 w-3 rounded-sm" />
+        <div className="bg-green/60 h-3 w-3 rounded-sm" />
+        <div className="bg-green/80 h-3 w-3 rounded-sm" />
+        <div className="bg-green h-3 w-3 rounded-sm" />
         <span className="text-label/40 ml-1">多</span>
       </div>
     </div>

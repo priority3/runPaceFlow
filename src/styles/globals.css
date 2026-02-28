@@ -7,7 +7,7 @@
   }
 
   body {
-    @apply bg-system-background text-label tabular-nums antialiased;
+    @apply bg-system-background text-label antialiased;
   }
 }
 

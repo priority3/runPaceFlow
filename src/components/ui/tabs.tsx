@@ -137,7 +137,7 @@ const TabsList = ({
         listRef.current = node
       }}
       className={cn(
-        'border-separator/40 bg-secondary-system-fill/50 relative inline-flex items-center gap-1 rounded-xl border p-1 backdrop-blur-xl backdrop-saturate-150',
+        'relative inline-flex items-center gap-1 rounded-xl border border-white/20 bg-white/40 p-1 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
         className,
       )}
       {...props}
@@ -145,7 +145,7 @@ const TabsList = ({
       {/* Sliding indicator */}
       {indicatorStyle.width > 0 && (
         <motion.div
-          className="border-mint/20 bg-mint/12 absolute top-1 bottom-1 rounded-lg border shadow-sm shadow-black/5"
+          className="absolute top-1 bottom-1 rounded-lg bg-white/60 shadow-sm dark:bg-white/10"
           initial={false}
           animate={{
             left: indicatorStyle.left,
@@ -180,7 +180,7 @@ const TabsTrigger = ({
     className={cn(
       'relative z-10 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
       'text-label/60 hover:text-label/80',
-      'focus-visible:ring-mint/40 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:ring-blue/50 focus-visible:ring-2 focus-visible:outline-none',
       'disabled:pointer-events-none disabled:opacity-50',
       'data-[state=active]:text-label',
       className,
@@ -212,7 +212,7 @@ const TabsContent = ({
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'focus-visible:ring-mint/40 mt-4 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:ring-blue/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
       className,
     )}
     {...props}
@@ -235,7 +235,7 @@ const AnimatedTabsContent = ({
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'focus-visible:ring-mint/40 mt-4 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:ring-blue/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
       className,
     )}
     {...props}

@@ -199,7 +199,7 @@ export default function ActivityDetailPage() {
   if (isLoading || !isMounted) {
     return (
       <div className="bg-system-background min-h-screen">
-        <div className="from-secondary-system-background/80 to-tertiary-system-background/60 pointer-events-none fixed inset-0 bg-gradient-to-br via-transparent" />
+        <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
         <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6 h-10 w-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
           <div className="mb-8 h-64 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl sm:h-80 dark:bg-black/20" />
@@ -214,7 +214,7 @@ export default function ActivityDetailPage() {
   if (error || !data) {
     return (
       <div className="bg-system-background min-h-screen">
-        <div className="from-secondary-system-background/80 to-tertiary-system-background/60 pointer-events-none fixed inset-0 bg-gradient-to-br via-transparent" />
+        <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
         <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <button
             type="button"
@@ -225,7 +225,7 @@ export default function ActivityDetailPage() {
             <span>返回</span>
           </button>
           <motion.div
-            className="border-separator bg-secondary-system-background/60 flex flex-col items-center justify-center rounded-2xl border py-16 backdrop-blur-xl"
+            className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/50 py-16 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
@@ -254,7 +254,7 @@ export default function ActivityDetailPage() {
   return (
     <div className="bg-system-background min-h-screen">
       {/* Subtle gradient overlay for glassmorphic depth */}
-      <div className="from-secondary-system-background/80 to-tertiary-system-background/60 pointer-events-none fixed inset-0 bg-gradient-to-br via-transparent" />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
 
       <div className="relative container mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* Compact Header */}
@@ -274,7 +274,7 @@ export default function ActivityDetailPage() {
               <div className="flex items-center gap-2">
                 <motion.button
                   onClick={handlePlayPause}
-                  className="border-separator bg-secondary-system-background/60 hover:bg-secondary-system-background/70 focus-visible:ring-mint/40 flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium backdrop-blur-xl transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                  className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
                   whileTap={{ scale: 0.98 }}
                   transition={springs.snappy}
                 >
@@ -293,7 +293,7 @@ export default function ActivityDetailPage() {
                 {animationProgress > 0 && (
                   <motion.button
                     onClick={handleStopPlayback}
-                    className="border-separator bg-secondary-system-background/50 text-secondary-label hover:text-label hover:bg-secondary-system-background/70 focus-visible:ring-mint/40 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm backdrop-blur-xl transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2 text-sm backdrop-blur-xl transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={springs.snappy}
@@ -310,7 +310,7 @@ export default function ActivityDetailPage() {
         {/* Map Section - Only show for outdoor activities, skip in debug modes */}
         {!activity.isIndoor && !skipMap && (
           <section className="mb-6">
-            <div className="border-separator/40 bg-secondary-system-background/40 relative overflow-hidden rounded-2xl border">
+            <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-black/10 dark:shadow-black/30">
               <div className="h-[300px] sm:h-[400px]">
                 <MapErrorBoundary>
                   <RunMap
@@ -378,7 +378,7 @@ export default function ActivityDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="border-separator bg-secondary-system-background/60 mb-6 rounded-2xl border px-5 py-4 backdrop-blur-xl"
+          className="mb-6 rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Title and date */}
@@ -407,10 +407,10 @@ export default function ActivityDetailPage() {
               </div>
               {activity.averagePace && (
                 <div className="flex flex-col items-center">
-                  <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+                  <span className="text-blue text-lg font-semibold tabular-nums sm:text-xl">
                     {formatPace(activity.averagePace)}
                   </span>
-                  <span className="text-tertiary-label text-xs">配速</span>
+                  <span className="text-blue/60 text-xs">配速</span>
                 </div>
               )}
               {activity.elevationGain !== null && activity.elevationGain > 0 && (
@@ -423,10 +423,10 @@ export default function ActivityDetailPage() {
               )}
               {activity.averageHeartRate && (
                 <div className="flex flex-col items-center">
-                  <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+                  <span className="text-red text-lg font-semibold tabular-nums sm:text-xl">
                     ❤{activity.averageHeartRate}
                   </span>
-                  <span className="text-tertiary-label text-xs">心率</span>
+                  <span className="text-red/60 text-xs">心率</span>
                 </div>
               )}
               {activity.weatherData && <WeatherInfo weatherDataJson={activity.weatherData} />}
@@ -452,7 +452,7 @@ export default function ActivityDetailPage() {
             <AnimatedTabsContent value="pace">
               {chartSplits.length > 0 ? (
                 <div className="space-y-6">
-                  <div className="border-separator bg-secondary-system-background/60 rounded-2xl border p-6 backdrop-blur-xl">
+                  <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                     <h3 className="text-label/80 mb-4 text-sm font-medium">每公里配速</h3>
                     <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
                   </div>
@@ -462,7 +462,7 @@ export default function ActivityDetailPage() {
                   />
                 </div>
               ) : (
-                <div className="text-secondary-label border-separator bg-secondary-system-background/50 rounded-2xl border p-8 text-center backdrop-blur-xl">
+                <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                   暂无配速数据
                 </div>
               )}
@@ -474,7 +474,7 @@ export default function ActivityDetailPage() {
                 <div className="space-y-6">
                   {/* Heart Rate Chart */}
                   {heartRateData.length > 0 && (
-                    <div className="border-separator bg-secondary-system-background/60 rounded-2xl border p-6 backdrop-blur-xl">
+                    <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                       <h3 className="text-label/80 mb-4 text-sm font-medium">心率变化</h3>
                       <HeartRateChart
                         data={heartRateData}
@@ -498,12 +498,12 @@ export default function ActivityDetailPage() {
             {/* Splits Table Tab */}
             <AnimatedTabsContent value="splits">
               {chartSplits.length > 0 ? (
-                <div className="border-separator bg-secondary-system-background/60 rounded-2xl border p-6 backdrop-blur-xl">
+                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                   <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
                   <SplitsTable splits={chartSplits} />
                 </div>
               ) : (
-                <div className="text-secondary-label border-separator bg-secondary-system-background/50 rounded-2xl border p-8 text-center backdrop-blur-xl">
+                <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                   暂无分段数据
                 </div>
               )}
@@ -529,11 +529,11 @@ export default function ActivityDetailPage() {
             {/* More Data Tab - Calories and other stats */}
             {activity.calories && (
               <AnimatedTabsContent value="more">
-                <div className="border-separator bg-secondary-system-background/60 rounded-2xl border p-6 backdrop-blur-xl">
+                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                   <h3 className="text-label/80 mb-4 text-sm font-medium">其他数据</h3>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {activity.calories && (
-                      <div className="bg-secondary-system-background/50 rounded-xl p-4">
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
                         <div className="text-label/50 text-xs">卡路里</div>
                         <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
                           {activity.calories}
@@ -542,7 +542,7 @@ export default function ActivityDetailPage() {
                       </div>
                     )}
                     {activity.bestPace && (
-                      <div className="bg-secondary-system-background/50 rounded-xl p-4">
+                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
                         <div className="text-label/50 text-xs">最快配速</div>
                         <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
                           {formatPace(activity.bestPace)}
