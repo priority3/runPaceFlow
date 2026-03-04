@@ -82,3 +82,7 @@ Thumbs.db
 
 # Race data (fetched on-demand during sync)
 src/lib/activity/races-data.json
+
+.codex/auth.json
+
+.codex/
