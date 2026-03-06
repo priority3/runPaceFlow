@@ -8,9 +8,11 @@
 
 import { motion } from 'framer-motion'
 import { useAtom } from 'jotai'
-import { ArrowLeft, Pause, Play, Square } from 'lucide-react'
+import { Pause, Play, Square } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useParams, useSearchParams } from 'next/navigation'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
@@ -24,8 +26,8 @@ import { useActivityWithSplits, useGpxData } from '@/hooks/use-activities'
 import { useGpxParser } from '@/hooks/use-gpx-parser'
 import { springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
-import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
 import type { TrackPoint } from '@/lib/map/pace-utils'
+import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
 import { formatDuration, formatPace } from '@/lib/pace/calculator'
 import { formatDate, formatTime } from '@/lib/utils'
 import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
@@ -82,7 +84,6 @@ const AIInsight = dynamic(() =>
 
 export default function ActivityDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const activityId = params.id as string
 
@@ -155,12 +156,12 @@ export default function ActivityDetailPage() {
   }, [data, parsedPoints])
 
   const startPoint = trackPoints[0]
-  const endPoint = trackPoints[trackPoints.length - 1]
+  const endPoint = trackPoints.at(-1)
 
   // Get current point for animation
   const currentPoint = useMemo(() => {
     if (trackPoints.length === 0 || animationProgress <= 0) return
-    const totalDistance = trackPoints[trackPoints.length - 1]?.distance ?? 0
+    const totalDistance = trackPoints.at(-1)?.distance ?? 0
     if (totalDistance <= 0) return trackPoints[0]
 
     const targetDistance = (animationProgress / 100) * totalDistance
@@ -200,8 +201,8 @@ export default function ActivityDetailPage() {
     return (
       <div className="bg-system-background min-h-screen">
         <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
-        <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mb-6 h-10 w-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
+        <DetailHeader />
+        <div className="relative container mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 lg:px-8">
           <div className="mb-8 h-64 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl sm:h-80 dark:bg-black/20" />
           <div className="mb-6 h-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
           <div className="h-64 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
@@ -215,15 +216,8 @@ export default function ActivityDetailPage() {
     return (
       <div className="bg-system-background min-h-screen">
         <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
-        <div className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            className="text-label/60 hover:text-label mb-6 flex items-center gap-2 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>返回</span>
-          </button>
+        <DetailHeader />
+        <div className="relative container mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 lg:px-8">
           <motion.div
             className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/50 py-16 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
             initial={{ opacity: 0, scale: 0.98 }}
@@ -256,57 +250,47 @@ export default function ActivityDetailPage() {
       {/* Subtle gradient overlay for glassmorphic depth */}
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
 
-      <div className="relative container mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* Compact Header */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between gap-4">
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="text-label/60 hover:text-label flex items-center gap-2 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>返回</span>
-            </button>
-
-            {/* Playback controls - only show for outdoor activities when map is visible */}
-            {!activity.isIndoor && !skipMap && (
-              <div className="flex items-center gap-2">
-                <motion.button
-                  onClick={handlePlayPause}
-                  className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
-                  whileTap={{ scale: 0.98 }}
-                  transition={springs.snappy}
-                >
-                  {isPlaying ? (
-                    <>
-                      <Pause className="h-4 w-4" />
-                      <span className="hidden sm:inline">暂停</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4" />
-                      <span className="hidden sm:inline">回放</span>
-                    </>
-                  )}
-                </motion.button>
-                {animationProgress > 0 && (
-                  <motion.button
-                    onClick={handleStopPlayback}
-                    className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2 text-sm backdrop-blur-xl transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={springs.snappy}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Square className="h-3.5 w-3.5" />
-                  </motion.button>
+      <DetailHeader
+        rightSlot={
+          !activity.isIndoor &&
+          !skipMap && (
+            <div className="flex items-center gap-2">
+              <motion.button
+                onClick={handlePlayPause}
+                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
+                whileTap={{ scale: 0.98 }}
+                transition={springs.snappy}
+              >
+                {isPlaying ? (
+                  <>
+                    <Pause className="h-4 w-4" />
+                    <span className="hidden sm:inline">暂停</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4" />
+                    <span className="hidden sm:inline">回放</span>
+                  </>
                 )}
-              </div>
-            )}
-          </div>
-        </div>
+              </motion.button>
+              {animationProgress > 0 && (
+                <motion.button
+                  onClick={handleStopPlayback}
+                  className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2 text-sm backdrop-blur-xl transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={springs.snappy}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Square className="h-3.5 w-3.5" />
+                </motion.button>
+              )}
+            </div>
+          )
+        }
+      />
 
+      <div className="relative container mx-auto max-w-6xl px-4 pt-20 pb-6 sm:px-6 sm:pt-24 sm:pb-8 lg:px-8">
         {/* Map Section - Only show for outdoor activities, skip in debug modes */}
         {!activity.isIndoor && !skipMap && (
           <section className="mb-6">
@@ -568,6 +552,30 @@ export default function ActivityDetailPage() {
         />
       </div>
     </div>
+  )
+}
+
+function DetailHeader({ rightSlot }: { rightSlot?: React.ReactNode }) {
+  return (
+    <header className="bg-system-background/75 fixed inset-x-0 top-0 z-40 border-b border-white/10 backdrop-blur-xl">
+      <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="group flex items-center gap-3">
+          <Image
+            src="/logo-mark.png?v=1"
+            alt="RunPaceFlow"
+            width={48}
+            height={48}
+            priority
+            unoptimized
+            className="h-12 w-12 shrink-0 bg-transparent object-contain dark:invert"
+          />
+          <span className="text-label text-lg font-semibold tracking-tight transition-opacity group-hover:opacity-80">
+            RunPaceFlow
+          </span>
+        </Link>
+        <div className="flex min-h-10 items-center">{rightSlot}</div>
+      </div>
+    </header>
   )
 }
 

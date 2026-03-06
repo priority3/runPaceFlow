@@ -202,12 +202,9 @@ export function StatsCard({
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className={cn(
         'group relative rounded-2xl p-5 sm:p-6',
-        'bg-white/60 dark:bg-black/20',
-        'backdrop-blur-xl backdrop-saturate-150',
-        'border border-white/20 dark:border-white/10',
-        'shadow-sm shadow-black/5',
+        'border-0 bg-transparent',
         'transition-colors duration-150',
-        'hover:bg-white/70 dark:hover:bg-black/30',
+        'hover:bg-transparent dark:hover:bg-transparent',
         className,
       )}
     >

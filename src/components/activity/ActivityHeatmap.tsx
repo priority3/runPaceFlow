@@ -330,12 +330,7 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
   const dayLabels = ['日', '一', '二', '三', '四', '五', '六']
 
   return (
-    <div
-      className={cn(
-        'rounded-2xl border border-white/20 bg-white/50 p-4 backdrop-blur-xl sm:p-5 dark:border-white/10 dark:bg-black/20',
-        className,
-      )}
-    >
+    <div className={cn('rounded-2xl border-0 bg-transparent p-4 sm:p-5', className)}>
       {/* Header with streak badges */}
       <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">

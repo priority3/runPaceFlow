@@ -7,15 +7,16 @@
 
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 import { Activity, Calendar, Clock, MapPin } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
+import type { ReactNode, RefObject } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { ActivityTable } from '@/components/activity/ActivityTable'
 import { StatsCard } from '@/components/activity/StatsCard'
 import { Header } from '@/components/layout/Header'
-import { useActivitiesInfinite, useActivityStats, useMapRoutes } from '@/hooks/use-activities'
+import { useActivityStats, useInfiniteActivities, useMapRoutes } from '@/hooks/use-activities'
 import { cn } from '@/lib/utils'
 import type { RouteData } from '@/types/map'
 
@@ -54,26 +55,82 @@ const GOALS = {
   monthlyDuration: Number(process.env.NEXT_PUBLIC_MONTHLY_DURATION_GOAL) || 18000,
 }
 
+interface ParallaxSectionProps {
+  children: ReactNode
+  containerRef: RefObject<HTMLElement | null>
+  className?: string
+  fillHeight?: boolean
+  disableParallax?: boolean
+}
+
+function ParallaxSection({
+  children,
+  containerRef,
+  className,
+  fillHeight = false,
+  disableParallax = false,
+}: ParallaxSectionProps) {
+  const sectionRef = useRef<HTMLElement | null>(null)
+  const { scrollYProgress } = useScroll({
+    container: containerRef,
+    target: sectionRef,
+    offset: ['start end', 'end start'],
+  })
+
+  const y = useTransform(scrollYProgress, [0, 0.5, 1], [48, 0, -48])
+  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.99, 1, 0.99])
+  const opacity = useTransform(scrollYProgress, [0, 0.12, 0.88, 1], [0.88, 1, 1, 0.88])
+
+  return (
+    <section
+      ref={sectionRef}
+      className={cn(
+        'relative z-10 min-h-[calc(100dvh-4rem)] snap-start py-6 lg:py-8',
+        fillHeight && 'h-[calc(100dvh-4rem)]',
+        className,
+      )}
+    >
+      <motion.div
+        style={disableParallax ? undefined : { y, scale, opacity }}
+        className={cn('w-full', fillHeight && 'h-full')}
+      >
+        {children}
+      </motion.div>
+    </section>
+  )
+}
+
 export default function HomePage() {
   const { data: stats, isLoading: statsLoading } = useActivityStats()
   const {
-    data: activitiesData,
+    data: activitiesPages,
     isLoading: activitiesLoading,
     error,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useActivitiesInfinite({ limit: 20 })
+  } = useInfiniteActivities({ limit: 20 })
   const { data: mapRoutesData } = useMapRoutes(20)
 
   // UI state
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('week')
+  const mainRef = useRef<HTMLElement | null>(null)
+  const activityScrollRef = useRef<HTMLDivElement | null>(null)
 
   const activities = useMemo(
-    () => activitiesData?.pages.flatMap((page) => page.activities) ?? [],
-    [activitiesData],
+    () => activitiesPages?.pages.flatMap((page) => page.activities) ?? [],
+    [activitiesPages],
   )
-  const activitiesTotal = activitiesData?.pages[0]?.total ?? 0
+  const totalActivities = activitiesPages?.pages[0]?.pagination.total ?? activities.length
+
+  const handleActivityScroll = useCallback(() => {
+    const el = activityScrollRef.current
+    if (!el || !hasNextPage || isFetchingNextPage) return
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight
+    if (remaining < 320) {
+      void fetchNextPage()
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   // Map routes are pre-parsed on server (coordinates extracted from GPX)
   const { routes, bounds } = useMemo(() => {
@@ -134,13 +191,23 @@ export default function HomePage() {
 
       <Header />
 
-      <main className="relative container mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <main
+        ref={mainRef}
+        className="scrollbar-hide relative container mx-auto h-[calc(100dvh-4rem)] max-w-6xl snap-y snap-mandatory overflow-y-auto px-4 sm:px-6 lg:px-8"
+      >
+        {/* Decorative hollow "run" mark on the right background */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed top-32 right-[1.5rem] z-0 text-[clamp(8rem,27vw,24rem)] leading-none font-black tracking-[-0.08em] text-transparent lowercase opacity-50 select-none [-webkit-text-stroke:2.6px_rgba(17,24,39,0.08)] dark:opacity-40 dark:[-webkit-text-stroke:2.6px_rgba(255,255,255,0.12)]"
+        >
+          run
+        </div>
+
         {/* Stats Section with Period Toggle */}
-        <section className="mb-12">
+        <ParallaxSection containerRef={mainRef} className="flex items-center">
           {/* Period Toggle */}
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-label text-xl font-semibold">数据概览</h2>
-            <div className="flex items-center gap-1 rounded-lg bg-black/5 p-1 dark:bg-white/5">
+          <div className="mb-6 flex items-center justify-end">
+            <div className="flex items-center gap-1 rounded-lg bg-transparent p-1">
               {(['week', 'month'] as const).map((period) => (
                 <button
                   key={period}
@@ -154,7 +221,7 @@ export default function HomePage() {
                   {statsPeriod === period && (
                     <motion.div
                       layoutId="stats-period-indicator"
-                      className="absolute inset-0 rounded-md bg-white shadow-sm dark:bg-white/10"
+                      className="border-label/15 absolute inset-0 rounded-md border bg-transparent"
                       transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
                     />
                   )}
@@ -234,12 +301,11 @@ export default function HomePage() {
               </motion.div>
             </AnimatePresence>
           ) : null}
-        </section>
+        </ParallaxSection>
 
         {/* Map Section with Layer Toggle */}
-        <section className="mb-12">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-label text-xl font-semibold">路线地图</h2>
+        <ParallaxSection containerRef={mainRef}>
+          <div className="mb-3 flex items-center justify-end">
             <span className="text-tertiary-label text-sm">
               {routes.length > 0 ? `${routes.length} 条路线` : '暂无路线数据'}
             </span>
@@ -251,66 +317,91 @@ export default function HomePage() {
               </RunMap>
             </div>
           </div>
-        </section>
+        </ParallaxSection>
 
         {/* Activity Heatmap */}
         {activities.length > 0 && (
-          <section className="mb-12">
+          <ParallaxSection containerRef={mainRef} className="flex items-center">
             <ActivityHeatmap activities={activities} />
-          </section>
+          </ParallaxSection>
         )}
 
         {/* Personal Records */}
         {activities.length > 0 && (
-          <section className="mb-12">
+          <ParallaxSection containerRef={mainRef} className="flex items-center">
             <PersonalRecords activities={activities} />
-          </section>
+          </ParallaxSection>
         )}
 
         {/* Activities Section */}
-        <section>
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-label text-xl font-semibold">最近活动</h2>
-              <p className="text-tertiary-label mt-1 text-sm">你的运动记录</p>
-            </div>
-            {activitiesTotal > 0 && (
-              <span className="bg-secondary-system-background text-secondary-label rounded-full px-3 py-1 text-xs font-medium">
-                {activities.length} / {activitiesTotal}
-              </span>
-            )}
-          </div>
+        <ParallaxSection
+          containerRef={mainRef}
+          className="flex items-start py-0 lg:py-0"
+          fillHeight={true}
+          disableParallax={true}
+        >
+          <div className="relative h-full min-h-0 w-full">
+            <div
+              ref={activityScrollRef}
+              className="scrollbar-hide h-full overflow-y-auto"
+              onScroll={handleActivityScroll}
+            >
+              <div className="bg-system-background/70 sticky top-0 z-30 mb-3 flex h-11 items-center justify-end backdrop-blur-sm">
+                {totalActivities > 0 && (
+                  <span className="bg-secondary-system-background text-secondary-label rounded-full px-3 py-1 text-xs font-medium">
+                    {activities.length} / {totalActivities}
+                  </span>
+                )}
+              </div>
 
-          {/* Error State */}
-          {error && (
-            <div className="border-red/20 bg-red/5 mb-6 rounded-2xl border p-6">
-              <p className="text-red font-medium">加载失败</p>
-              <p className="text-red/70 mt-1 text-sm">{error.message}</p>
-            </div>
-          )}
+              <div
+                aria-hidden="true"
+                className="from-system-background/95 pointer-events-none sticky top-11 z-20 -mt-10 h-10 bg-gradient-to-b to-transparent"
+              />
 
-          {/* Loading State */}
-          {activitiesLoading && (
-            <div className="space-y-3">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={`activity-skeleton-${i}`}
-                  className="bg-secondary-system-background/50 h-24 animate-pulse rounded-2xl"
+              {/* Error State */}
+              {error && (
+                <div className="border-red/20 bg-red/5 mb-6 rounded-2xl border p-6">
+                  <p className="text-red font-medium">加载失败</p>
+                  <p className="text-red/70 mt-1 text-sm">{error.message}</p>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {activitiesLoading && (
+                <div className="space-y-3">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={`activity-skeleton-${i}`}
+                      className="bg-secondary-system-background/50 h-24 animate-pulse rounded-2xl"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Activities Table */}
+              {!activitiesLoading && (
+                <ActivityTable
+                  activities={activities}
+                  className="relative z-10"
+                  virtualized={true}
+                  scrollRef={activityScrollRef}
                 />
-              ))}
-            </div>
-          )}
+              )}
 
-          {/* Activities Table */}
-          {activitiesData && !activitiesLoading && (
-            <ActivityTable
-              activities={activities}
-              hasMore={!!hasNextPage}
-              isLoadingMore={isFetchingNextPage}
-              onLoadMore={() => fetchNextPage()}
-            />
-          )}
-        </section>
+              {!activitiesLoading && isFetchingNextPage && (
+                <div className="text-secondary-label/70 mb-4 flex items-center justify-center text-xs">
+                  加载更多...
+                </div>
+              )}
+
+              <div
+                aria-hidden="true"
+                className="from-system-background/95 pointer-events-none sticky bottom-0 z-20 -mt-14 h-14 bg-gradient-to-t to-transparent"
+              />
+            </div>
+          </div>
+        </ParallaxSection>
       </main>
     </div>
   )

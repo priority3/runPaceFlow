@@ -151,20 +151,12 @@ export function PersonalRecords({ activities, className }: PersonalRecordsProps)
   }
 
   return (
-    <div
-      className={cn(
-        'rounded-2xl border border-white/20 bg-white/50 p-4 backdrop-blur-xl sm:p-5 dark:border-white/10 dark:bg-black/20',
-        className,
-      )}
-    >
+    <div className={cn('rounded-2xl border-0 bg-transparent p-4 sm:p-5', className)}>
       <h3 className="text-label mb-3 text-sm font-medium sm:mb-4">个人记录</h3>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
         {records.map((record) => (
-          <div
-            key={record.title}
-            className="group rounded-xl bg-white/40 p-3 transition-colors hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10"
-          >
+          <div key={record.title} className="rounded-xl bg-transparent p-3">
             <div className={cn('mb-2', record.color)}>{record.icon}</div>
             <div className="text-label/60 mb-1 text-xs">{record.title}</div>
             <div className="text-label flex items-baseline gap-0.5">

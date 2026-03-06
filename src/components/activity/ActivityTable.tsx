@@ -6,7 +6,6 @@
 
 'use client'
 
-import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { motion } from 'framer-motion'
 import {
   Calendar,
@@ -21,11 +20,14 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback } from 'react'
+import type { RefObject } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 import { RippleContainer } from '@/components/ui/ripple'
-import { springs } from '@/lib/animation'
+import { layoutTransition, springs } from '@/lib/animation'
 import { calculatePace, formatDuration, formatPace } from '@/lib/pace/calculator'
+import { cn } from '@/lib/utils'
 import { trpc } from '@/lib/trpc/client'
 import type { ActivityListItem } from '@/types/activity'
 
@@ -58,6 +60,33 @@ function getWeatherLabel(weatherData: string | null): string | null {
   } catch {
     return null
   }
+}
+
+/**
+ * Stagger animation variants for list items
+ */
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 350,
+      damping: 25,
+    },
+  },
 }
 
 /**
@@ -182,19 +211,18 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
 export interface ActivityTableProps {
   activities: ActivityListItem[]
   className?: string
-  hasMore?: boolean
-  isLoadingMore?: boolean
-  onLoadMore?: () => void
+  virtualized?: boolean
+  scrollRef?: RefObject<HTMLElement | null>
 }
 
 export function ActivityTable({
   activities,
   className = '',
-  hasMore = false,
-  isLoadingMore = false,
-  onLoadMore,
+  virtualized = false,
+  scrollRef,
 }: ActivityTableProps) {
-  const achievements = useMemo(() => calculateAchievements(activities), [activities])
+  // Calculate achievements for all activities
+  const achievements = calculateAchievements(activities)
 
   // Get trpc utils for prefetching
   const trpcUtils = trpc.useUtils()
@@ -229,192 +257,166 @@ export function ActivityTable({
     )
   }
 
-  const parentRef = useRef<HTMLDivElement>(null)
-  const [scrollMargin, setScrollMargin] = useState(0)
+  const renderRow = (activity: ActivityListItem) => (
+    <motion.div
+      key={activity.id}
+      layoutId={`activity-card-${activity.id}`}
+      layout="position"
+      transition={layoutTransition}
+      variants={itemVariants}
+      className="group"
+    >
+      <Link href={`/activity/${activity.id}`} onMouseEnter={() => handleMouseEnter(activity.id)}>
+        <RippleContainer className="rounded-xl" color="rgba(0, 0, 0, 0.08)">
+          <motion.div
+            className="rounded-xl border-0 bg-transparent px-5 py-4 transition-colors duration-150 hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={springs.snappy}
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                {/* Title with achievement badges */}
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-label truncate font-medium">
+                      {getSmartActivityTitle(activity)}
+                    </h3>
+                    {/* Show original title as subtitle if using smart title or race name */}
+                    {activity.raceName &&
+                      activity.title &&
+                      activity.raceName !== activity.title && (
+                        <p className="text-label/50 mt-0.5 truncate text-xs">{activity.title}</p>
+                      )}
+                  </div>
+                  {/* Indoor badge */}
+                  {activity.isIndoor && (
+                    <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                      <Home className="h-3 w-3" />
+                      室内
+                    </span>
+                  )}
+                  {/* Achievement badges */}
+                  {achievements.get(activity.id)?.map((achievement) => (
+                    <span
+                      key={achievement.type}
+                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${achievement.color}`}
+                    >
+                      {achievement.icon}
+                      {achievement.label}
+                    </span>
+                  ))}
+                </div>
 
-  const itemCount = hasMore ? activities.length + 1 : activities.length
+                {/* Stats row */}
+                <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
+                  {/* Distance */}
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="text-label/30 h-3.5 w-3.5" />
+                    <span className="text-label/80 tabular-nums">
+                      {(activity.distance / 1000).toFixed(2)}
+                    </span>
+                    <span className="text-label/50">km</span>
+                  </div>
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const element = parentRef.current
-    if (!element) return
+                  {/* Duration */}
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="text-label/30 h-3.5 w-3.5" />
+                    <span className="text-label/80 tabular-nums">
+                      {formatDuration(activity.duration)}
+                    </span>
+                  </div>
 
-    const update = () => {
-      const rect = element.getBoundingClientRect()
-      setScrollMargin(rect.top + window.scrollY)
-    }
+                  {/* Pace - Always show, calculate if not available */}
+                  <div className="flex items-center gap-1.5">
+                    <Gauge className="text-blue/60 h-3.5 w-3.5" />
+                    <span className="text-blue font-medium tabular-nums">
+                      {activity.averagePace
+                        ? formatPace(activity.averagePace)
+                        : formatPace(calculatePace(activity.distance, activity.duration))}
+                    </span>
+                    <span className="text-blue/60">/km</span>
+                  </div>
 
-    update()
+                  {/* Elevation */}
+                  {activity.elevationGain && activity.elevationGain > 0 && (
+                    <div className="hidden items-center gap-1.5 sm:flex">
+                      <Mountain className="text-label/30 h-3.5 w-3.5" />
+                      <span className="text-label/80 tabular-nums">
+                        {Math.round(activity.elevationGain)}
+                      </span>
+                      <span className="text-label/50">m</span>
+                    </div>
+                  )}
 
-    const resizeObserver = new ResizeObserver(update)
-    resizeObserver.observe(document.body)
-    window.addEventListener('resize', update)
+                  {/* Weather */}
+                  {activity.weatherData && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-label/80 tabular-nums">
+                        {getWeatherLabel(activity.weatherData)}
+                      </span>
+                    </div>
+                  )}
 
-    return () => {
-      resizeObserver.disconnect()
-      window.removeEventListener('resize', update)
-    }
-  }, [])
+                  {/* Date with weekday */}
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <Calendar className="text-label/30 h-3.5 w-3.5" />
+                    <span className="text-label/50">
+                      {formatDateWithWeekday(new Date(activity.startTime))}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-  const rowVirtualizer = useWindowVirtualizer({
-    count: itemCount,
-    estimateSize: () => 104,
-    overscan: 10,
-    scrollMargin,
-    getItemKey: (index) => activities[index]?.id ?? '__loader__',
+              {/* Arrow with hover animation */}
+              <motion.div initial={false} whileHover={{ x: 4 }} transition={springs.snappy}>
+                <ChevronRight className="text-label/30 group-hover:text-label/50 h-5 w-5 flex-shrink-0 transition-colors duration-150" />
+              </motion.div>
+            </div>
+          </motion.div>
+        </RippleContainer>
+      </Link>
+    </motion.div>
+  )
+
+  if (!virtualized || !scrollRef) {
+    return (
+      <motion.div
+        className={`space-y-2 ${className}`}
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {activities.map((activity) => renderRow(activity))}
+      </motion.div>
+    )
+  }
+
+  const rowVirtualizer = useVirtualizer({
+    count: activities.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 128,
+    overscan: 6,
   })
 
-  const virtualItems = rowVirtualizer.getVirtualItems()
-
-  useEffect(() => {
-    if (!hasMore || !onLoadMore || isLoadingMore) return
-    const lastItem = virtualItems[virtualItems.length - 1]
-    if (!lastItem) return
-
-    const loadMoreThreshold = 5
-    if (lastItem.index >= Math.max(activities.length - 1 - loadMoreThreshold, 0)) {
-      onLoadMore()
-    }
-  }, [activities.length, hasMore, isLoadingMore, onLoadMore, virtualItems])
-
   return (
-    <div ref={parentRef} className={className}>
-      <div className="relative w-full" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
-        {virtualItems.map((virtualRow) => {
-          const isLoaderRow = virtualRow.index >= activities.length
-          const activity = activities[virtualRow.index]
-
-          return (
-            <div
-              key={virtualRow.key}
-              ref={rowVirtualizer.measureElement}
-              data-index={virtualRow.index}
-              className="absolute top-0 left-0 w-full pb-2"
-              style={{
-                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-              }}
-            >
-              {isLoaderRow || !activity ? (
-                hasMore ? (
-                  <div className="bg-secondary-system-background/50 h-24 animate-pulse rounded-2xl" />
-                ) : null
-              ) : (
-                <div className="group">
-                  <Link
-                    href={`/activity/${activity.id}`}
-                    onMouseEnter={() => handleMouseEnter(activity.id)}
-                  >
-                    <RippleContainer className="rounded-xl" color="rgba(0, 0, 0, 0.08)">
-                      <motion.div
-                        className="rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl backdrop-saturate-150 transition-colors duration-150 hover:bg-white/70 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        transition={springs.snappy}
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-2 flex items-center gap-2">
-                              <div className="min-w-0 flex-1">
-                                <h3 className="text-label truncate font-medium">
-                                  {getSmartActivityTitle(activity)}
-                                </h3>
-                                {activity.raceName &&
-                                  activity.title &&
-                                  activity.raceName !== activity.title && (
-                                    <p className="text-label/50 mt-0.5 truncate text-xs">
-                                      {activity.title}
-                                    </p>
-                                  )}
-                              </div>
-                              {activity.isIndoor && (
-                                <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
-                                  <Home className="h-3 w-3" />
-                                  室内
-                                </span>
-                              )}
-                              {achievements.get(activity.id)?.map((achievement) => (
-                                <span
-                                  key={achievement.type}
-                                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${achievement.color}`}
-                                >
-                                  {achievement.icon}
-                                  {achievement.label}
-                                </span>
-                              ))}
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
-                              <div className="flex items-center gap-1.5">
-                                <TrendingUp className="text-label/30 h-3.5 w-3.5" />
-                                <span className="text-label/80 tabular-nums">
-                                  {(activity.distance / 1000).toFixed(2)}
-                                </span>
-                                <span className="text-label/50">km</span>
-                              </div>
-
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="text-label/30 h-3.5 w-3.5" />
-                                <span className="text-label/80 tabular-nums">
-                                  {formatDuration(activity.duration)}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-1.5">
-                                <Gauge className="text-blue/60 h-3.5 w-3.5" />
-                                <span className="text-blue font-medium tabular-nums">
-                                  {activity.averagePace
-                                    ? formatPace(activity.averagePace)
-                                    : formatPace(
-                                        calculatePace(activity.distance, activity.duration),
-                                      )}
-                                </span>
-                                <span className="text-blue/60">/km</span>
-                              </div>
-
-                              {activity.elevationGain && activity.elevationGain > 0 && (
-                                <div className="hidden items-center gap-1.5 sm:flex">
-                                  <Mountain className="text-label/30 h-3.5 w-3.5" />
-                                  <span className="text-label/80 tabular-nums">
-                                    {Math.round(activity.elevationGain)}
-                                  </span>
-                                  <span className="text-label/50">m</span>
-                                </div>
-                              )}
-
-                              {activity.weatherData && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-label/80 tabular-nums">
-                                    {getWeatherLabel(activity.weatherData)}
-                                  </span>
-                                </div>
-                              )}
-
-                              <div className="ml-auto flex items-center gap-1.5">
-                                <Calendar className="text-label/30 h-3.5 w-3.5" />
-                                <span className="text-label/50">
-                                  {formatDateWithWeekday(new Date(activity.startTime))}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <motion.div
-                            initial={false}
-                            whileHover={{ x: 4 }}
-                            transition={springs.snappy}
-                          >
-                            <ChevronRight className="text-label/30 group-hover:text-label/50 h-5 w-5 flex-shrink-0 transition-colors duration-150" />
-                          </motion.div>
-                        </div>
-                      </motion.div>
-                    </RippleContainer>
-                  </Link>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+    <div className={cn('relative', className)} style={{ height: rowVirtualizer.getTotalSize() }}>
+      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+        const activity = activities[virtualRow.index]
+        if (!activity) return null
+        const isLast = virtualRow.index === activities.length - 1
+        return (
+          <div
+            key={activity.id}
+            ref={rowVirtualizer.measureElement}
+            data-index={virtualRow.index}
+            className={cn('absolute top-0 left-0 w-full', !isLast && 'pb-2')}
+            style={{ transform: `translateY(${virtualRow.start}px)` }}
+          >
+            {renderRow(activity)}
+          </div>
+        )
+      })}
     </div>
   )
 }
