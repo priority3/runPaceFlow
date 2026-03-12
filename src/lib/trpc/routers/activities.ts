@@ -112,13 +112,15 @@ export const activitiesRouter = createTRPCRouter({
         .object({
           limit: z.number().min(1).max(100).optional().default(20),
           offset: z.number().min(0).optional().default(0),
+          cursor: z.number().min(0).optional(),
           type: z.enum(['running', 'cycling', 'walking']).optional(),
           source: z.enum(['nike', 'strava', 'garmin']).optional(),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const { limit = 20, offset = 0, type, source } = input || {}
+      const { limit = 20, type, source } = input || {}
+      const offset = input && typeof input.cursor === 'number' ? input.cursor : (input?.offset ?? 0)
 
       let query = ctx.db
         .select(activityColumnsWithoutGpx)

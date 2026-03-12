@@ -152,8 +152,6 @@ export function PersonalRecords({ activities, className }: PersonalRecordsProps)
 
   return (
     <div className={cn('rounded-2xl border-0 bg-transparent p-4 sm:p-5', className)}>
-      <h3 className="text-label mb-3 text-sm font-medium sm:mb-4">个人记录</h3>
-
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
         {records.map((record) => (
           <div key={record.title} className="rounded-xl bg-transparent p-3">

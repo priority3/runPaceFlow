@@ -333,33 +333,29 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
     <div className={cn('rounded-2xl border-0 bg-transparent p-4 sm:p-5', className)}>
       {/* Header with streak badges */}
       <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-label text-sm font-medium">跑步热力图</h3>
-
-          {/* Streak badges */}
-          <div className="flex items-center gap-2">
-            {streaks.current > 0 && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="bg-orange/10 flex items-center gap-1 rounded-full px-2 py-0.5"
-              >
-                <Flame className="text-orange h-3 w-3" />
-                <span className="text-orange text-xs font-medium">{streaks.current}天连续</span>
-              </motion.div>
-            )}
-            {streaks.longest > 0 && streaks.longest > streaks.current && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className="bg-yellow/10 flex items-center gap-1 rounded-full px-2 py-0.5"
-              >
-                <Trophy className="text-yellow h-3 w-3" />
-                <span className="text-yellow text-xs font-medium">最长{streaks.longest}天</span>
-              </motion.div>
-            )}
-          </div>
+        {/* Streak badges */}
+        <div className="flex items-center gap-2">
+          {streaks.current > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="bg-orange/10 flex items-center gap-1 rounded-full px-2 py-0.5"
+            >
+              <Flame className="text-orange h-3 w-3" />
+              <span className="text-orange text-xs font-medium">{streaks.current}天连续</span>
+            </motion.div>
+          )}
+          {streaks.longest > 0 && streaks.longest > streaks.current && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="bg-yellow/10 flex items-center gap-1 rounded-full px-2 py-0.5"
+            >
+              <Trophy className="text-yellow h-3 w-3" />
+              <span className="text-yellow text-xs font-medium">最长{streaks.longest}天</span>
+            </motion.div>
+          )}
         </div>
 
         <span className="text-label/50 text-xs">

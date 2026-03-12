@@ -21,18 +21,24 @@ export function useActivities(options?: {
 }
 
 /**
- * Fetch activities with cursor-based infinite pagination
+ * Fetch activities list with infinite pagination
  */
-export function useActivitiesInfinite(options?: {
+export function useInfiniteActivities(options?: {
   limit?: number
   type?: 'running' | 'cycling' | 'walking'
   source?: 'nike' | 'strava' | 'garmin'
 }) {
-  const limit = options?.limit ?? 20
-  return trpc.activities.listInfinite.useInfiniteQuery(
-    { limit, type: options?.type, source: options?.source },
+  return trpc.activities.list.useInfiniteQuery(
     {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      limit: options?.limit,
+      type: options?.type,
+      source: options?.source,
+    },
+    {
+      getNextPageParam: (lastPage) =>
+        lastPage.pagination.hasMore
+          ? lastPage.pagination.offset + lastPage.pagination.limit
+          : undefined,
     },
   )
 }
