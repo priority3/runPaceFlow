@@ -6,15 +6,16 @@
 
 'use client'
 
-import { useMemo } from 'react'
-
-import { formatPace } from '@/lib/pace/calculator'
+import { formatPace, paceToSpeed } from '@/lib/pace/calculator'
 import { cn } from '@/lib/utils'
+
+type MetricMode = 'pace' | 'speed'
 
 export interface PaceDistributionProps {
   splits: { pace: number; distance: number }[]
   averagePace: number
   className?: string
+  metric?: MetricMode
 }
 
 interface PaceZone {
@@ -61,11 +62,39 @@ function calculatePaceDistribution(
   })
 }
 
-export function PaceDistribution({ splits, averagePace, className }: PaceDistributionProps) {
-  const distribution = useMemo(
-    () => calculatePaceDistribution(splits, averagePace),
-    [splits, averagePace],
-  )
+function formatZoneRange(zone: PaceZone, metric: MetricMode): string {
+  if (metric === 'pace') {
+    const lowerBound = zone.minPace > 0 ? formatPace(zone.minPace) : `< ${formatPace(zone.maxPace)}`
+    return zone.maxPace < Infinity
+      ? `${lowerBound} - ${formatPace(zone.maxPace)}`
+      : `${lowerBound}+`
+  }
+
+  if (zone.minPace <= 0) {
+    return `> ${paceToSpeed(zone.maxPace).toFixed(1)} km/h`
+  }
+
+  if (zone.maxPace === Infinity) {
+    return `< ${paceToSpeed(zone.minPace).toFixed(1)} km/h`
+  }
+
+  const minSpeed = paceToSpeed(zone.maxPace)
+  const maxSpeed = paceToSpeed(zone.minPace)
+  return `${minSpeed.toFixed(1)} - ${maxSpeed.toFixed(1)} km/h`
+}
+
+export function PaceDistribution({
+  splits,
+  averagePace,
+  className,
+  metric = 'pace',
+}: PaceDistributionProps) {
+  const distribution = calculatePaceDistribution(splits, averagePace)
+  const isSpeedMode = metric === 'speed'
+  const metricLabel = isSpeedMode ? '速度' : '配速'
+  const averageMetric = isSpeedMode
+    ? `${paceToSpeed(averagePace).toFixed(1)} km/h`
+    : `${formatPace(averagePace)}/km`
 
   if (splits.length === 0) {
     return (
@@ -75,8 +104,8 @@ export function PaceDistribution({ splits, averagePace, className }: PaceDistrib
           className,
         )}
       >
-        <h3 className="text-label/80 mb-4 text-sm font-medium">配速分布</h3>
-        <p className="text-label/50 text-center text-sm">暂无配速数据</p>
+        <h3 className="text-label/80 mb-4 text-sm font-medium">{metricLabel}分布</h3>
+        <p className="text-label/50 text-center text-sm">暂无{metricLabel}数据</p>
       </div>
     )
   }
@@ -91,9 +120,9 @@ export function PaceDistribution({ splits, averagePace, className }: PaceDistrib
       )}
     >
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-label/80 text-sm font-medium">配速分布</h3>
+        <h3 className="text-label/80 text-sm font-medium">{metricLabel}分布</h3>
         <span className="text-label/50 text-xs">
-          平均 {formatPace(averagePace)}/km · {splits.length} 公里
+          平均 {averageMetric} · {splits.length} 公里
         </span>
       </div>
 
@@ -116,10 +145,7 @@ export function PaceDistribution({ splits, averagePace, className }: PaceDistrib
               />
             </div>
             <div className="text-label/40 mt-0.5 flex justify-between text-xs">
-              <span>
-                {zone.minPace > 0 ? formatPace(zone.minPace) : `< ${formatPace(zone.maxPace)}`}
-                {zone.maxPace < Infinity ? ` - ${formatPace(zone.maxPace)}` : '+'}
-              </span>
+              <span>{formatZoneRange(zone, metric)}</span>
               <span>{(zone.totalDistance / 1000).toFixed(2)} km</span>
             </div>
           </div>
@@ -129,10 +155,15 @@ export function PaceDistribution({ splits, averagePace, className }: PaceDistrib
       {/* Summary */}
       <div className="mt-4 border-t border-white/10 pt-4">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-label/50">配速范围</span>
+          <span className="text-label/50">{metricLabel}范围</span>
           <span className="text-label/70">
-            {formatPace(Math.min(...splits.map((s) => s.pace)))} -{' '}
-            {formatPace(Math.max(...splits.map((s) => s.pace)))} /km
+            {isSpeedMode
+              ? `${Math.min(...splits.map((s) => paceToSpeed(s.pace))).toFixed(1)} - ${Math.max(
+                  ...splits.map((s) => paceToSpeed(s.pace)),
+                ).toFixed(1)} km/h`
+              : `${formatPace(Math.min(...splits.map((s) => s.pace)))} - ${formatPace(
+                  Math.max(...splits.map((s) => s.pace)),
+                )} /km`}
           </span>
         </div>
       </div>

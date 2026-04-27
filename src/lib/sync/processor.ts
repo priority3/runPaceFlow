@@ -58,9 +58,9 @@ export async function syncActivity(rawActivity: RawActivity): Promise<string> {
     const averagePace =
       rawActivity.averagePace || (distance > 0 ? calculatePace(distance, duration) : 0)
 
-    // 匹配赛事名称（半马以上距离）
+    // 匹配跑步赛事名称（半马以上距离）
     let raceName: string | null = null
-    if (distance >= 20500) {
+    if (rawActivity.type === 'running' && distance >= 20500) {
       const coords = extractCoordinatesFromGPX(gpxData)
       raceName = await matchRaceForActivity(rawActivity.startTime, distance, coords)
       if (raceName) {

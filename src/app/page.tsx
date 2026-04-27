@@ -8,7 +8,7 @@
 'use client'
 
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
-import { Activity, Calendar, Clock, MapPin } from 'lucide-react'
+import { Activity, Bike, Calendar, Clock, Footprints, MapPin } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { ReactNode, RefObject } from 'react'
 import { useCallback, useMemo, useRef, useState } from 'react'
@@ -46,14 +46,62 @@ const PersonalRecords = dynamic(() =>
 )
 
 type StatsPeriod = 'week' | 'month'
+type SportType = 'running' | 'cycling'
 
 // 目标配置（从环境变量读取，带默认值）
-const GOALS = {
-  weeklyDistance: Number(process.env.NEXT_PUBLIC_WEEKLY_DISTANCE_GOAL) || 10000,
-  monthlyDistance: Number(process.env.NEXT_PUBLIC_MONTHLY_DISTANCE_GOAL) || 50000,
-  weeklyDuration: Number(process.env.NEXT_PUBLIC_WEEKLY_DURATION_GOAL) || 3600,
-  monthlyDuration: Number(process.env.NEXT_PUBLIC_MONTHLY_DURATION_GOAL) || 18000,
+const GOALS: Record<
+  SportType,
+  {
+    weeklyDistance: number
+    monthlyDistance: number
+    weeklyDuration: number
+    monthlyDuration: number
+  }
+> = {
+  running: {
+    weeklyDistance:
+      Number(process.env.NEXT_PUBLIC_WEEKLY_RUNNING_DISTANCE_GOAL) ||
+      Number(process.env.NEXT_PUBLIC_WEEKLY_DISTANCE_GOAL) ||
+      10000,
+    monthlyDistance:
+      Number(process.env.NEXT_PUBLIC_MONTHLY_RUNNING_DISTANCE_GOAL) ||
+      Number(process.env.NEXT_PUBLIC_MONTHLY_DISTANCE_GOAL) ||
+      50000,
+    weeklyDuration:
+      Number(process.env.NEXT_PUBLIC_WEEKLY_RUNNING_DURATION_GOAL) ||
+      Number(process.env.NEXT_PUBLIC_WEEKLY_DURATION_GOAL) ||
+      3600,
+    monthlyDuration:
+      Number(process.env.NEXT_PUBLIC_MONTHLY_RUNNING_DURATION_GOAL) ||
+      Number(process.env.NEXT_PUBLIC_MONTHLY_DURATION_GOAL) ||
+      18000,
+  },
+  cycling: {
+    weeklyDistance: Number(process.env.NEXT_PUBLIC_WEEKLY_CYCLING_DISTANCE_GOAL) || 40000,
+    monthlyDistance: Number(process.env.NEXT_PUBLIC_MONTHLY_CYCLING_DISTANCE_GOAL) || 160000,
+    weeklyDuration: Number(process.env.NEXT_PUBLIC_WEEKLY_CYCLING_DURATION_GOAL) || 7200,
+    monthlyDuration: Number(process.env.NEXT_PUBLIC_MONTHLY_CYCLING_DURATION_GOAL) || 28800,
+  },
 }
+
+const SPORT_CONFIG = {
+  running: {
+    label: '跑步',
+    icon: Footprints,
+    badgeClassName: 'bg-blue/10 text-blue',
+    sparklineColor: 'var(--color-blue)',
+    routeColor: '#007aff',
+  },
+  cycling: {
+    label: '骑行',
+    icon: Bike,
+    badgeClassName: 'bg-orange/10 text-orange',
+    sparklineColor: 'var(--color-orange)',
+    routeColor: '#ff9500',
+  },
+} as const
+
+const SPORT_TYPES: SportType[] = ['running', 'cycling']
 
 interface ParallaxSectionProps {
   children: ReactNode
@@ -140,8 +188,11 @@ export default function HomePage() {
       .map((item) => ({
         id: item.id,
         coordinates: item.coordinates.map((c) => ({ latitude: c.lat, longitude: c.lng })),
-        color: '#1f2937',
-        width: 3,
+        color:
+          item.type === 'cycling'
+            ? SPORT_CONFIG.cycling.routeColor
+            : SPORT_CONFIG.running.routeColor,
+        width: item.type === 'cycling' ? 4 : 3,
       }))
       .filter((route) => route.coordinates.length > 0)
 
@@ -164,25 +215,28 @@ export default function HomePage() {
     }
   }, [mapRoutesData])
 
-  // Get period-specific stats
-  const periodStats = useMemo(() => {
-    if (!stats) return null
+  const sportStats = stats
+    ? SPORT_TYPES.map((type) => {
+        const periodLabel = statsPeriod === 'week' ? '本周' : '本月'
+        const compareLabel = statsPeriod === 'week' ? 'vs 上周' : 'vs 上月'
+        const data = stats.byType[type]
+        const goals = GOALS[type]
+        const config = SPORT_CONFIG[type]
+        const current = statsPeriod === 'week' ? data.thisWeek : data.thisMonth
+        const previous = statsPeriod === 'week' ? data.lastWeek : data.lastMonth
 
-    if (statsPeriod === 'week') {
-      return {
-        current: stats.thisWeek,
-        previous: stats.lastWeek,
-        label: '本周',
-        compareLabel: 'vs 上周',
-      }
-    }
-    return {
-      current: stats.thisMonth,
-      previous: stats.lastMonth,
-      label: '本月',
-      compareLabel: 'vs 上月',
-    }
-  }, [stats, statsPeriod])
+        return {
+          type,
+          ...config,
+          data,
+          goals,
+          current,
+          previous,
+          periodLabel,
+          compareLabel,
+        }
+      })
+    : null
 
   return (
     <div className="bg-system-background min-h-screen">
@@ -234,14 +288,14 @@ export default function HomePage() {
           {/* Stats Grid */}
           {statsLoading ? (
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {[0, 1, 2, 3].map((i) => (
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
                 <div
                   key={`stats-skeleton-${i}`}
                   className="bg-secondary-system-background/50 h-32 animate-pulse rounded-2xl"
                 />
               ))}
             </div>
-          ) : stats && periodStats ? (
+          ) : sportStats ? (
             <AnimatePresence mode="wait">
               <motion.div
                 key={statsPeriod}
@@ -249,55 +303,83 @@ export default function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+                className="space-y-6"
               >
-                <StatsCard
-                  title="总里程"
-                  value={(stats.total.distance / 1000).toFixed(1)}
-                  unit="km"
-                  icon={<MapPin className="h-4 w-4" />}
-                />
-                <StatsCard
-                  title="活动次数"
-                  value={stats.total.activities}
-                  unit="次"
-                  icon={<Activity className="h-4 w-4" />}
-                />
-                <StatsCard
-                  title={`${periodStats.label}里程`}
-                  value={(periodStats.current.distance / 1000).toFixed(1)}
-                  unit="km"
-                  icon={<Calendar className="h-4 w-4" />}
-                  currentValue={periodStats.current.distance}
-                  previousValue={periodStats.previous.distance}
-                  higherIsBetter={true}
-                  goal={statsPeriod === 'week' ? GOALS.weeklyDistance : GOALS.monthlyDistance}
-                  goalDisplayValue={
+                {sportStats.map((sport) => {
+                  const SportIcon = sport.icon
+                  const distanceGoal =
                     statsPeriod === 'week'
-                      ? GOALS.weeklyDistance / 1000
-                      : GOALS.monthlyDistance / 1000
-                  }
-                  goalUnit="km"
-                  subtitle={periodStats.compareLabel}
-                  sparklineData={stats.weeklyTrend}
-                />
-                <StatsCard
-                  title={`${periodStats.label}时长`}
-                  value={(periodStats.current.duration / 3600).toFixed(1)}
-                  unit="小时"
-                  icon={<Clock className="h-4 w-4" />}
-                  currentValue={periodStats.current.duration}
-                  previousValue={periodStats.previous.duration}
-                  higherIsBetter={true}
-                  goal={statsPeriod === 'week' ? GOALS.weeklyDuration : GOALS.monthlyDuration}
-                  goalDisplayValue={
+                      ? sport.goals.weeklyDistance
+                      : sport.goals.monthlyDistance
+                  const durationGoal =
                     statsPeriod === 'week'
-                      ? GOALS.weeklyDuration / 3600
-                      : GOALS.monthlyDuration / 3600
-                  }
-                  goalUnit="小时"
-                  subtitle={periodStats.compareLabel}
-                />
+                      ? sport.goals.weeklyDuration
+                      : sport.goals.monthlyDuration
+
+                  return (
+                    <div key={sport.type}>
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'flex h-7 w-7 items-center justify-center rounded-full',
+                              sport.badgeClassName,
+                            )}
+                          >
+                            <SportIcon className="h-4 w-4" />
+                          </span>
+                          <h3 className="text-label text-sm font-medium">{sport.label}</h3>
+                        </div>
+                        <span className="text-tertiary-label text-xs tabular-nums">
+                          累计 {(sport.data.total.distance / 1000).toFixed(1)} km
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                        <StatsCard
+                          title="总里程"
+                          value={(sport.data.total.distance / 1000).toFixed(1)}
+                          unit="km"
+                          icon={<MapPin className="h-4 w-4" />}
+                        />
+                        <StatsCard
+                          title="活动次数"
+                          value={sport.data.total.activities}
+                          unit="次"
+                          icon={<Activity className="h-4 w-4" />}
+                        />
+                        <StatsCard
+                          title={`${sport.periodLabel}里程`}
+                          value={(sport.current.distance / 1000).toFixed(1)}
+                          unit="km"
+                          icon={<Calendar className="h-4 w-4" />}
+                          currentValue={sport.current.distance}
+                          previousValue={sport.previous.distance}
+                          higherIsBetter={true}
+                          goal={distanceGoal}
+                          goalDisplayValue={distanceGoal / 1000}
+                          goalUnit="km"
+                          subtitle={sport.compareLabel}
+                          sparklineData={sport.data.weeklyTrend}
+                          sparklineColor={sport.sparklineColor}
+                        />
+                        <StatsCard
+                          title={`${sport.periodLabel}时长`}
+                          value={(sport.current.duration / 3600).toFixed(1)}
+                          unit="小时"
+                          icon={<Clock className="h-4 w-4" />}
+                          currentValue={sport.current.duration}
+                          previousValue={sport.previous.duration}
+                          higherIsBetter={true}
+                          goal={durationGoal}
+                          goalDisplayValue={durationGoal / 3600}
+                          goalUnit="小时"
+                          subtitle={sport.compareLabel}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </motion.div>
             </AnimatePresence>
           ) : null}
@@ -316,6 +398,18 @@ export default function HomePage() {
                 {routes.length > 0 && <RouteLayer routes={routes} />}
               </RunMap>
             </div>
+          </div>
+          <div className="text-label/50 mt-3 flex items-center justify-end gap-4 text-xs">
+            {SPORT_TYPES.map((type) => (
+              <div key={`route-legend-${type}`} className="flex items-center gap-2">
+                <span
+                  className="h-1.5 w-6 rounded-full"
+                  style={{ backgroundColor: SPORT_CONFIG[type].routeColor }}
+                  aria-hidden="true"
+                />
+                <span>{SPORT_CONFIG[type].label}</span>
+              </div>
+            ))}
           </div>
         </ParallaxSection>
 

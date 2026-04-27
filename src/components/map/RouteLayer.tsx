@@ -1,8 +1,8 @@
 /**
  * RouteLayer Component
  *
- * Displays running routes on the map with glow effect
- * Optimized: Combines all routes into a single MultiLineString for better performance
+ * Displays routes on the map with glow effect
+ * Optimized: Uses a single source while keeping per-route styling.
  */
 
 'use client'
@@ -17,42 +17,46 @@ export interface RouteLayerProps {
 }
 
 export function RouteLayer({ routes }: RouteLayerProps) {
-  // Combine all routes into a single MultiLineString GeoJSON
-  const combinedGeoJson = useMemo(() => {
+  const routesGeoJson = useMemo(() => {
     if (!routes || routes.length === 0) return null
 
     const validRoutes = routes.filter((route) => route.coordinates && route.coordinates.length >= 2)
 
     if (validRoutes.length === 0) return null
 
-    const geojson: GeoJSON.Feature<GeoJSON.MultiLineString> = {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'MultiLineString',
-        coordinates: validRoutes.map((route) =>
-          route.coordinates.map((coord) => [coord.longitude, coord.latitude]),
-        ),
-      },
+    const geojson: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
+      type: 'FeatureCollection',
+      features: validRoutes.map((route) => ({
+        type: 'Feature',
+        properties: {
+          id: route.id,
+          color: route.color ?? '#007aff',
+          width: route.width ?? 3,
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: route.coordinates.map((coord) => [coord.longitude, coord.latitude]),
+        },
+      })),
     }
 
     return geojson
   }, [routes])
 
-  if (!combinedGeoJson) {
+  if (!routesGeoJson) {
     return null
   }
 
   return (
-    <Source id="routes-combined" type="geojson" data={combinedGeoJson}>
+    <Source id="routes-combined" type="geojson" data={routesGeoJson}>
       {/* Glow effect layer (behind main line) */}
       <Layer
         id="routes-glow"
         type="line"
         paint={{
-          'line-color': '#374151',
-          'line-width': 8,
-          'line-opacity': 0.15,
+          'line-color': ['get', 'color'],
+          'line-width': ['+', ['get', 'width'], 6],
+          'line-opacity': 0.22,
           'line-blur': 4,
         }}
         layout={{
@@ -66,9 +70,9 @@ export function RouteLayer({ routes }: RouteLayerProps) {
         id="routes-line"
         type="line"
         paint={{
-          'line-color': '#374151',
-          'line-width': 3,
-          'line-opacity': 0.85,
+          'line-color': ['get', 'color'],
+          'line-width': ['get', 'width'],
+          'line-opacity': 0.9,
         }}
         layout={{
           'line-join': 'round',

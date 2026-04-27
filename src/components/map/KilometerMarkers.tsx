@@ -10,18 +10,22 @@ import { useState } from 'react'
 import { Marker, Popup } from 'react-map-gl/maplibre'
 
 import type { KilometerMarker } from '@/lib/map/pace-utils'
-import { formatPace } from '@/lib/pace/calculator'
+import { formatPace, paceToSpeed } from '@/lib/pace/calculator'
+
+type MetricMode = 'pace' | 'speed'
 
 export interface KilometerMarkersProps {
   markers: KilometerMarker[]
+  metric?: MetricMode
 }
 
 /**
  * 渲染每公里标记点
  * 点击标记点显示配速信息
  */
-export function KilometerMarkers({ markers }: KilometerMarkersProps) {
+export function KilometerMarkers({ markers, metric = 'pace' }: KilometerMarkersProps) {
   const [selectedMarker, setSelectedMarker] = useState<KilometerMarker | null>(null)
+  const isSpeedMode = metric === 'speed'
 
   if (!markers || markers.length === 0) {
     return null
@@ -67,7 +71,9 @@ export function KilometerMarkers({ markers }: KilometerMarkersProps) {
               第 {selectedMarker.kilometer} 公里
             </div>
             <div className="text-secondary-label text-xs">
-              配速: {formatPace(selectedMarker.pace)}/km
+              {isSpeedMode
+                ? `速度: ${paceToSpeed(selectedMarker.pace).toFixed(1)} km/h`
+                : `配速: ${formatPace(selectedMarker.pace)}/km`}
             </div>
             <div className="text-tertiary-label text-xs">
               累计: {(selectedMarker.distance / 1000).toFixed(2)} km

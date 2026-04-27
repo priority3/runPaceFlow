@@ -6,9 +6,12 @@
 
 'use client'
 
-import type { TrackPoint } from '@/lib/map/pace-utils'
-import { formatDuration, formatPace } from '@/lib/pace/calculator'
 import type { CSSProperties } from 'react'
+
+import type { TrackPoint } from '@/lib/map/pace-utils'
+import { formatDuration, formatPace, paceToSpeed } from '@/lib/pace/calculator'
+
+type MetricMode = 'pace' | 'speed'
 
 export interface FloatingInfoCardProps {
   currentPoint?: TrackPoint
@@ -18,6 +21,7 @@ export interface FloatingInfoCardProps {
   currentPaceColor?: string
   isPlaying: boolean
   progress: number // 0-100
+  metric?: MetricMode
 }
 
 /**
@@ -32,11 +36,20 @@ export function FloatingInfoCard({
   currentPaceColor,
   isPlaying,
   progress,
+  metric = 'pace',
 }: FloatingInfoCardProps) {
   if (!currentPoint) return null
 
   const accent = currentPaceColor || '#007AFF'
   const displayPace = currentPace ?? averagePace
+  const isSpeedMode = metric === 'speed'
+  const currentMetricValue = isSpeedMode
+    ? paceToSpeed(displayPace).toFixed(1)
+    : formatPace(displayPace)
+  const averageMetricValue = isSpeedMode
+    ? paceToSpeed(averagePace).toFixed(1)
+    : formatPace(averagePace)
+  const metricUnit = isSpeedMode ? 'km/h' : '/km'
 
   // 计算已用时间（优先用 GPX 时间戳）
   const elapsedTime = startTime
@@ -76,13 +89,15 @@ export function FloatingInfoCard({
           </div>
 
           <div>
-            <div className="text-tertiary-label text-xs">当前配速</div>
+            <div className="text-tertiary-label text-xs">
+              {isSpeedMode ? '当前速度' : '当前配速'}
+            </div>
             <div
               className="mt-0.5 text-lg font-semibold tabular-nums"
               style={{ color: 'var(--accent)' }}
             >
-              {formatPace(displayPace)}
-              <span className="text-tertiary-label ml-1 text-xs font-medium">/km</span>
+              {currentMetricValue}
+              <span className="text-tertiary-label ml-1 text-xs font-medium">{metricUnit}</span>
             </div>
           </div>
 
@@ -94,10 +109,12 @@ export function FloatingInfoCard({
           </div>
 
           <div>
-            <div className="text-tertiary-label text-xs">平均配速</div>
+            <div className="text-tertiary-label text-xs">
+              {isSpeedMode ? '平均速度' : '平均配速'}
+            </div>
             <div className="text-label mt-0.5 text-lg font-semibold tabular-nums">
-              {formatPace(averagePace)}
-              <span className="text-tertiary-label ml-1 text-xs font-medium">/km</span>
+              {averageMetricValue}
+              <span className="text-tertiary-label ml-1 text-xs font-medium">{metricUnit}</span>
             </div>
           </div>
         </div>

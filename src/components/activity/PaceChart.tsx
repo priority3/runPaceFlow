@@ -21,7 +21,9 @@ import {
   YAxis,
 } from 'recharts'
 
-import { formatPace } from '@/lib/pace/calculator'
+import { formatPace, paceToSpeed } from '@/lib/pace/calculator'
+
+type MetricMode = 'pace' | 'speed'
 
 export interface Split {
   kilometer: number
@@ -34,6 +36,7 @@ export interface PaceChartProps {
   splits: Split[]
   averagePace: number
   className?: string
+  metric?: MetricMode
 }
 
 /**
@@ -56,13 +59,19 @@ function getPaceBarColor(pace: number, averagePace: number): string {
 }
 
 // Custom Tooltip component - glassmorphic style
-const CustomTooltip = ({ active, payload, fastestKm, averagePace }: any) => {
+const CustomTooltip = ({ active, payload, fastestKm, averagePace, metric }: any) => {
   if (active && payload && payload.length > 0) {
     const data = payload[0].payload
     const isFastest = data.kilometer === fastestKm
-    const diff = data.pace - averagePace
-    const diffText =
-      diff < 0
+    const isSpeedMode = metric === 'speed'
+    const diff = isSpeedMode ? data.metricValue - paceToSpeed(averagePace) : data.pace - averagePace
+    const diffText = isSpeedMode
+      ? diff > 0
+        ? `快 ${Math.abs(diff).toFixed(1)} km/h`
+        : diff < 0
+          ? `慢 ${Math.abs(diff).toFixed(1)} km/h`
+          : '平均'
+      : diff < 0
         ? `快 ${Math.abs(Math.round(diff))}秒`
         : diff > 0
           ? `慢 ${Math.round(diff)}秒`
@@ -78,7 +87,7 @@ const CustomTooltip = ({ active, payload, fastestKm, averagePace }: any) => {
             </span>
           )}
         </p>
-        <p className="text-label text-lg font-semibold tabular-nums">{data.paceFormatted}</p>
+        <p className="text-label text-lg font-semibold tabular-nums">{data.metricFormatted}</p>
         <p className="text-label/60 text-xs">vs 平均: {diffText}</p>
       </div>
     )
@@ -89,18 +98,21 @@ const CustomTooltip = ({ active, payload, fastestKm, averagePace }: any) => {
 /**
  * Pace bar chart component with color-coded bars
  */
-export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
+export function PaceChart({ splits, averagePace, className, metric = 'pace' }: PaceChartProps) {
   // Prevent SSR hydration mismatch with ResponsiveContainer
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
+    const frame = requestAnimationFrame(() => setIsMounted(true))
+    return () => cancelAnimationFrame(frame)
   }, [])
+
+  const emptyText = metric === 'speed' ? '暂无速度数据' : '暂无配速数据'
 
   if (!splits || splits.length === 0) {
     return (
       <div className="flex h-[300px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
-        <p className="text-label/50">暂无配速数据</p>
+        <p className="text-label/50">{emptyText}</p>
       </div>
     )
   }
@@ -111,27 +123,34 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
   }
 
   // Prepare chart data
+  const isSpeedMode = metric === 'speed'
+  const formatMetric = (pace: number) =>
+    isSpeedMode ? `${paceToSpeed(pace).toFixed(1)} km/h` : `${formatPace(pace)}/km`
+
   const chartData = splits.map((split) => ({
     kilometer: split.kilometer,
     pace: split.pace,
-    paceFormatted: `${formatPace(split.pace)}/km`,
+    metricValue: isSpeedMode ? paceToSpeed(split.pace) : split.pace,
+    metricFormatted: formatMetric(split.pace),
     color: getPaceBarColor(split.pace, averagePace),
   }))
 
   // Find fastest split
   const fastestSplit = splits.reduce((min, split) => (split.pace < min.pace ? split : min))
 
-  // Format Y axis (pace) - inverted so faster is higher
+  // Format Y axis
   const formatYAxis = (value: number) => {
+    if (isSpeedMode) return value.toFixed(1)
     const minutes = Math.floor(value / 60)
     const seconds = Math.floor(value % 60)
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
   // Calculate Y axis domain with padding
-  const minPace = Math.min(...splits.map((s) => s.pace))
-  const maxPace = Math.max(...splits.map((s) => s.pace))
-  const padding = 15 // seconds
+  const metricValues = chartData.map((item) => item.metricValue)
+  const minMetricValue = Math.min(...metricValues)
+  const maxMetricValue = Math.max(...metricValues)
+  const padding = isSpeedMode ? 1 : 15
   const shouldRotateXTicks = splits.length > 16
 
   const axisTick = {
@@ -185,7 +204,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
           <YAxis
             tickFormatter={formatYAxis}
             label={{
-              value: '配速',
+              value: isSpeedMode ? '速度' : '配速',
               angle: -90,
               position: 'insideLeft',
               style: axisLabelStyle,
@@ -193,23 +212,29 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
             tick={axisTick}
             axisLine={{ stroke: 'rgba(var(--color-separator))' }}
             tickLine={{ stroke: 'rgba(var(--color-separator))' }}
-            domain={[minPace - padding, maxPace + padding]}
-            reversed // Invert so faster (lower pace) is at top
+            domain={[Math.max(0, minMetricValue - padding), maxMetricValue + padding]}
+            reversed={!isSpeedMode} // Invert pace so faster (lower pace) is at top
           />
 
           <Tooltip
-            content={<CustomTooltip fastestKm={fastestSplit.kilometer} averagePace={averagePace} />}
+            content={
+              <CustomTooltip
+                fastestKm={fastestSplit.kilometer}
+                averagePace={averagePace}
+                metric={metric}
+              />
+            }
             cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
           />
 
           {/* Average pace reference line */}
           <ReferenceLine
-            y={averagePace}
+            y={isSpeedMode ? paceToSpeed(averagePace) : averagePace}
             stroke="rgba(var(--color-secondaryLabel))"
             strokeDasharray="5 5"
             strokeWidth={2}
             label={{
-              value: `平均 ${formatPace(averagePace)}/km`,
+              value: `平均 ${formatMetric(averagePace)}`,
               position: 'right',
               fill: 'rgba(var(--color-secondaryLabel))',
               fontSize: 11,
@@ -217,7 +242,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
           />
 
           {/* Pace bars with color coding */}
-          <Bar dataKey="pace" radius={[4, 4, 0, 0]} maxBarSize={40}>
+          <Bar dataKey="metricValue" radius={[4, 4, 0, 0]} maxBarSize={40}>
             {chartData.map((entry) => (
               <Cell
                 key={`cell-${entry.kilometer}`}
@@ -240,7 +265,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
       >
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded-sm bg-[#22c55e]" />
-          <span className="text-label/60">快 (&gt;15秒)</span>
+          <span className="text-label/60">{isSpeedMode ? '更快' : '快 (>15秒)'}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded-sm bg-[#84cc16]" />
@@ -256,7 +281,7 @@ export function PaceChart({ splits, averagePace, className }: PaceChartProps) {
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-3 rounded-sm bg-[#ef4444]" />
-          <span className="text-label/60">慢 (&gt;20秒)</span>
+          <span className="text-label/60">{isSpeedMode ? '更慢' : '慢 (>20秒)'}</span>
         </div>
       </motion.div>
     </motion.div>

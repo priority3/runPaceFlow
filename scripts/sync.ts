@@ -3,7 +3,7 @@
 /**
  * Automatic Activity Sync Script
  *
- * Syncs running activities from Strava or Nike Run Club
+ * Syncs running and cycling activities from Strava, or running activities from Nike Run Club
  * Designed to run via GitHub Actions or locally
  *
  * Features:
@@ -11,7 +11,8 @@
  * - Priority: Strava > Nike
  */
 
-import { desc } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 
 import { db } from '../src/lib/db'
 import { runMigrations } from '../src/lib/db/migrate'
@@ -40,10 +41,19 @@ interface SyncResult {
  * Get the latest activity timestamp from the database
  * Used for incremental sync to only fetch new activities
  */
-async function getLatestActivityTimestamp(): Promise<number | null> {
+async function getLatestActivityTimestamp(options: {
+  source: 'strava' | 'nike'
+  types?: Array<'running' | 'cycling' | 'walking'>
+}): Promise<number | null> {
+  const conditions: SQL[] = [eq(activities.source, options.source)]
+  if (options.types && options.types.length > 0) {
+    conditions.push(inArray(activities.type, options.types))
+  }
+
   const result = await db
     .select({ startTime: activities.startTime })
     .from(activities)
+    .where(and(...conditions))
     .orderBy(desc(activities.startTime))
     .limit(1)
 
@@ -56,10 +66,34 @@ async function getLatestActivityTimestamp(): Promise<number | null> {
 }
 
 /**
+ * Get the incremental sync timestamp for Strava.
+ *
+ * Reason: Existing installations only synced runs before cycling support.
+ * If there are no rides yet, do a broader recent fetch so historical rides can
+ * be backfilled instead of being skipped by the latest run timestamp.
+ */
+async function getStravaIncrementalTimestamp(): Promise<number | null> {
+  const latestRunTimestamp = await getLatestActivityTimestamp({
+    source: 'strava',
+    types: ['running'],
+  })
+  const latestRideTimestamp = await getLatestActivityTimestamp({
+    source: 'strava',
+    types: ['cycling'],
+  })
+
+  if (!latestRunTimestamp || !latestRideTimestamp) {
+    return null
+  }
+
+  return Math.min(latestRunTimestamp, latestRideTimestamp)
+}
+
+/**
  * Sync activities from Strava
  */
 async function syncStrava(): Promise<SyncResult> {
-  console.info('🏃 Syncing from Strava...')
+  console.info('🏃🚴 Syncing from Strava...')
 
   if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET || !STRAVA_REFRESH_TOKEN) {
     throw new Error('Strava credentials not configured')
@@ -74,13 +108,13 @@ async function syncStrava(): Promise<SyncResult> {
   }
 
   // Get the latest activity timestamp for incremental sync
-  const lastTimestamp = await getLatestActivityTimestamp()
+  const lastTimestamp = await getStravaIncrementalTimestamp()
 
   if (lastTimestamp) {
     const lastDate = new Date(lastTimestamp * 1000)
-    console.info(`📅 Incremental sync: fetching activities after ${lastDate.toISOString()}`)
+    console.info(`📅 Incremental sync: fetching runs and rides after ${lastDate.toISOString()}`)
   } else {
-    console.info('📅 Full sync: no existing activities found')
+    console.info('📅 Broader sync: fetching recent Strava runs and rides')
   }
 
   // Get activities (incremental if we have a timestamp)
@@ -117,7 +151,7 @@ async function syncNike(): Promise<SyncResult> {
     : new NikeAdapter(NIKE_ACCESS_TOKEN!)
 
   // Get the latest activity timestamp for incremental sync
-  const lastTimestamp = await getLatestActivityTimestamp()
+  const lastTimestamp = await getLatestActivityTimestamp({ source: 'nike', types: ['running'] })
 
   if (lastTimestamp) {
     const lastDate = new Date(lastTimestamp * 1000)

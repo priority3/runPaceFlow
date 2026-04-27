@@ -6,19 +6,22 @@
 
 'use client'
 
-import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import { calculateSpeed, formatDuration, formatPace } from '@/lib/pace/calculator'
 
 import type { Split } from './PaceChart'
+
+type MetricMode = 'pace' | 'speed'
 
 export interface SplitsTableProps {
   splits: Split[]
   className?: string
+  metric?: MetricMode
 }
 
 /**
  * Split data table with glassmorphic styling
  */
-export function SplitsTable({ splits, className }: SplitsTableProps) {
+export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableProps) {
   if (!splits || splits.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
@@ -58,6 +61,15 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
   const totalDistance = splits.reduce((sum, s) => sum + s.distance, 0)
   const totalDuration = splits.reduce((sum, s) => sum + s.duration, 0)
   const avgPace = splits.reduce((sum, s) => sum + s.pace, 0) / splits.length
+  const isSpeedMode = metric === 'speed'
+  const metricLabel = isSpeedMode ? '速度' : '配速'
+  const summaryMetric = isSpeedMode
+    ? `${calculateSpeed(totalDistance, totalDuration).toFixed(1)} km/h`
+    : `${formatPace(avgPace)}/km`
+  const formatSplitMetric = (split: Split) =>
+    isSpeedMode
+      ? `${calculateSpeed(split.distance, split.duration).toFixed(1)} km/h`
+      : `${formatPace(split.pace)}/km`
 
   // Shared column widths for alignment between header table and footer table
   const colGroup = (
@@ -81,7 +93,9 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-white/10 bg-white/60 backdrop-blur-md dark:bg-black/40">
                 <th className="text-label/60 px-4 py-3 text-left text-xs font-medium">公里</th>
-                <th className="text-label/60 px-4 py-3 text-right text-xs font-medium">配速</th>
+                <th className="text-label/60 px-4 py-3 text-right text-xs font-medium">
+                  {metricLabel}
+                </th>
                 <th className="text-label/60 px-4 py-3 text-right text-xs font-medium">时长</th>
                 <th className="text-label/60 hidden px-4 py-3 text-right text-xs font-medium sm:table-cell">
                   累计距离
@@ -117,7 +131,7 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
 
                   {/* Pace */}
                   <td className="text-label/80 px-4 py-3 text-right font-mono whitespace-nowrap">
-                    {formatPace(data.pace)}/km
+                    {formatSplitMetric(data)}
                   </td>
 
                   {/* Duration */}
@@ -148,7 +162,7 @@ export function SplitsTable({ splits, className }: SplitsTableProps) {
               <tr className="font-medium">
                 <td className="px-4 py-3">总计</td>
                 <td className="text-label/80 px-4 py-3 text-right font-mono whitespace-nowrap">
-                  {formatPace(avgPace)}/km
+                  {summaryMetric}
                 </td>
                 <td className="text-label/80 px-4 py-3 text-right font-mono whitespace-nowrap">
                   {formatDuration(totalDuration)}

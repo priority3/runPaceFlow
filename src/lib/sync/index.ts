@@ -13,6 +13,7 @@ export { deleteActivity, syncActivities, syncActivity } from './processor'
 // 适配器
 export type { RawActivity, SyncAdapter } from './adapters/base'
 export { NikeAdapter } from './adapters/nike'
+export { StravaAdapter } from './adapters/strava'
 
 // GPX 解析
 export type { GPXData, GPXPoint, GPXTrack } from './parser'

@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cardVariants, springs } from '@/lib/animation/variants'
-import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import { calculateSpeed, formatDuration, formatPace } from '@/lib/pace/calculator'
 import { formatDate, formatTime } from '@/lib/utils'
 import { playingActivityIdAtom } from '@/stores/map'
 
@@ -67,6 +67,15 @@ export function ActivityCard({
 
   const distanceKm = (distance / 1000).toFixed(2)
   const typeEmoji = type === 'running' ? '🏃' : type === 'cycling' ? '🚴' : '🚶'
+  const isCycling = type === 'cycling'
+  const showMetric = isCycling ? distance > 0 && duration > 0 : !!averagePace
+  const metricLabel = isCycling ? '均速' : '配速'
+  const metricValue = isCycling
+    ? calculateSpeed(distance, duration).toFixed(1)
+    : averagePace
+      ? formatPace(averagePace)
+      : ''
+  const metricUnit = isCycling ? 'km/h' : '/km'
 
   return (
     <motion.div
@@ -138,16 +147,17 @@ export function ActivityCard({
               <span className="text-tertiary-label text-xs">时长</span>
               <span className="text-label text-lg font-semibold">{formatDuration(duration)}</span>
             </motion.div>
-            {averagePace && (
+            {showMetric && (
               <motion.div
                 className="flex flex-col"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: delay + 0.35, ...springs.smooth }}
               >
-                <span className="text-tertiary-label text-xs">配速</span>
+                <span className="text-tertiary-label text-xs">{metricLabel}</span>
                 <span className="text-label text-lg font-semibold">
-                  {formatPace(averagePace)}/km
+                  {metricValue}
+                  {metricUnit}
                 </span>
               </motion.div>
             )}

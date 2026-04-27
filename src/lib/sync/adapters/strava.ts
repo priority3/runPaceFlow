@@ -53,7 +53,7 @@ interface StravaTokenResponse {
 /**
  * Strava Adapter
  *
- * Synchronizes running data from Strava
+ * Synchronizes running and cycling data from Strava
  *
  * Authentication:
  * - Uses OAuth2 with client_id, client_secret, and refresh_token
@@ -165,16 +165,16 @@ export class StravaAdapter implements SyncAdapter {
           break
         }
 
-        // Fetch detailed data for each activity (only running activities)
+        // Fetch detailed data for each activity (running and cycling activities)
         for (const activity of pageActivities) {
           if (activities.length >= totalLimit) {
             break
           }
 
-          // Skip non-running activities
+          // Skip unsupported activity types
           const sportType = activity.sport_type || activity.type
-          if (!this.isRunningActivity(sportType)) {
-            console.info(`⏭️ Skipping non-running activity ${activity.id} (type: ${sportType})`)
+          if (!this.isSupportedActivity(sportType)) {
+            console.info(`⏭️ Skipping unsupported activity ${activity.id} (type: ${sportType})`)
             continue
           }
 
@@ -385,6 +385,7 @@ export class StravaAdapter implements SyncAdapter {
     streams: Record<string, StravaStream>,
   ): RawActivity {
     const sportType = activity.sport_type || activity.type
+    const mappedType = this.mapActivityType(sportType)
 
     // Build GPX data from streams
     let gpxData: string | undefined
@@ -399,17 +400,20 @@ export class StravaAdapter implements SyncAdapter {
     // Calculate best pace from max speed
     const bestPace = activity.max_speed > 0 ? 1000 / activity.max_speed : undefined
 
-    // Generate smart name based on distance and race matching
+    // Generate smart name based on distance and race matching for runs only.
     const startTime = new Date(activity.start_date)
-    const title = generateSmartName(
-      { distance: activity.distance, startTime, gpxData: gpxData || null },
-      activity.name,
-    )
+    const title =
+      mappedType === 'running'
+        ? generateSmartName(
+            { distance: activity.distance, startTime, gpxData: gpxData || null },
+            activity.name,
+          )
+        : activity.name || '骑行活动'
 
     return {
       id: activity.id.toString(),
       source: 'strava',
-      type: this.mapActivityType(sportType),
+      type: mappedType,
       isIndoor: Boolean(activity.trainer) || this.isIndoorActivity(sportType),
       title,
       startTime: new Date(activity.start_date),
@@ -501,6 +505,12 @@ ${trackPoints}
       VirtualRun: 'running',
       Ride: 'cycling',
       VirtualRide: 'cycling',
+      EBikeRide: 'cycling',
+      EMountainBikeRide: 'cycling',
+      GravelRide: 'cycling',
+      Handcycle: 'cycling',
+      MountainBikeRide: 'cycling',
+      Velomobile: 'cycling',
       Walk: 'walking',
       Hike: 'walking',
       Swim: 'swimming',
@@ -510,11 +520,23 @@ ${trackPoints}
   }
 
   /**
-   * Check if an activity type is running
+   * Check if an activity type is supported by the app
    */
-  private isRunningActivity(stravaType: string): boolean {
-    const runningTypes = ['Run', 'TrailRun', 'VirtualRun']
-    return runningTypes.includes(stravaType)
+  private isSupportedActivity(stravaType: string): boolean {
+    const supportedTypes = [
+      'Run',
+      'TrailRun',
+      'VirtualRun',
+      'Ride',
+      'VirtualRide',
+      'EBikeRide',
+      'EMountainBikeRide',
+      'GravelRide',
+      'Handcycle',
+      'MountainBikeRide',
+      'Velomobile',
+    ]
+    return supportedTypes.includes(stravaType)
   }
 
   /**

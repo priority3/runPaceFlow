@@ -4,7 +4,8 @@
  * Handles all activity-related API endpoints
  */
 
-import { and, count, desc, eq, lt, or, type SQL } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
+import { and, count, desc, eq, lt, or } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { activities, splits } from '@/lib/db/schema'
@@ -100,6 +101,81 @@ function calculateDailyTrend(
   }
 
   return dailyData
+}
+
+type StatsActivity = {
+  type: string
+  distance: number
+  duration: number
+  elevationGain: number | null
+  startTime: Date
+  averagePace: number | null
+}
+
+function summarizePeriodActivities(periodActivities: StatsActivity[]) {
+  return {
+    activities: periodActivities.length,
+    distance: periodActivities.reduce((sum, activity) => sum + (activity.distance || 0), 0),
+    duration: periodActivities.reduce((sum, activity) => sum + (activity.duration || 0), 0),
+  }
+}
+
+function summarizeActivityStats(
+  sourceActivities: StatsActivity[],
+  ranges: Pick<
+    ReturnType<typeof getDateRanges>,
+    'oneWeekAgo' | 'twoWeeksAgo' | 'oneMonthAgo' | 'twoMonthsAgo'
+  >,
+) {
+  const totalDistance = sourceActivities.reduce(
+    (sum, activity) => sum + (activity.distance || 0),
+    0,
+  )
+  const totalDuration = sourceActivities.reduce(
+    (sum, activity) => sum + (activity.duration || 0),
+    0,
+  )
+  const totalElevation = sourceActivities.reduce(
+    (sum, activity) => sum + (activity.elevationGain || 0),
+    0,
+  )
+
+  const activitiesWithPace = sourceActivities.filter((a) => a.averagePace && a.averagePace > 0)
+  const averagePace =
+    activitiesWithPace.length > 0
+      ? activitiesWithPace.reduce((sum, a) => sum + (a.averagePace || 0), 0) /
+        activitiesWithPace.length
+      : 0
+
+  const thisWeekActivities = sourceActivities.filter(
+    (activity) => new Date(activity.startTime) > ranges.oneWeekAgo,
+  )
+  const lastWeekActivities = sourceActivities.filter((activity) => {
+    const activityDate = new Date(activity.startTime)
+    return activityDate > ranges.twoWeeksAgo && activityDate <= ranges.oneWeekAgo
+  })
+  const thisMonthActivities = sourceActivities.filter(
+    (activity) => new Date(activity.startTime) > ranges.oneMonthAgo,
+  )
+  const lastMonthActivities = sourceActivities.filter((activity) => {
+    const activityDate = new Date(activity.startTime)
+    return activityDate > ranges.twoMonthsAgo && activityDate <= ranges.oneMonthAgo
+  })
+
+  return {
+    total: {
+      activities: sourceActivities.length,
+      distance: totalDistance,
+      duration: totalDuration,
+      elevation: totalElevation,
+      averagePace,
+    },
+    thisWeek: summarizePeriodActivities(thisWeekActivities),
+    lastWeek: summarizePeriodActivities(lastWeekActivities),
+    thisMonth: summarizePeriodActivities(thisMonthActivities),
+    lastMonth: summarizePeriodActivities(lastMonthActivities),
+    weeklyTrend: calculateDailyTrend(sourceActivities, 7),
+  }
 }
 
 export const activitiesRouter = createTRPCRouter({
@@ -219,7 +295,7 @@ export const activitiesRouter = createTRPCRouter({
 
       const activitiesPage = result.slice(0, limit)
 
-      const last = activitiesPage[activitiesPage.length - 1]
+      const last = activitiesPage.at(-1)
       const nextCursor =
         result.length > limit && last ? { startTime: last.startTime, id: last.id } : null
 
@@ -318,6 +394,7 @@ export const activitiesRouter = createTRPCRouter({
     // Reason: Only select fields needed for stats, exclude heavy gpxData
     const allActivities = await ctx.db
       .select({
+        type: activities.type,
         distance: activities.distance,
         duration: activities.duration,
         elevationGain: activities.elevationGain,
@@ -325,113 +402,18 @@ export const activitiesRouter = createTRPCRouter({
         averagePace: activities.averagePace,
       })
       .from(activities)
-    const { oneWeekAgo, twoWeeksAgo, oneMonthAgo, twoMonthsAgo } = getDateRanges()
 
-    const totalDistance = allActivities.reduce((sum, activity) => sum + (activity.distance || 0), 0)
-    const totalDuration = allActivities.reduce((sum, activity) => sum + (activity.duration || 0), 0)
-    const totalElevation = allActivities.reduce(
-      (sum, activity) => sum + (activity.elevationGain || 0),
-      0,
-    )
-
-    // Calculate average pace from all activities
-    const activitiesWithPace = allActivities.filter((a) => a.averagePace && a.averagePace > 0)
-    const avgPace =
-      activitiesWithPace.length > 0
-        ? activitiesWithPace.reduce((sum, a) => sum + (a.averagePace || 0), 0) /
-          activitiesWithPace.length
-        : 0
-
-    // This week stats (last 7 days)
-    const thisWeekActivities = allActivities.filter(
-      (activity) => new Date(activity.startTime) > oneWeekAgo,
-    )
-    const thisWeekDistance = thisWeekActivities.reduce(
-      (sum, activity) => sum + (activity.distance || 0),
-      0,
-    )
-    const thisWeekDuration = thisWeekActivities.reduce(
-      (sum, activity) => sum + (activity.duration || 0),
-      0,
-    )
-    const thisWeekCount = thisWeekActivities.length
-
-    // Last week stats (7-14 days ago)
-    const lastWeekActivities = allActivities.filter((activity) => {
-      const activityDate = new Date(activity.startTime)
-      return activityDate > twoWeeksAgo && activityDate <= oneWeekAgo
-    })
-    const lastWeekDistance = lastWeekActivities.reduce(
-      (sum, activity) => sum + (activity.distance || 0),
-      0,
-    )
-    const lastWeekDuration = lastWeekActivities.reduce(
-      (sum, activity) => sum + (activity.duration || 0),
-      0,
-    )
-    const lastWeekCount = lastWeekActivities.length
-
-    // This month stats (last 30 days)
-    const thisMonthActivities = allActivities.filter(
-      (activity) => new Date(activity.startTime) > oneMonthAgo,
-    )
-    const thisMonthDistance = thisMonthActivities.reduce(
-      (sum, activity) => sum + (activity.distance || 0),
-      0,
-    )
-    const thisMonthDuration = thisMonthActivities.reduce(
-      (sum, activity) => sum + (activity.duration || 0),
-      0,
-    )
-    const thisMonthCount = thisMonthActivities.length
-
-    // Last month stats (30-60 days ago)
-    const lastMonthActivities = allActivities.filter((activity) => {
-      const activityDate = new Date(activity.startTime)
-      return activityDate > twoMonthsAgo && activityDate <= oneMonthAgo
-    })
-    const lastMonthDistance = lastMonthActivities.reduce(
-      (sum, activity) => sum + (activity.distance || 0),
-      0,
-    )
-    const lastMonthDuration = lastMonthActivities.reduce(
-      (sum, activity) => sum + (activity.duration || 0),
-      0,
-    )
-    const lastMonthCount = lastMonthActivities.length
-
-    // Calculate 7-day trend data for sparklines
-    const weeklyTrend = calculateDailyTrend(allActivities, 7)
+    const ranges = getDateRanges()
+    const runningActivities = allActivities.filter((activity) => activity.type === 'running')
+    const cyclingActivities = allActivities.filter((activity) => activity.type === 'cycling')
+    const allStats = summarizeActivityStats(allActivities, ranges)
 
     return {
-      total: {
-        activities: allActivities.length,
-        distance: totalDistance,
-        duration: totalDuration,
-        elevation: totalElevation,
-        averagePace: avgPace,
+      ...allStats,
+      byType: {
+        running: summarizeActivityStats(runningActivities, ranges),
+        cycling: summarizeActivityStats(cyclingActivities, ranges),
       },
-      thisWeek: {
-        activities: thisWeekCount,
-        distance: thisWeekDistance,
-        duration: thisWeekDuration,
-      },
-      lastWeek: {
-        activities: lastWeekCount,
-        distance: lastWeekDistance,
-        duration: lastWeekDuration,
-      },
-      thisMonth: {
-        activities: thisMonthCount,
-        distance: thisMonthDistance,
-        duration: thisMonthDuration,
-      },
-      lastMonth: {
-        activities: lastMonthCount,
-        distance: lastMonthDistance,
-        duration: lastMonthDuration,
-      },
-      weeklyTrend,
     }
   }),
 
@@ -448,6 +430,7 @@ export const activitiesRouter = createTRPCRouter({
       const result = await ctx.db
         .select({
           id: activities.id,
+          type: activities.type,
           routeCoordinates: activities.routeCoordinates,
           averagePace: activities.averagePace,
         })
@@ -464,6 +447,7 @@ export const activitiesRouter = createTRPCRouter({
 
           return {
             id: a.id,
+            type: a.type,
             coordinates,
             averagePace: a.averagePace,
           }

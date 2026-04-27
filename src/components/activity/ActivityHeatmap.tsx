@@ -1,7 +1,7 @@
 /**
  * ActivityHeatmap Component
  *
- * GitHub-style contribution heatmap for running activities
+ * GitHub-style contribution heatmap for activities
  * Features: Click interaction with Popover, streak statistics
  */
 
@@ -11,7 +11,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Flame, Trophy, X } from 'lucide-react'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import { cn } from '@/lib/utils'
 import type { ActivityListItem } from '@/types/activity'
@@ -48,7 +48,7 @@ function getIntensityColor(distance: number): string {
 }
 
 /**
- * Calculate current and longest running streaks
+ * Calculate current and longest activity streaks
  */
 function calculateStreaks(activities: ActivityListItem[]): StreakData {
   if (activities.length === 0) return { current: 0, longest: 0 }
@@ -286,7 +286,7 @@ function DayCell({
                       >
                         <div className="min-w-0 flex-1">
                           <div className="text-label truncate text-sm font-medium">
-                            {activity.title || '跑步'}
+                            {activity.title || '运动'}
                           </div>
                           <div className="text-label/50 text-xs">
                             {formatDuration(activity.duration)}
@@ -312,20 +312,15 @@ function DayCell({
 }
 
 export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps) {
-  const { weeks, monthLabels } = useMemo(() => generateCalendarData(activities), [activities])
-  const streaks = useMemo(() => calculateStreaks(activities), [activities])
+  const { weeks, monthLabels } = generateCalendarData(activities)
+  const streaks = calculateStreaks(activities)
 
   const today = new Date()
   const todayKey = today.toISOString().split('T')[0]
 
   // Calculate total stats for the period
-  const totalDistance = useMemo(() => {
-    return weeks.flat().reduce((sum, day) => sum + day.distance, 0)
-  }, [weeks])
-
-  const totalActivities = useMemo(() => {
-    return weeks.flat().reduce((sum, day) => sum + day.count, 0)
-  }, [weeks])
+  const totalDistance = weeks.flat().reduce((sum, day) => sum + day.distance, 0)
+  const totalActivities = weeks.flat().reduce((sum, day) => sum + day.count, 0)
 
   const dayLabels = ['日', '一', '二', '三', '四', '五', '六']
 

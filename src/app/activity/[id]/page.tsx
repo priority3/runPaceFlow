@@ -13,7 +13,7 @@ import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { PaceChart } from '@/components/activity/PaceChart'
@@ -28,7 +28,7 @@ import { springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import type { TrackPoint } from '@/lib/map/pace-utils'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
-import { formatDuration, formatPace } from '@/lib/pace/calculator'
+import { calculateSpeed, formatDuration, formatPace, paceToSpeed } from '@/lib/pace/calculator'
 import { formatDate, formatTime } from '@/lib/utils'
 import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
 import type { Split } from '@/types/activity'
@@ -110,14 +110,15 @@ export default function ActivityDetailPage() {
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
+    const frame = requestAnimationFrame(() => setIsMounted(true))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   // Parse GPX data in a Web Worker to avoid blocking the main thread
   const { trackPoints: parsedPoints, heartRateData } = useGpxParser(gpxData)
 
   // Derive map data from worker-parsed track points
-  const { paceSegments, kmMarkers, trackPoints, bounds } = useMemo(() => {
+  const { paceSegments, kmMarkers, trackPoints, bounds } = (() => {
     // Use worker-parsed points, or fall back to mock data for outdoor activities
     const points =
       parsedPoints.length > 0
@@ -153,24 +154,24 @@ export default function ActivityDetailPage() {
       trackPoints: points,
       bounds: mapBounds,
     }
-  }, [data, parsedPoints])
+  })()
 
   const startPoint = trackPoints[0]
   const endPoint = trackPoints.at(-1)
 
   // Get current point for animation
-  const currentPoint = useMemo(() => {
+  const currentPoint = (() => {
     if (trackPoints.length === 0 || animationProgress <= 0) return
     const totalDistance = trackPoints.at(-1)?.distance ?? 0
     if (totalDistance <= 0) return trackPoints[0]
 
     const targetDistance = (animationProgress / 100) * totalDistance
     return findTrackPointByDistance(trackPoints, targetDistance)
-  }, [trackPoints, animationProgress])
+  })()
 
   const paceProbePoint = currentPoint ?? startPoint
 
-  const currentPaceInfo = useMemo(() => {
+  const currentPaceInfo = (() => {
     if (!paceProbePoint) return
     for (let i = paceSegments.length - 1; i >= 0; i--) {
       const segment = paceSegments[i]
@@ -179,7 +180,7 @@ export default function ActivityDetailPage() {
       }
     }
     return
-  }, [paceProbePoint, paceSegments])
+  })()
 
   // Playback controls
   const handlePlayPause = () => {
@@ -236,6 +237,24 @@ export default function ActivityDetailPage() {
 
   const { activity, splits: activitySplits } = data
   const typeEmoji = activity.type === 'running' ? '🏃' : activity.type === 'cycling' ? '🚴' : '🚶'
+  const isCycling = activity.type === 'cycling'
+  const metricMode = isCycling ? 'speed' : 'pace'
+  const metricLabel = isCycling ? '速度' : '配速'
+  const primaryMetricVisible = isCycling
+    ? activity.distance > 0 && activity.duration > 0
+    : !!activity.averagePace
+  const primaryMetricValue = isCycling
+    ? calculateSpeed(activity.distance, activity.duration).toFixed(1)
+    : activity.averagePace
+      ? formatPace(activity.averagePace)
+      : ''
+  const primaryMetricUnit = isCycling ? 'km/h' : ''
+  const primaryMetricTitle = isCycling ? '均速' : '配速'
+  const metricTextClassName = isCycling ? 'text-orange' : 'text-blue'
+  const metricSubTextClassName = isCycling ? 'text-orange/60' : 'text-blue/60'
+  const bestMetricTitle = isCycling ? '最快速度' : '最快配速'
+  const bestMetricUnit = isCycling ? 'km/h' : '/km'
+  const noMetricDataText = isCycling ? '暂无速度数据' : '暂无配速数据'
 
   // Convert database splits to chart format
   const chartSplits = activitySplits.map((split: Split) => ({
@@ -334,7 +353,7 @@ export default function ActivityDetailPage() {
                     ) : (
                       <Fragment key="static">
                         <PaceRouteLayer segments={paceSegments} activityId={activityId} />
-                        <KilometerMarkers markers={kmMarkers} />
+                        <KilometerMarkers markers={kmMarkers} metric={metricMode} />
                       </Fragment>
                     )}
                   </RunMap>
@@ -350,6 +369,7 @@ export default function ActivityDetailPage() {
                     currentPaceColor={currentPaceInfo?.color}
                     isPlaying={isPlaying}
                     progress={animationProgress}
+                    metric={metricMode}
                   />
                 )}
               </div>
@@ -368,7 +388,7 @@ export default function ActivityDetailPage() {
             {/* Title and date */}
             <div className="min-w-0">
               <h1 className="text-label truncate text-xl font-semibold sm:text-2xl">
-                <span>{typeEmoji}</span> {activity.title || '跑步活动'}
+                <span>{`${typeEmoji} ${activity.title || '跑步活动'}`}</span>
               </h1>
               <p className="text-label/50 mt-1 text-sm">
                 {formatDate(activity.startTime)} {formatTime(activity.startTime)}
@@ -389,12 +409,19 @@ export default function ActivityDetailPage() {
                 </span>
                 <span className="text-label/50 text-xs">时长</span>
               </div>
-              {activity.averagePace && (
+              {primaryMetricVisible && (
                 <div className="flex flex-col items-center">
-                  <span className="text-blue text-lg font-semibold tabular-nums sm:text-xl">
-                    {formatPace(activity.averagePace)}
+                  <span
+                    className={`${metricTextClassName} text-lg font-semibold tabular-nums sm:text-xl`}
+                  >
+                    {primaryMetricValue}
+                    {primaryMetricUnit && (
+                      <span className={`${metricSubTextClassName} ml-1 text-xs`}>
+                        {primaryMetricUnit}
+                      </span>
+                    )}
                   </span>
-                  <span className="text-blue/60 text-xs">配速</span>
+                  <span className={`${metricSubTextClassName} text-xs`}>{primaryMetricTitle}</span>
                 </div>
               )}
               {activity.elevationGain !== null && activity.elevationGain > 0 && (
@@ -422,7 +449,7 @@ export default function ActivityDetailPage() {
         {debugMode !== 'basic' && (
           <AnimatedTabs defaultValue="pace" className="w-full">
             <TabsList className="mb-4 w-full justify-start overflow-x-auto">
-              <TabsTrigger value="pace">配速分析</TabsTrigger>
+              <TabsTrigger value="pace">{metricLabel}分析</TabsTrigger>
               {(heartRateData.length > 0 || activity.averageHeartRate) && (
                 <TabsTrigger value="heartrate">心率</TabsTrigger>
               )}
@@ -437,17 +464,22 @@ export default function ActivityDetailPage() {
               {chartSplits.length > 0 ? (
                 <div className="space-y-6">
                   <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                    <h3 className="text-label/80 mb-4 text-sm font-medium">每公里配速</h3>
-                    <PaceChart splits={chartSplits} averagePace={activity.averagePace || 360} />
+                    <h3 className="text-label/80 mb-4 text-sm font-medium">每公里{metricLabel}</h3>
+                    <PaceChart
+                      splits={chartSplits}
+                      averagePace={activity.averagePace || 360}
+                      metric={metricMode}
+                    />
                   </div>
                   <PaceDistribution
                     splits={chartSplits}
                     averagePace={activity.averagePace || 360}
+                    metric={metricMode}
                   />
                 </div>
               ) : (
                 <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
-                  暂无配速数据
+                  {noMetricDataText}
                 </div>
               )}
             </AnimatedTabsContent>
@@ -484,7 +516,7 @@ export default function ActivityDetailPage() {
               {chartSplits.length > 0 ? (
                 <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
                   <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
-                  <SplitsTable splits={chartSplits} />
+                  <SplitsTable splits={chartSplits} metric={metricMode} />
                 </div>
               ) : (
                 <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
@@ -527,10 +559,12 @@ export default function ActivityDetailPage() {
                     )}
                     {activity.bestPace && (
                       <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
-                        <div className="text-label/50 text-xs">最快配速</div>
+                        <div className="text-label/50 text-xs">{bestMetricTitle}</div>
                         <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
-                          {formatPace(activity.bestPace)}
-                          <span className="text-label/50 ml-1 text-sm">/km</span>
+                          {isCycling
+                            ? paceToSpeed(activity.bestPace).toFixed(1)
+                            : formatPace(activity.bestPace)}
+                          <span className="text-label/50 ml-1 text-sm">{bestMetricUnit}</span>
                         </div>
                       </div>
                     )}
@@ -547,7 +581,7 @@ export default function ActivityDetailPage() {
           activityTitle={activity.title || '跑步活动'}
           onExport={(format) => {
             // TODO: Implement export functionality
-            console.log('Export as:', format)
+            console.info('Export as:', format)
           }}
         />
       </div>

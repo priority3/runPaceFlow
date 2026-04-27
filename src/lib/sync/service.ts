@@ -6,6 +6,7 @@ import { generateId } from '@/lib/utils'
 
 import type { SyncAdapter } from './adapters/base'
 import { NikeAdapter } from './adapters/nike'
+import { StravaAdapter } from './adapters/strava'
 import { syncActivities } from './processor'
 import { cleanupRaceMatcher, initRaceMatcher } from './race-matcher'
 
@@ -47,18 +48,41 @@ export interface SyncResult {
 /**
  * 创建适配器实例
  * @param source 数据源
- * @param accessToken 访问令牌
+ * @param profile 用户配置
  * @returns 适配器实例
  */
-function createAdapter(source: SyncSource, accessToken: string): SyncAdapter {
+function createAdapter(
+  source: SyncSource,
+  profile: {
+    nikeAccessToken?: string | null
+    stravaAccessToken?: string | null
+    garminSecretString?: string | null
+  },
+): SyncAdapter {
   switch (source) {
     case 'nike': {
-      return new NikeAdapter(accessToken)
+      const accessToken = profile.nikeAccessToken || process.env.NIKE_ACCESS_TOKEN
+      const refreshToken = process.env.NIKE_REFRESH_TOKEN
+      const token = refreshToken || accessToken
+      if (!token) {
+        throw new Error('No token found for nike')
+      }
+      return refreshToken ? new NikeAdapter(refreshToken, refreshToken) : new NikeAdapter(token)
     }
     case 'strava': {
-      throw new Error('Strava adapter not implemented yet')
+      const clientId = process.env.STRAVA_CLIENT_ID
+      const clientSecret = process.env.STRAVA_CLIENT_SECRET
+      const refreshToken = process.env.STRAVA_REFRESH_TOKEN || profile.stravaAccessToken
+      if (!clientId || !clientSecret || !refreshToken) {
+        throw new Error('No OAuth credentials found for strava')
+      }
+      return new StravaAdapter(clientId, clientSecret, refreshToken)
     }
     case 'garmin': {
+      const accessToken = profile.garminSecretString || process.env.GARMIN_SECRET_STRING
+      if (!accessToken) {
+        throw new Error('No secret string found for garmin')
+      }
       throw new Error('Garmin adapter not implemented yet')
     }
     default: {
@@ -90,16 +114,11 @@ export async function performSync(options: SyncOptions): Promise<SyncResult> {
     // 初始化赛事匹配器（启动 Playwright 浏览器）
     await initRaceMatcher()
 
-    // 获取访问令牌
+    // 获取用户配置
     const profile = await getUserProfile()
-    const accessToken = getAccessToken(profile, source)
-
-    if (!accessToken) {
-      throw new Error(`No access token found for ${source}`)
-    }
 
     // 创建适配器
-    const adapter = createAdapter(source, accessToken)
+    const adapter = createAdapter(source, profile)
 
     // 健康检查
     const isHealthy = await adapter.healthCheck()
@@ -190,33 +209,6 @@ async function getUserProfile() {
 }
 
 /**
- * 获取访问令牌
- */
-function getAccessToken(
-  profile: {
-    nikeAccessToken?: string | null
-    stravaAccessToken?: string | null
-    garminSecretString?: string | null
-  },
-  source: SyncSource,
-): string | null {
-  switch (source) {
-    case 'nike': {
-      return profile.nikeAccessToken || process.env.NIKE_ACCESS_TOKEN || null
-    }
-    case 'strava': {
-      return profile.stravaAccessToken || process.env.STRAVA_ACCESS_TOKEN || null
-    }
-    case 'garmin': {
-      return profile.garminSecretString || process.env.GARMIN_SECRET_STRING || null
-    }
-    default: {
-      return null
-    }
-  }
-}
-
-/**
  * 更新最后同步时间
  */
 async function updateLastSyncTime(source: SyncSource): Promise<void> {
@@ -250,14 +242,7 @@ export async function getSyncHistory(limit = 10) {
 export async function testConnection(source: SyncSource): Promise<boolean> {
   try {
     const profile = await getUserProfile()
-    const accessToken = getAccessToken(profile, source)
-
-    if (!accessToken) {
-      console.error(`No access token found for ${source}`)
-      return false
-    }
-
-    const adapter = createAdapter(source, accessToken)
+    const adapter = createAdapter(source, profile)
     return await adapter.healthCheck()
   } catch (error) {
     console.error(`Connection test failed for ${source}:`, error)

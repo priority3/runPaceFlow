@@ -6,12 +6,15 @@
 
 'use client'
 
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { motion } from 'framer-motion'
 import {
+  Bike,
   Calendar,
   ChevronRight,
   Clock,
   Flame,
+  Footprints,
   Gauge,
   Home,
   Mountain,
@@ -20,15 +23,14 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useCallback } from 'react'
 import type { RefObject } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { useCallback } from 'react'
 
 import { RippleContainer } from '@/components/ui/ripple'
 import { layoutTransition, springs } from '@/lib/animation'
-import { calculatePace, formatDuration, formatPace } from '@/lib/pace/calculator'
-import { cn } from '@/lib/utils'
+import { calculatePace, calculateSpeed, formatDuration, formatPace } from '@/lib/pace/calculator'
 import { trpc } from '@/lib/trpc/client'
+import { cn } from '@/lib/utils'
 import type { ActivityListItem } from '@/types/activity'
 
 /**
@@ -106,6 +108,14 @@ function formatDateWithWeekday(date: Date): string {
  * Generate activity title with emoji badges for 5K/10K
  */
 function getSmartActivityTitle(activity: ActivityListItem): string {
+  if (activity.type === 'cycling') {
+    return activity.title || '骑行活动'
+  }
+
+  if (activity.type !== 'running') {
+    return activity.title || '运动活动'
+  }
+
   // If has race name, use it
   if (activity.raceName) {
     return activity.raceName
@@ -128,6 +138,33 @@ function getSmartActivityTitle(activity: ActivityListItem): string {
   }
 
   return activity.title || '跑步活动'
+}
+
+function getActivityTypeMeta(type: string) {
+  if (type === 'cycling') {
+    return {
+      label: '骑行',
+      icon: Bike,
+      className: 'bg-green/10 text-green',
+      metricClassName: 'text-green',
+    }
+  }
+
+  if (type === 'running') {
+    return {
+      label: '跑步',
+      icon: Footprints,
+      className: 'bg-blue/10 text-blue',
+      metricClassName: 'text-blue',
+    }
+  }
+
+  return {
+    label: '运动',
+    icon: TrendingUp,
+    className: 'bg-gray/10 text-label/60',
+    metricClassName: 'text-blue',
+  }
 }
 
 /**
@@ -154,7 +191,9 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
   const longestActivity = activities.reduce((max, a) => (a.distance > max.distance ? a : max))
 
   // Find fastest pace (lowest pace value = fastest)
-  const activitiesWithPace = activities.filter((a) => a.averagePace && a.averagePace > 0)
+  const activitiesWithPace = activities.filter(
+    (a) => a.type === 'running' && a.averagePace && a.averagePace > 0,
+  )
   const fastestActivity =
     activitiesWithPace.length > 0
       ? activitiesWithPace.reduce((min, a) =>
@@ -236,6 +275,13 @@ export function ActivityTable({
     [trpcUtils],
   )
 
+  const rowVirtualizer = useVirtualizer({
+    count: activities.length,
+    getScrollElement: () => scrollRef?.current ?? null,
+    estimateSize: () => 128,
+    overscan: 6,
+  })
+
   if (activities.length === 0) {
     return (
       <motion.div
@@ -257,127 +303,150 @@ export function ActivityTable({
     )
   }
 
-  const renderRow = (activity: ActivityListItem) => (
-    <motion.div
-      key={activity.id}
-      layoutId={`activity-card-${activity.id}`}
-      layout="position"
-      transition={layoutTransition}
-      variants={itemVariants}
-      className="group"
-    >
-      <Link href={`/activity/${activity.id}`} onMouseEnter={() => handleMouseEnter(activity.id)}>
-        <RippleContainer className="rounded-xl" color="rgba(0, 0, 0, 0.08)">
-          <motion.div
-            className="rounded-xl border-0 bg-transparent px-5 py-4 transition-colors duration-150 hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            transition={springs.snappy}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                {/* Title with achievement badges */}
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-label truncate font-medium">
-                      {getSmartActivityTitle(activity)}
-                    </h3>
-                    {/* Show original title as subtitle if using smart title or race name */}
-                    {activity.raceName &&
-                      activity.title &&
-                      activity.raceName !== activity.title && (
-                        <p className="text-label/50 mt-0.5 truncate text-xs">{activity.title}</p>
-                      )}
-                  </div>
-                  {/* Indoor badge */}
-                  {activity.isIndoor && (
-                    <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
-                      <Home className="h-3 w-3" />
-                      室内
-                    </span>
-                  )}
-                  {/* Achievement badges */}
-                  {achievements.get(activity.id)?.map((achievement) => (
+  const renderRow = (activity: ActivityListItem) => {
+    const typeMeta = getActivityTypeMeta(activity.type)
+    const TypeIcon = typeMeta.icon
+    const isCycling = activity.type === 'cycling'
+    const metricValue = isCycling
+      ? calculateSpeed(activity.distance, activity.duration).toFixed(1)
+      : activity.averagePace
+        ? formatPace(activity.averagePace)
+        : formatPace(calculatePace(activity.distance, activity.duration))
+    const metricUnit = isCycling ? 'km/h' : '/km'
+
+    return (
+      <motion.div
+        key={activity.id}
+        layoutId={`activity-card-${activity.id}`}
+        layout="position"
+        transition={layoutTransition}
+        variants={itemVariants}
+        className="group"
+      >
+        <Link href={`/activity/${activity.id}`} onMouseEnter={() => handleMouseEnter(activity.id)}>
+          <RippleContainer className="rounded-xl" color="rgba(0, 0, 0, 0.08)">
+            <motion.div
+              className="rounded-xl border-0 bg-transparent px-5 py-4 transition-colors duration-150 hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  {/* Title with achievement badges */}
+                  <div className="mb-2 flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-label truncate font-medium">
+                        {getSmartActivityTitle(activity)}
+                      </h3>
+                      {/* Show original title as subtitle if using smart title or race name */}
+                      {activity.raceName &&
+                        activity.title &&
+                        activity.raceName !== activity.title && (
+                          <p className="text-label/50 mt-0.5 truncate text-xs">{activity.title}</p>
+                        )}
+                    </div>
                     <span
-                      key={achievement.type}
-                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${achievement.color}`}
+                      className={cn(
+                        'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                        typeMeta.className,
+                      )}
                     >
-                      {achievement.icon}
-                      {achievement.label}
+                      <TypeIcon className="h-3 w-3" />
+                      {typeMeta.label}
                     </span>
-                  ))}
-                </div>
-
-                {/* Stats row */}
-                <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
-                  {/* Distance */}
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="text-label/30 h-3.5 w-3.5" />
-                    <span className="text-label/80 tabular-nums">
-                      {(activity.distance / 1000).toFixed(2)}
-                    </span>
-                    <span className="text-label/50">km</span>
-                  </div>
-
-                  {/* Duration */}
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="text-label/30 h-3.5 w-3.5" />
-                    <span className="text-label/80 tabular-nums">
-                      {formatDuration(activity.duration)}
-                    </span>
-                  </div>
-
-                  {/* Pace - Always show, calculate if not available */}
-                  <div className="flex items-center gap-1.5">
-                    <Gauge className="text-blue/60 h-3.5 w-3.5" />
-                    <span className="text-blue font-medium tabular-nums">
-                      {activity.averagePace
-                        ? formatPace(activity.averagePace)
-                        : formatPace(calculatePace(activity.distance, activity.duration))}
-                    </span>
-                    <span className="text-blue/60">/km</span>
-                  </div>
-
-                  {/* Elevation */}
-                  {activity.elevationGain && activity.elevationGain > 0 && (
-                    <div className="hidden items-center gap-1.5 sm:flex">
-                      <Mountain className="text-label/30 h-3.5 w-3.5" />
-                      <span className="text-label/80 tabular-nums">
-                        {Math.round(activity.elevationGain)}
+                    {/* Indoor badge */}
+                    {activity.isIndoor && (
+                      <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                        <Home className="h-3 w-3" />
+                        室内
                       </span>
-                      <span className="text-label/50">m</span>
-                    </div>
-                  )}
+                    )}
+                    {/* Achievement badges */}
+                    {achievements.get(activity.id)?.map((achievement) => (
+                      <span
+                        key={achievement.type}
+                        className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${achievement.color}`}
+                      >
+                        {achievement.icon}
+                        {achievement.label}
+                      </span>
+                    ))}
+                  </div>
 
-                  {/* Weather */}
-                  {activity.weatherData && (
+                  {/* Stats row */}
+                  <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
+                    {/* Distance */}
                     <div className="flex items-center gap-1.5">
+                      <TrendingUp className="text-label/30 h-3.5 w-3.5" />
                       <span className="text-label/80 tabular-nums">
-                        {getWeatherLabel(activity.weatherData)}
+                        {(activity.distance / 1000).toFixed(2)}
+                      </span>
+                      <span className="text-label/50">km</span>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="text-label/30 h-3.5 w-3.5" />
+                      <span className="text-label/80 tabular-nums">
+                        {formatDuration(activity.duration)}
                       </span>
                     </div>
-                  )}
 
-                  {/* Date with weekday */}
-                  <div className="ml-auto flex items-center gap-1.5">
-                    <Calendar className="text-label/30 h-3.5 w-3.5" />
-                    <span className="text-label/50">
-                      {formatDateWithWeekday(new Date(activity.startTime))}
-                    </span>
+                    {/* Pace or speed */}
+                    <div className="flex items-center gap-1.5">
+                      <Gauge
+                        className={cn('h-3.5 w-3.5', typeMeta.metricClassName, 'opacity-60')}
+                      />
+                      <span className={cn('font-medium tabular-nums', typeMeta.metricClassName)}>
+                        {metricValue}
+                      </span>
+                      <span className={cn(typeMeta.metricClassName, 'opacity-60')}>
+                        {metricUnit}
+                      </span>
+                    </div>
+
+                    {/* Elevation */}
+                    {activity.elevationGain && activity.elevationGain > 0 && (
+                      <div className="hidden items-center gap-1.5 sm:flex">
+                        <Mountain className="text-label/30 h-3.5 w-3.5" />
+                        <span className="text-label/80 tabular-nums">
+                          {Math.round(activity.elevationGain)}
+                        </span>
+                        <span className="text-label/50">m</span>
+                      </div>
+                    )}
+
+                    {/* Weather */}
+                    {activity.weatherData && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-label/80 tabular-nums">
+                          {getWeatherLabel(activity.weatherData)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Date with weekday */}
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <Calendar className="text-label/30 h-3.5 w-3.5" />
+                      <span className="text-label/50">
+                        {formatDateWithWeekday(new Date(activity.startTime))}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Arrow with hover animation */}
-              <motion.div initial={false} whileHover={{ x: 4 }} transition={springs.snappy}>
-                <ChevronRight className="text-label/30 group-hover:text-label/50 h-5 w-5 flex-shrink-0 transition-colors duration-150" />
-              </motion.div>
-            </div>
-          </motion.div>
-        </RippleContainer>
-      </Link>
-    </motion.div>
-  )
+                {/* Arrow with hover animation */}
+                <motion.div initial={false} whileHover={{ x: 4 }} transition={springs.snappy}>
+                  <ChevronRight className="text-label/30 group-hover:text-label/50 h-5 w-5 flex-shrink-0 transition-colors duration-150" />
+                </motion.div>
+              </div>
+            </motion.div>
+          </RippleContainer>
+        </Link>
+      </motion.div>
+    )
+  }
 
   if (!virtualized || !scrollRef) {
     return (
@@ -391,13 +460,6 @@ export function ActivityTable({
       </motion.div>
     )
   }
-
-  const rowVirtualizer = useVirtualizer({
-    count: activities.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => 128,
-    overscan: 6,
-  })
 
   return (
     <div className={cn('relative', className)} style={{ height: rowVirtualizer.getTotalSize() }}>
