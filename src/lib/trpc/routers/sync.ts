@@ -8,6 +8,7 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
+import { getRuntimeSettings } from '@/lib/runtime-config/server'
 import { NikeAdapter } from '@/lib/sync/adapters/nike'
 import { StravaAdapter } from '@/lib/sync/adapters/strava'
 import { syncActivities } from '@/lib/sync/processor'
@@ -26,8 +27,9 @@ export const syncRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       // 优先使用 refresh_token（可自动刷新）
-      const refreshToken = process.env.NIKE_REFRESH_TOKEN
-      const accessToken = process.env.NIKE_ACCESS_TOKEN
+      const settings = await getRuntimeSettings({ force: true })
+      const refreshToken = settings.NIKE_REFRESH_TOKEN
+      const accessToken = settings.NIKE_ACCESS_TOKEN
 
       if (!refreshToken && !accessToken) {
         throw new Error(
@@ -76,9 +78,10 @@ export const syncRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      const clientId = process.env.STRAVA_CLIENT_ID
-      const clientSecret = process.env.STRAVA_CLIENT_SECRET
-      const refreshToken = process.env.STRAVA_REFRESH_TOKEN
+      const settings = await getRuntimeSettings({ force: true })
+      const clientId = settings.STRAVA_CLIENT_ID
+      const clientSecret = settings.STRAVA_CLIENT_SECRET
+      const refreshToken = settings.STRAVA_REFRESH_TOKEN
 
       if (!clientId || !clientSecret || !refreshToken) {
         throw new Error(
@@ -124,6 +127,8 @@ export const syncRouter = createTRPCRouter({
    * Get sync status
    */
   getSyncStatus: publicProcedure.query(async ({ ctx }) => {
+    const settings = await getRuntimeSettings()
+
     // 从数据库获取最新的同步日志
     const { syncLogs } = await import('@/lib/db/schema')
     const { desc } = await import('drizzle-orm')
@@ -146,15 +151,15 @@ export const syncRouter = createTRPCRouter({
 
     return {
       nike: {
-        hasToken: !!(process.env.NIKE_REFRESH_TOKEN || process.env.NIKE_ACCESS_TOKEN),
-        hasRefreshToken: !!process.env.NIKE_REFRESH_TOKEN,
+        hasToken: !!(settings.NIKE_REFRESH_TOKEN || settings.NIKE_ACCESS_TOKEN),
+        hasRefreshToken: !!settings.NIKE_REFRESH_TOKEN,
         latestSync: latestNikeLog[0] || null,
       },
       strava: {
         hasCredentials: !!(
-          process.env.STRAVA_CLIENT_ID &&
-          process.env.STRAVA_CLIENT_SECRET &&
-          process.env.STRAVA_REFRESH_TOKEN
+          settings.STRAVA_CLIENT_ID &&
+          settings.STRAVA_CLIENT_SECRET &&
+          settings.STRAVA_REFRESH_TOKEN
         ),
         latestSync: latestStravaLog[0] || null,
       },

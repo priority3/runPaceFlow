@@ -13,7 +13,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 import { streamActivityInsight } from '@/lib/ai/provider'
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { activities, activityInsights, splits } from '@/lib/db/schema'
 
 function generateInsightId(): string {
@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
   if (!activityId || typeof activityId !== 'string') {
     return NextResponse.json({ error: 'activityId is required' }, { status: 400 })
   }
+
+  const db = await getDb()
 
   // Fetch activity and splits from DB
   const activity = await db.select().from(activities).where(eq(activities.id, activityId)).limit(1)

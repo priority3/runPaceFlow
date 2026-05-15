@@ -8,7 +8,7 @@
 import { initTRPC } from '@trpc/server'
 import superjson from 'superjson'
 
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 
 /**
  * Create the tRPC context
@@ -17,7 +17,7 @@ import { db } from '@/lib/db'
  */
 export const createTRPCContext = async () => {
   return {
-    db,
+    db: await getDb(),
   }
 }
 

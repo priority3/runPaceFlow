@@ -11,37 +11,33 @@
 
 import OpenAI from 'openai'
 
+import { getRuntimeSettings } from '@/lib/runtime-config/server'
+
 import { buildSystemPrompt, buildUserPrompt } from './prompts'
 import type { ActivityInsightInput, AIGenerationResult, AIProvider, AIStreamResult } from './types'
 import { OPENAI_DEFAULT_MODEL } from './types'
 
-// Lazy initialization to avoid issues during build
-let openaiClient: OpenAI | null = null
-
-function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is not set')
-    }
-
-    const baseURL = process.env.OPENAI_BASE_URL
-
-    openaiClient = new OpenAI({
-      apiKey,
-      // Reason: Custom baseURL enables third-party services like DeepSeek, Tongyi, etc.
-      ...(baseURL && { baseURL }),
-    })
+async function getOpenAIConfig() {
+  const settings = await getRuntimeSettings({ force: true })
+  const apiKey = settings.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set')
   }
-  return openaiClient
+
+  return {
+    apiKey,
+    baseURL: settings.OPENAI_BASE_URL,
+    model: settings.OPENAI_MODEL || OPENAI_DEFAULT_MODEL,
+    useResponsesAPI: settings.OPENAI_API_FORMAT === 'responses',
+  }
 }
 
-function getModelName(): string {
-  return process.env.OPENAI_MODEL || OPENAI_DEFAULT_MODEL
-}
-
-function useResponsesAPI(): boolean {
-  return process.env.OPENAI_API_FORMAT === 'responses'
+function getOpenAIClient(config: Awaited<ReturnType<typeof getOpenAIConfig>>): OpenAI {
+  return new OpenAI({
+    apiKey: config.apiKey,
+    // Reason: Custom baseURL enables third-party services like DeepSeek, Tongyi, etc.
+    ...(config.baseURL && { baseURL: config.baseURL }),
+  })
 }
 
 /**
@@ -188,19 +184,21 @@ async function streamViaResponsesAPI(
 export const openaiProvider: AIProvider = {
   name: 'OpenAI-Compatible',
 
-  isAvailable(): boolean {
-    return !!process.env.OPENAI_API_KEY
+  async isAvailable(): Promise<boolean> {
+    const settings = await getRuntimeSettings()
+    return !!settings.OPENAI_API_KEY
   },
 
   async generateInsight(input: ActivityInsightInput): Promise<AIGenerationResult> {
-    const client = getOpenAIClient()
-    const model = getModelName()
+    const config = await getOpenAIConfig()
+    const client = getOpenAIClient(config)
+    const { model } = config
 
     const systemPrompt = buildSystemPrompt()
     const userPrompt = buildUserPrompt(input)
 
     try {
-      if (useResponsesAPI()) {
+      if (config.useResponsesAPI) {
         return await generateViaResponsesAPI(client, model, systemPrompt, userPrompt)
       }
       return await generateViaChatCompletions(client, model, systemPrompt, userPrompt)
@@ -213,14 +211,15 @@ export const openaiProvider: AIProvider = {
   },
 
   async streamInsight(input: ActivityInsightInput): Promise<AIStreamResult> {
-    const client = getOpenAIClient()
-    const model = getModelName()
+    const config = await getOpenAIConfig()
+    const client = getOpenAIClient(config)
+    const { model } = config
 
     const systemPrompt = buildSystemPrompt()
     const userPrompt = buildUserPrompt(input)
 
     try {
-      if (useResponsesAPI()) {
+      if (config.useResponsesAPI) {
         return await streamViaResponsesAPI(client, model, systemPrompt, userPrompt)
       }
       return await streamViaChatCompletions(client, model, systemPrompt, userPrompt)

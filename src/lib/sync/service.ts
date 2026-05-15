@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { syncLogs, userProfile } from '@/lib/db/schema'
+import { getRuntimeSettings } from '@/lib/runtime-config/server'
 import { generateId } from '@/lib/utils'
 
 import type { SyncAdapter } from './adapters/base'
@@ -58,11 +59,12 @@ function createAdapter(
     stravaAccessToken?: string | null
     garminSecretString?: string | null
   },
+  settings: Record<string, string>,
 ): SyncAdapter {
   switch (source) {
     case 'nike': {
-      const accessToken = profile.nikeAccessToken || process.env.NIKE_ACCESS_TOKEN
-      const refreshToken = process.env.NIKE_REFRESH_TOKEN
+      const accessToken = profile.nikeAccessToken || settings.NIKE_ACCESS_TOKEN
+      const refreshToken = settings.NIKE_REFRESH_TOKEN
       const token = refreshToken || accessToken
       if (!token) {
         throw new Error('No token found for nike')
@@ -70,9 +72,9 @@ function createAdapter(
       return refreshToken ? new NikeAdapter(refreshToken, refreshToken) : new NikeAdapter(token)
     }
     case 'strava': {
-      const clientId = process.env.STRAVA_CLIENT_ID
-      const clientSecret = process.env.STRAVA_CLIENT_SECRET
-      const refreshToken = process.env.STRAVA_REFRESH_TOKEN || profile.stravaAccessToken
+      const clientId = settings.STRAVA_CLIENT_ID
+      const clientSecret = settings.STRAVA_CLIENT_SECRET
+      const refreshToken = settings.STRAVA_REFRESH_TOKEN || profile.stravaAccessToken
       if (!clientId || !clientSecret || !refreshToken) {
         throw new Error('No OAuth credentials found for strava')
       }
@@ -98,6 +100,8 @@ function createAdapter(
  */
 export async function performSync(options: SyncOptions): Promise<SyncResult> {
   const { source, startDate, endDate, limit } = options
+  const db = await getDb()
+  const settings = await getRuntimeSettings({ force: true })
 
   // 创建同步日志
   const logId = generateId('log')
@@ -118,7 +122,7 @@ export async function performSync(options: SyncOptions): Promise<SyncResult> {
     const profile = await getUserProfile()
 
     // 创建适配器
-    const adapter = createAdapter(source, profile)
+    const adapter = createAdapter(source, profile, settings)
 
     // 健康检查
     const isHealthy = await adapter.healthCheck()
@@ -190,6 +194,7 @@ export async function performSync(options: SyncOptions): Promise<SyncResult> {
  * 获取用户配置
  */
 async function getUserProfile() {
+  const db = await getDb()
   const profiles = await db.select().from(userProfile).limit(1)
 
   if (profiles.length === 0) {
@@ -212,6 +217,7 @@ async function getUserProfile() {
  * 更新最后同步时间
  */
 async function updateLastSyncTime(source: SyncSource): Promise<void> {
+  const db = await getDb()
   const profiles = await db.select().from(userProfile).limit(1)
 
   if (profiles.length > 0) {
@@ -231,6 +237,7 @@ async function updateLastSyncTime(source: SyncSource): Promise<void> {
  * @returns 同步日志列表
  */
 export async function getSyncHistory(limit = 10) {
+  const db = await getDb()
   return await db.select().from(syncLogs).orderBy(syncLogs.startedAt).limit(limit)
 }
 
@@ -242,7 +249,8 @@ export async function getSyncHistory(limit = 10) {
 export async function testConnection(source: SyncSource): Promise<boolean> {
   try {
     const profile = await getUserProfile()
-    const adapter = createAdapter(source, profile)
+    const settings = await getRuntimeSettings({ force: true })
+    const adapter = createAdapter(source, profile, settings)
     return await adapter.healthCheck()
   } catch (error) {
     console.error(`Connection test failed for ${source}:`, error)

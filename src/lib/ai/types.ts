@@ -103,7 +103,7 @@ export interface AIStreamResult {
  */
 export interface AIProvider {
   name: string
-  isAvailable: () => boolean
+  isAvailable: () => boolean | Promise<boolean>
   generateInsight: (input: ActivityInsightInput) => Promise<AIGenerationResult>
   streamInsight?: (input: ActivityInsightInput) => Promise<AIStreamResult>
 }

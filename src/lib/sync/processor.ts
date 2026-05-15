@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { activities, splits } from '@/lib/db/schema'
 import { calculatePace } from '@/lib/pace/calculator'
 import { generateId } from '@/lib/utils'
@@ -28,6 +28,8 @@ import { extractCoordinatesFromGPX, matchRaceForActivity } from './race-matcher'
  */
 export async function syncActivity(rawActivity: RawActivity): Promise<string> {
   try {
+    const db = await getDb()
+
     // 检查活动是否已存在
     const existing = await db
       .select()
@@ -167,6 +169,7 @@ async function generateSplits(
   points: Array<{ lat: number; lon: number; time?: Date; ele?: number; hr?: number }>,
 ): Promise<void> {
   if (points.length < 2) return
+  const db = await getDb()
 
   const splitRecords: Array<{
     id: string
@@ -259,6 +262,7 @@ async function generateAverageSplits(
 ): Promise<void> {
   const kmCount = Math.floor(totalDistance / 1000)
   if (kmCount === 0) return
+  const db = await getDb()
 
   const splitRecords = []
   const avgSplitDuration = Math.round(totalDuration / (totalDistance / 1000))
@@ -299,6 +303,7 @@ export interface BackfillWeatherResult {
  * @param delayMs 请求间隔（毫秒），避免 Open-Meteo 限流
  */
 export async function backfillMissingWeather(delayMs = 1000): Promise<BackfillWeatherResult> {
+  const db = await getDb()
   const allActivities = await db.select().from(activities).all()
 
   const eligible = allActivities.filter(
@@ -358,6 +363,7 @@ export async function backfillMissingWeather(delayMs = 1000): Promise<BackfillWe
  * @param activityId 活动 ID
  */
 export async function deleteActivity(activityId: string): Promise<void> {
+  const db = await getDb()
   await db.delete(activities).where(eq(activities.id, activityId))
   console.info(`Deleted activity ${activityId}`)
 }

@@ -7,13 +7,15 @@
  * Usage: bun run scripts/backfill-route-coordinates.ts
  */
 
-import { eq, isNull, and, isNotNull } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull } from 'drizzle-orm'
 
-import { db } from '../src/lib/db/client'
+import { getDb } from '../src/lib/db/client'
 import { activities } from '../src/lib/db/schema'
 import { extractRouteCoordinatesJSON } from '../src/lib/sync/parser'
 
 async function main() {
+  const db = await getDb()
+
   console.log('Starting route_coordinates backfill...\n')
 
   // Find activities that have GPX data but no route_coordinates yet

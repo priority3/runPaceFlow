@@ -7,7 +7,7 @@
 
 import { eq } from 'drizzle-orm'
 
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 import { activities } from '@/lib/db/schema'
 import {
   cleanupRaceMatcher,
@@ -20,6 +20,8 @@ async function backfillRaceNames() {
   console.info('🏃 Starting race name backfill...\n')
 
   try {
+    const db = await getDb()
+
     // Initialize race matcher browser
     await initRaceMatcher()
 

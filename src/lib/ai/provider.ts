@@ -12,6 +12,17 @@ import type { ActivityInsightInput, AIGenerationResult, AIProvider, AIStreamResu
 // Reason: Order matters — Claude is primary, OpenAI-compatible is fallback
 const providers: AIProvider[] = [claudeProvider, openaiProvider]
 
+async function getAvailableProviders() {
+  const availability = await Promise.all(
+    providers.map(async (provider) => ({
+      available: await provider.isAvailable(),
+      provider,
+    })),
+  )
+
+  return availability.filter((item) => item.available).map((item) => item.provider)
+}
+
 /**
  * Generate activity insight using available AI providers with fallback.
  *
@@ -21,7 +32,7 @@ const providers: AIProvider[] = [claudeProvider, openaiProvider]
 export async function generateActivityInsight(
   input: ActivityInsightInput,
 ): Promise<AIGenerationResult> {
-  const availableProviders = providers.filter((p) => p.isAvailable())
+  const availableProviders = await getAvailableProviders()
 
   if (availableProviders.length === 0) {
     throw new Error(
@@ -53,7 +64,7 @@ export async function generateActivityInsight(
  * if the provider doesn't support streaming.
  */
 export async function streamActivityInsight(input: ActivityInsightInput): Promise<AIStreamResult> {
-  const availableProviders = providers.filter((p) => p.isAvailable())
+  const availableProviders = await getAvailableProviders()
 
   if (availableProviders.length === 0) {
     throw new Error(

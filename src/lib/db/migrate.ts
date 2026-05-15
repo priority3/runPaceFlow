@@ -5,7 +5,7 @@
 
 import { migrate } from 'drizzle-orm/libsql/migrator'
 
-import { db } from '@/lib/db'
+import { getDb } from '@/lib/db'
 
 /**
  * Run database migrations
@@ -13,6 +13,7 @@ import { db } from '@/lib/db'
  * Tracked by the __drizzle_migrations table — already-applied migrations are skipped.
  */
 export async function runMigrations() {
+  const db = await getDb()
   await migrate(db, { migrationsFolder: './drizzle' })
 }
 

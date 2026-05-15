@@ -6,40 +6,36 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 
+import { getRuntimeSettings } from '@/lib/runtime-config/server'
+
 import { buildSystemPrompt, buildUserPrompt } from './prompts'
 import type { ActivityInsightInput, AIGenerationResult, AIProvider, AIStreamResult } from './types'
 import { CLAUDE_MODEL } from './types'
 
-// Lazy initialization to avoid issues during build
-let claudeClient: Anthropic | null = null
-
-function getClaudeClient(): Anthropic {
-  if (!claudeClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is not set')
-    }
-
-    const baseURL = process.env.ANTHROPIC_BASE_URL
-
-    claudeClient = new Anthropic({
-      apiKey,
-      // Support custom base URL for proxy or alternative endpoints
-      ...(baseURL && { baseURL }),
-    })
+async function getClaudeClient(): Promise<Anthropic> {
+  const settings = await getRuntimeSettings({ force: true })
+  const apiKey = settings.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is not set')
   }
-  return claudeClient
+
+  return new Anthropic({
+    apiKey,
+    // Support custom base URL for proxy or alternative endpoints
+    ...(settings.ANTHROPIC_BASE_URL && { baseURL: settings.ANTHROPIC_BASE_URL }),
+  })
 }
 
 export const claudeProvider: AIProvider = {
   name: 'Claude',
 
-  isAvailable(): boolean {
-    return !!process.env.ANTHROPIC_API_KEY
+  async isAvailable(): Promise<boolean> {
+    const settings = await getRuntimeSettings()
+    return !!settings.ANTHROPIC_API_KEY
   },
 
   async generateInsight(input: ActivityInsightInput): Promise<AIGenerationResult> {
-    const client = getClaudeClient()
+    const client = await getClaudeClient()
 
     const systemPrompt = buildSystemPrompt()
     const userPrompt = buildUserPrompt(input)
@@ -83,7 +79,7 @@ export const claudeProvider: AIProvider = {
   },
 
   async streamInsight(input: ActivityInsightInput): Promise<AIStreamResult> {
-    const client = getClaudeClient()
+    const client = await getClaudeClient()
 
     const systemPrompt = buildSystemPrompt()
     const userPrompt = buildUserPrompt(input)

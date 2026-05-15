@@ -67,12 +67,11 @@ export interface RunMapProps {
   enableFullscreen?: boolean
   /** Auto-load map without requiring user click (default: true) */
   autoLoad?: boolean
+  /** Runtime map style URL from the config center */
+  mapStyleUrl?: string
 }
 
-// Use environment variable or fallback to a clean, minimal style
-const MAP_STYLE =
-  process.env.NEXT_PUBLIC_MAP_STYLE ||
-  'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
+const DEFAULT_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
 
 // "No basemap" fallback style. This avoids external tile/style requests
 // and guarantees the route still renders even if a CDN is blocked.
@@ -106,6 +105,7 @@ export function RunMap({
   showSkeleton = true,
   enableFullscreen = true,
   autoLoad = true,
+  mapStyleUrl,
 }: RunMapProps) {
   const mapRef = useRef<MapRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -115,7 +115,8 @@ export function RunMap({
   const [webglUnavailable, setWebglUnavailable] = useState(false)
   // Map mounts immediately by default; set autoLoad=false to use click-to-load mode.
   const [shouldMount, setShouldMount] = useState(autoLoad)
-  const [mapStyle, setMapStyle] = useState<string | StyleSpecification>(MAP_STYLE)
+  const configuredMapStyle = mapStyleUrl || DEFAULT_MAP_STYLE
+  const [mapStyle, setMapStyle] = useState<string | StyleSpecification>(configuredMapStyle)
   const [fallbackStyleActive, setFallbackStyleActive] = useState(false)
   const [lastStyleError, setLastStyleError] = useState<string | null>(null)
 
@@ -125,6 +126,12 @@ export function RunMap({
       setWebglUnavailable(true)
     }
   }, [])
+
+  useEffect(() => {
+    setFallbackStyleActive(false)
+    setLastStyleError(null)
+    setMapStyle(configuredMapStyle)
+  }, [configuredMapStyle])
 
   // Generate a key for current bounds
   const boundsKey = bounds
@@ -243,8 +250,8 @@ export function RunMap({
     setFallbackStyleActive(false)
     setLastStyleError(null)
     setIsMapLoaded(false)
-    setMapStyle(MAP_STYLE)
-  }, [])
+    setMapStyle(configuredMapStyle)
+  }, [configuredMapStyle])
 
   const handleLoad = useCallback(() => {
     setIsMapLoaded(true)
@@ -281,7 +288,7 @@ export function RunMap({
   // Throwing on any error makes the map unusable on networks where the basemap CDN is blocked.
   const handleError = useCallback(
     (evt: { error: Error }) => {
-      const error = evt.error
+      const { error } = evt
       console.error('[RunMap] MapLibre error:', error)
 
       if (shouldTreatAsFatal(error)) {

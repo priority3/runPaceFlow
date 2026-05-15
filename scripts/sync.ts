@@ -14,22 +14,14 @@
 import type { SQL } from 'drizzle-orm'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 
-import { db } from '../src/lib/db'
+import { getDb } from '../src/lib/db'
 import { runMigrations } from '../src/lib/db/migrate'
 import { activities } from '../src/lib/db/schema'
+import { getRuntimeSettings } from '../src/lib/runtime-config/server'
 import { NikeAdapter } from '../src/lib/sync/adapters/nike'
 import { StravaAdapter } from '../src/lib/sync/adapters/strava'
 import { backfillMissingWeather, syncActivities } from '../src/lib/sync/processor'
 import { cleanupRaceMatcher, initRaceMatcher } from '../src/lib/sync/race-matcher'
-
-// Load environment variables
-const {
-  STRAVA_CLIENT_ID,
-  STRAVA_CLIENT_SECRET,
-  STRAVA_REFRESH_TOKEN,
-  NIKE_REFRESH_TOKEN,
-  NIKE_ACCESS_TOKEN,
-} = process.env
 
 interface SyncResult {
   source: 'strava' | 'nike'
@@ -45,6 +37,7 @@ async function getLatestActivityTimestamp(options: {
   source: 'strava' | 'nike'
   types?: Array<'running' | 'cycling' | 'walking'>
 }): Promise<number | null> {
+  const db = await getDb()
   const conditions: SQL[] = [eq(activities.source, options.source)]
   if (options.types && options.types.length > 0) {
     conditions.push(inArray(activities.type, options.types))
@@ -95,11 +88,16 @@ async function getStravaIncrementalTimestamp(): Promise<number | null> {
 async function syncStrava(): Promise<SyncResult> {
   console.info('🏃🚴 Syncing from Strava...')
 
-  if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET || !STRAVA_REFRESH_TOKEN) {
+  const settings = await getRuntimeSettings({ force: true })
+  const clientId = settings.STRAVA_CLIENT_ID
+  const clientSecret = settings.STRAVA_CLIENT_SECRET
+  const refreshToken = settings.STRAVA_REFRESH_TOKEN
+
+  if (!clientId || !clientSecret || !refreshToken) {
     throw new Error('Strava credentials not configured')
   }
 
-  const adapter = new StravaAdapter(STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_REFRESH_TOKEN)
+  const adapter = new StravaAdapter(clientId, clientSecret, refreshToken)
 
   // Authenticate
   const authenticated = await adapter.authenticate({})
@@ -141,14 +139,17 @@ async function syncStrava(): Promise<SyncResult> {
 async function syncNike(): Promise<SyncResult> {
   console.info('🏃 Syncing from Nike Run Club...')
 
-  const token = NIKE_REFRESH_TOKEN || NIKE_ACCESS_TOKEN
+  const settings = await getRuntimeSettings({ force: true })
+  const refreshToken = settings.NIKE_REFRESH_TOKEN
+  const accessToken = settings.NIKE_ACCESS_TOKEN
+  const token = refreshToken || accessToken
   if (!token) {
     throw new Error('Nike credentials not configured')
   }
 
-  const adapter = NIKE_REFRESH_TOKEN
-    ? new NikeAdapter(NIKE_REFRESH_TOKEN, NIKE_REFRESH_TOKEN)
-    : new NikeAdapter(NIKE_ACCESS_TOKEN!)
+  const adapter = refreshToken
+    ? new NikeAdapter(refreshToken, refreshToken)
+    : new NikeAdapter(token)
 
   // Get the latest activity timestamp for incremental sync
   const lastTimestamp = await getLatestActivityTimestamp({ source: 'nike', types: ['running'] })
@@ -181,13 +182,15 @@ async function syncNike(): Promise<SyncResult> {
 /**
  * Determine which source to sync
  */
-function determineSyncSource(): 'strava' | 'nike' | null {
+async function determineSyncSource(): Promise<'strava' | 'nike' | null> {
+  const settings = await getRuntimeSettings({ force: true })
+
   // Auto-detect (Priority: Strava > Nike)
-  if (STRAVA_CLIENT_ID && STRAVA_CLIENT_SECRET && STRAVA_REFRESH_TOKEN) {
+  if (settings.STRAVA_CLIENT_ID && settings.STRAVA_CLIENT_SECRET && settings.STRAVA_REFRESH_TOKEN) {
     return 'strava'
   }
 
-  if (NIKE_REFRESH_TOKEN || NIKE_ACCESS_TOKEN) {
+  if (settings.NIKE_REFRESH_TOKEN || settings.NIKE_ACCESS_TOKEN) {
     return 'nike'
   }
 
@@ -205,7 +208,7 @@ async function main(): Promise<number> {
   console.info(`📅 ${new Date().toISOString()}`)
   console.info('')
 
-  const source = determineSyncSource()
+  const source = await determineSyncSource()
   console.info(`🔧 Sync mode: ${source}`)
 
   if (!source) {

@@ -3,6 +3,8 @@ import path from 'node:path'
 import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
 
+import { getRuntimeSettings } from '@/lib/runtime-config/server'
+
 import * as schema from './schema'
 
 /**
@@ -10,10 +12,9 @@ import * as schema from './schema'
  * 默认使用 data/activities.db，支持 Git 持久化
  * 可通过 DATABASE_URL 环境变量覆盖
  */
-const getDatabaseUrl = () => {
-  // 如果有环境变量，直接使用
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL
+const getDatabaseUrl = (settings: Record<string, string>) => {
+  if (settings.DATABASE_URL) {
+    return settings.DATABASE_URL
   }
 
   // 在 Vercel 环境中，使用绝对路径
@@ -26,12 +27,28 @@ const getDatabaseUrl = () => {
   return 'file:./data/activities.db'
 }
 
-const client = createClient({
-  url: getDatabaseUrl(),
-  authToken: process.env.DATABASE_AUTH_TOKEN,
-})
+type DbInstance = ReturnType<typeof drizzle<typeof schema>>
 
-/**
- * Drizzle ORM 实例
- */
-export const db = drizzle(client, { schema })
+let cachedDb:
+  | {
+      db: DbInstance
+      signature: string
+    }
+  | undefined
+
+export async function getDb() {
+  const settings = await getRuntimeSettings()
+  const url = getDatabaseUrl(settings)
+  const authToken = settings.DATABASE_AUTH_TOKEN
+  const signature = `${url}\n${authToken ?? ''}`
+
+  if (!cachedDb || cachedDb.signature !== signature) {
+    const client = createClient({ url, authToken })
+    cachedDb = {
+      db: drizzle(client, { schema }),
+      signature,
+    }
+  }
+
+  return cachedDb.db
+}
