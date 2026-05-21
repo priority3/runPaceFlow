@@ -14,6 +14,9 @@ const AB_VARIANT_KEY = 'rpf_ab_variants'
 let cachedAdminUrl: string | null = null
 let pageLoadTime: number | null = null
 let maxScrollDepth = 0
+let clickBuffer: Array<{ x: number; y: number; selector: string; timestamp: number }> = []
+const CLICK_BUFFER_SIZE = 10
+const CLICK_FLUSH_INTERVAL = 5000
 
 function getOrCreateVisitorId(): string {
   if (typeof window === 'undefined') return ''
@@ -86,10 +89,77 @@ function trackPageLoad() {
   }
 }
 
+function getSelector(el: Element): string {
+  if (el.id) return `#${el.id}`
+  if (el.className && typeof el.className === 'string') {
+    const classes = el.className
+      .split(/\s+/)
+      .filter((c) => c && !c.startsWith('tw-'))
+      .slice(0, 2)
+      .join('.')
+    if (classes) return `${el.tagName.toLowerCase()}.${classes}`
+  }
+  return el.tagName.toLowerCase()
+}
+
+function flushClickBuffer() {
+  if (clickBuffer.length === 0 || !cachedAdminUrl) return
+
+  const clicks = [...clickBuffer]
+  clickBuffer = []
+
+  const data = {
+    type: 'clicks',
+    clicks,
+    path: window.location.pathname,
+    visitorId: getOrCreateVisitorId(),
+  }
+
+  if (navigator.sendBeacon) {
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+    navigator.sendBeacon(`${cachedAdminUrl}/api/analytics/track`, blob)
+  }
+}
+
+function trackClicks() {
+  if (typeof window === 'undefined') return
+
+  document.addEventListener(
+    'click',
+    (e) => {
+      const target = e.target as Element
+      if (!target) return
+
+      // Find closest meaningful element
+      const el = target.closest('a, button, [role="button"], input[type="submit"]') || target
+      const selector = getSelector(el)
+
+      clickBuffer.push({
+        x: Math.round((e.clientX / window.innerWidth) * 100),
+        y: Math.round((e.clientY / window.innerHeight) * 100),
+        selector,
+        timestamp: Date.now(),
+      })
+
+      if (clickBuffer.length >= CLICK_BUFFER_SIZE) {
+        flushClickBuffer()
+      }
+    },
+    { passive: true },
+  )
+
+  // Flush periodically
+  setInterval(flushClickBuffer, CLICK_FLUSH_INTERVAL)
+
+  // Flush on page unload
+  window.addEventListener('beforeunload', flushClickBuffer)
+}
+
 // Initialize tracking on module load
 if (typeof window !== 'undefined') {
   trackScrollDepth()
   trackPageLoad()
+  trackClicks()
 }
 
 // ─── A/B Testing Support ─────────────────────────────────────────────────────
