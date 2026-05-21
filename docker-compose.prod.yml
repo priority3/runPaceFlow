@@ -1,0 +1,46 @@
+services:
+  admin:
+    build: ../runPaceFlow-admin
+    container_name: rpf-admin
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    env_file:
+      - ../runPaceFlow-admin/.env
+    environment:
+      - PORT=3030
+      - NODE_ENV=production
+    volumes:
+      - admin_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3030/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build: .
+    container_name: rpf-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - RUNPACEFLOW_ADMIN_URL=http://admin:3030
+      - NEXT_PUBLIC_ADMIN_URL=https://admin.razet.me
+    depends_on:
+      admin:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  admin_data:
