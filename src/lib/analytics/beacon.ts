@@ -160,6 +160,51 @@ if (typeof window !== 'undefined') {
   trackScrollDepth()
   trackPageLoad()
   trackClicks()
+  trackErrors()
+}
+
+// ─── Error Tracking ──────────────────────────────────────────────────────────
+
+function trackErrors() {
+  if (typeof window === 'undefined') return
+
+  window.addEventListener('error', (event) => {
+    const adminUrl = cachedAdminUrl
+    if (!adminUrl) return
+
+    const data = {
+      type: 'error',
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error?.stack?.slice(0, 500),
+      path: window.location.pathname,
+      visitorId: getOrCreateVisitorId(),
+    }
+
+    if (navigator.sendBeacon) {
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+      navigator.sendBeacon(`${adminUrl}/api/analytics/track`, blob)
+    }
+  })
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const adminUrl = cachedAdminUrl
+    if (!adminUrl) return
+
+    const data = {
+      type: 'error',
+      message: `Unhandled Promise: ${event.reason}`,
+      path: window.location.pathname,
+      visitorId: getOrCreateVisitorId(),
+    }
+
+    if (navigator.sendBeacon) {
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+      navigator.sendBeacon(`${adminUrl}/api/analytics/track`, blob)
+    }
+  })
 }
 
 // ─── A/B Testing Support ─────────────────────────────────────────────────────
