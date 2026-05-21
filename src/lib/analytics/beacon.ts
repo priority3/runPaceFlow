@@ -12,6 +12,8 @@ const SESSION_KEY = 'rpf_session_id'
 const AB_VARIANT_KEY = 'rpf_ab_variants'
 
 let cachedAdminUrl: string | null = null
+let lastAdminUrlFetch = 0
+const ADMIN_URL_RETRY_INTERVAL = 30_000 // Retry every 30s if empty
 let pageLoadTime: number | null = null
 let maxScrollDepth = 0
 let clickBuffer: Array<{ x: number; y: number; selector: string; timestamp: number }> = []
@@ -52,8 +54,16 @@ function getOrCreateSessionId(): string {
 }
 
 async function getAdminUrl(): Promise<string> {
-  if (cachedAdminUrl !== null) return cachedAdminUrl
+  const now = Date.now()
+  // Retry if empty (first load or previous failure)
+  if (
+    cachedAdminUrl !== null &&
+    (cachedAdminUrl !== '' || now - lastAdminUrlFetch < ADMIN_URL_RETRY_INTERVAL)
+  ) {
+    return cachedAdminUrl
+  }
 
+  lastAdminUrlFetch = now
   try {
     const res = await fetch('/api/runtime-config', { cache: 'no-store' })
     const config = await res.json()
@@ -61,7 +71,7 @@ async function getAdminUrl(): Promise<string> {
     debugLog('Admin URL resolved:', cachedAdminUrl || '(empty)')
     if (!cachedAdminUrl) {
       console.warn(
-        '[Analytics] adminUrl is empty — beacon will not send data. Set NEXT_PUBLIC_ADMIN_URL in frontend env.',
+        '[Analytics] adminUrl is empty — beacon will not send data. Set NEXT_PUBLIC_ADMIN_URL in frontend env. Retrying in 30s.',
       )
     }
   } catch (e) {
