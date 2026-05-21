@@ -18,6 +18,19 @@ let clickBuffer: Array<{ x: number; y: number; selector: string; timestamp: numb
 const CLICK_BUFFER_SIZE = 10
 const CLICK_FLUSH_INTERVAL = 5000
 
+// Enable debug logging with ?analytics_debug=1 in URL or localStorage
+function isDebugEnabled(): boolean {
+  if (typeof window === 'undefined') return false
+  if (new URLSearchParams(window.location.search).get('analytics_debug') === '1') return true
+  return localStorage.getItem('rpf_analytics_debug') === '1'
+}
+
+function debugLog(...args: unknown[]) {
+  if (isDebugEnabled()) {
+    console.log('[Analytics]', ...args)
+  }
+}
+
 function getOrCreateVisitorId(): string {
   if (typeof window === 'undefined') return ''
   let id = localStorage.getItem(VISITOR_KEY)
@@ -45,8 +58,15 @@ async function getAdminUrl(): Promise<string> {
     const res = await fetch('/api/runtime-config', { cache: 'no-store' })
     const config = await res.json()
     cachedAdminUrl = config?.adminUrl || ''
-  } catch {
+    debugLog('Admin URL resolved:', cachedAdminUrl || '(empty)')
+    if (!cachedAdminUrl) {
+      console.warn(
+        '[Analytics] adminUrl is empty — beacon will not send data. Set NEXT_PUBLIC_ADMIN_URL in frontend env.',
+      )
+    }
+  } catch (e) {
     cachedAdminUrl = ''
+    console.warn('[Analytics] Failed to fetch runtime-config:', e)
   }
 
   return cachedAdminUrl ?? ''
@@ -301,7 +321,10 @@ export function getActiveABTests(): Record<string, string> {
 
 export async function trackPageView(path: string) {
   const adminUrl = await getAdminUrl()
-  if (!adminUrl) return
+  if (!adminUrl) {
+    debugLog('Skipping trackPageView — no adminUrl configured')
+    return
+  }
 
   const abTests = getActiveABTests()
 
@@ -325,13 +348,22 @@ export async function trackPageView(path: string) {
 
   if (navigator.sendBeacon) {
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
-    navigator.sendBeacon(`${adminUrl}/api/analytics/track`, blob)
+    const url = `${adminUrl}/api/analytics/track`
+    debugLog('Sending beacon:', url, data)
+    const sent = navigator.sendBeacon(url, blob)
+    if (!sent) {
+      console.warn('[Analytics] sendBeacon failed — browser may have blocked it')
+    }
   } else {
-    fetch(`${adminUrl}/api/analytics/track`, {
+    const url = `${adminUrl}/api/analytics/track`
+    debugLog('Sending fetch:', url, data)
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
       keepalive: true,
-    }).catch(() => {})
+    }).catch((e) => {
+      console.warn('[Analytics] Fetch fallback failed:', e)
+    })
   }
 }
