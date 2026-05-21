@@ -1,5 +1,6 @@
 import '../styles/globals.css'
 
+import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider'
 import { PageTransitionProvider } from '@/lib/animation'
 import { ThemeProvider } from '@/lib/theme'
 import { TRPCProvider } from '@/lib/trpc/Provider'
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <TRPCProvider>
           <ThemeProvider>
-            <PageTransitionProvider>{children}</PageTransitionProvider>
+            <AnalyticsProvider>
+              <PageTransitionProvider>{children}</PageTransitionProvider>
+            </AnalyticsProvider>
           </ThemeProvider>
         </TRPCProvider>
       </body>

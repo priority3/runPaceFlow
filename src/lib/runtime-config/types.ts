@@ -10,6 +10,7 @@ export interface RuntimeGoals {
 export interface PublicRuntimeConfig {
   goals: Record<RuntimeSportType, RuntimeGoals>
   mapStyle: string
+  adminUrl: string
   updatedAt: string | null
 }
 
@@ -31,6 +32,7 @@ export const DEFAULT_PUBLIC_RUNTIME_CONFIG: PublicRuntimeConfig = {
     },
   },
   mapStyle: DEFAULT_MAP_STYLE,
+  adminUrl: '',
   updatedAt: null,
 }
 
@@ -103,6 +105,7 @@ export function normalizePublicRuntimeConfig(
       },
     },
     mapStyle: settings.NEXT_PUBLIC_MAP_STYLE || defaults.mapStyle,
+    adminUrl: settings.NEXT_PUBLIC_ADMIN_URL || defaults.adminUrl,
     updatedAt,
   }
 }

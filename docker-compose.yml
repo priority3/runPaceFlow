@@ -5,20 +5,14 @@ services:
       dockerfile: Dockerfile
     container_name: runpaceflow
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    network_mode: host
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/data/local.db
-      # Map style (use default CARTO Positron or customize)
+      - RUNPACEFLOW_ADMIN_URL=http://127.0.0.1:3030
+      - RUNPACEFLOW_CONFIG_EXPORT_TOKEN=local-export-token
       - NEXT_PUBLIC_MAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
-      # Uncomment and fill in your credentials:
-      # - NIKE_ACCESS_TOKEN=your_nike_token
-      # - STRAVA_CLIENT_ID=your_strava_client_id
-      # - STRAVA_CLIENT_SECRET=your_strava_client_secret
-      # - STRAVA_REFRESH_TOKEN=your_strava_refresh_token
     volumes:
-      # Persist SQLite database
       - runpaceflow_data:/app/data
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]

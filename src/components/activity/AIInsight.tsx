@@ -1,15 +1,14 @@
 /**
- * AIInsight Component
+ * AIInsight Component (Read-Only)
  *
- * Displays AI-generated running analysis with real SSE streaming,
- * loading/error states, and option to regenerate insights.
+ * Displays AI-generated running analysis from cache.
+ * AI generation is handled by admin backend scheduler.
  */
 
 'use client'
 
 import { motion } from 'framer-motion'
-import { RefreshCw, Sparkles } from 'lucide-react'
-import * as React from 'react'
+import { Sparkles } from 'lucide-react'
 import type { Components } from 'react-markdown'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -98,213 +97,21 @@ function getProviderLabel(model: string): string {
   return 'AI'
 }
 
-// ─── SSE Streaming Hook ────────────────────────────────────────────────────
-
-type StreamStatus = 'idle' | 'streaming' | 'done' | 'error'
-
-interface StreamState {
-  status: StreamStatus
-  content: string
-  model: string | null
-  provider: string | null
-  error: string | null
-}
-
-function useInsightStream(activityId: string) {
-  const [state, setState] = React.useState<StreamState>({
-    status: 'idle',
-    content: '',
-    model: null,
-    provider: null,
-    error: null,
-  })
-
-  // Reason: AbortController ref lets us cancel an in-flight stream on unmount or re-trigger
-  const abortRef = React.useRef<AbortController | null>(null)
-
-  const startStream = React.useCallback(
-    async (regenerate = false) => {
-      // Cancel any existing stream
-      abortRef.current?.abort()
-      const controller = new AbortController()
-      abortRef.current = controller
-
-      setState({
-        status: 'streaming',
-        content: '',
-        model: null,
-        provider: null,
-        error: null,
-      })
-
-      try {
-        const response = await fetch('/api/insights/stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ activityId, regenerate }),
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          const errBody = await response.json().catch(() => ({}))
-          throw new Error(errBody.error || `HTTP ${response.status}`)
-        }
-
-        const reader = response.body?.getReader()
-        if (!reader) throw new Error('No response body')
-
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-
-          // Reason: SSE events are delimited by double newlines; process all complete events
-          const events = buffer.split('\n\n')
-          // Keep the last (potentially incomplete) chunk in the buffer
-          buffer = events.pop() || ''
-
-          for (const event of events) {
-            const line = event.trim()
-            if (!line.startsWith('data: ')) continue
-
-            const payload = line.slice(6) // strip "data: "
-
-            // Handle completion event
-            if (payload.startsWith('[DONE]')) {
-              try {
-                const meta = JSON.parse(payload.slice(7))
-                setState((prev) => ({
-                  ...prev,
-                  status: 'done',
-                  model: meta.model || prev.model,
-                  provider: meta.provider || prev.provider,
-                }))
-              } catch {
-                setState((prev) => ({ ...prev, status: 'done' }))
-              }
-              return
-            }
-
-            // Handle error event
-            if (payload.startsWith('[ERROR]')) {
-              const errData = JSON.parse(payload.slice(8))
-              setState((prev) => ({
-                ...prev,
-                status: 'error',
-                error: errData.error || 'Stream error',
-              }))
-              return
-            }
-
-            // Handle text delta
-            try {
-              const { text } = JSON.parse(payload) as { text: string }
-              setState((prev) => ({
-                ...prev,
-                content: prev.content + text,
-              }))
-            } catch {
-              // Ignore malformed events
-            }
-          }
-        }
-
-        // Reason: If we exit the read loop without [DONE], mark as done anyway
-        setState((prev) => (prev.status === 'streaming' ? { ...prev, status: 'done' } : prev))
-      } catch (error) {
-        if ((error as Error).name === 'AbortError') return
-        setState((prev) => ({
-          ...prev,
-          status: 'error',
-          error: error instanceof Error ? error.message : String(error),
-        }))
-      }
-    },
-    [activityId],
-  )
-
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => abortRef.current?.abort()
-  }, [])
-
-  return { ...state, startStream }
-}
-
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function AIInsight({ activityId, className }: AIInsightProps) {
-  const utils = trpc.useUtils()
-
   const { data: insight, isLoading } = trpc.insights.getForActivity.useQuery(
     { activityId },
     { staleTime: Infinity, retry: 1 },
   )
-
-  const {
-    status: streamStatus,
-    content: streamContent,
-    model: streamModel,
-    error: streamError,
-    startStream,
-  } = useInsightStream(activityId)
-  const streamTriggered = React.useRef(false)
-
-  // Reason: Auto-trigger stream when cache misses (insight === null after loading)
-  React.useEffect(() => {
-    if (!isLoading && insight === null && !streamTriggered.current) {
-      streamTriggered.current = true
-      startStream(false)
-    }
-  }, [isLoading, insight, startStream])
-
-  // Invalidate tRPC cache after stream finishes so next mount uses cached data
-  React.useEffect(() => {
-    if (streamStatus === 'done') {
-      utils.insights.getForActivity.invalidate({ activityId })
-    }
-  }, [streamStatus, utils.insights.getForActivity, activityId])
-
-  const handleRegenerate = () => {
-    streamTriggered.current = true
-    startStream(true)
-  }
-
-  const isStreaming = streamStatus === 'streaming'
-  const showStreamContent = streamStatus === 'streaming' || streamStatus === 'done'
-
-  const isStartingStream = insight === null && streamStatus === 'idle'
-  const isWaitingFirstToken = isStartingStream || (isStreaming && streamContent.length === 0)
-  const showCachedWhileRegenerating =
-    isWaitingFirstToken && insight != null && Boolean(insight?.content)
-
-  const displayContent = (() => {
-    if (showStreamContent && streamContent.length > 0) return streamContent
-    if (showCachedWhileRegenerating) return insight?.content || ''
-    return insight?.content || ''
-  })()
-
-  const displayModel = (() => {
-    if (showStreamContent && streamModel) return streamModel
-    return insight?.model || null
-  })()
 
   // Loading skeleton
   if (isLoading) {
     return <AIInsightSkeleton className={className} />
   }
 
-  // Error from stream
-  if (streamStatus === 'error') {
-    const isApiKeyMissing =
-      streamError?.includes('ANTHROPIC_API_KEY') ||
-      streamError?.includes('OPENAI_API_KEY') ||
-      streamError?.includes('未配置任何 AI 服务')
-
+  // No cached insight - show pending message
+  if (!insight?.content) {
     return (
       <div
         className={cn(
@@ -319,21 +126,7 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
           <span className="text-label font-medium">AI 跑步分析</span>
         </div>
         <div className="py-6 text-center">
-          <p className="text-label/50 text-sm">
-            {isApiKeyMissing
-              ? '未配置 AI 服务，请在 .env.local 中设置 ANTHROPIC_API_KEY 或 OPENAI_API_KEY'
-              : '生成分析时出错'}
-          </p>
-          {!isApiKeyMissing && (
-            <button
-              type="button"
-              onClick={handleRegenerate}
-              className="text-purple hover:text-purple/80 mt-4 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              重试
-            </button>
-          )}
+          <p className="text-label/50 text-sm">AI 分析生成中，请稍后再查看</p>
         </div>
       </div>
     )
@@ -350,79 +143,32 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
       )}
     >
       {/* Header */}
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="bg-purple/10 flex h-8 w-8 items-center justify-center rounded-lg">
-            <Sparkles className="text-purple h-4 w-4" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-label font-medium">AI 跑步分析</span>
-            {insight?.cached && streamStatus === 'idle' && (
-              <span className="bg-label/5 text-label/40 rounded-full px-2 py-0.5 text-xs">
-                已缓存
-              </span>
-            )}
-          </div>
+      <div className="mb-5 flex items-center gap-2.5">
+        <div className="bg-purple/10 flex h-8 w-8 items-center justify-center rounded-lg">
+          <Sparkles className="text-purple h-4 w-4" />
         </div>
-        <button
-          type="button"
-          onClick={handleRegenerate}
-          disabled={isStreaming}
-          className="text-label/40 hover:text-label/60 hover:bg-label/5 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-all disabled:opacity-50"
-          title="重新生成"
-        >
-          <RefreshCw className={cn('h-3.5 w-3.5', isStreaming && 'animate-spin')} />
-          <span className="hidden sm:inline">重新生成</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-label font-medium">AI 跑步分析</span>
+          {insight.cached && (
+            <span className="bg-label/5 text-label/40 rounded-full px-2 py-0.5 text-xs">
+              已缓存
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
       <div className="ai-insight-content">
-        {isWaitingFirstToken && !displayContent ? (
-          <div className="space-y-3">
-            <div className="text-label/60 flex items-center gap-2 text-sm">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              {isStartingStream ? '正在初始化分析…' : '正在生成分析…'}
-            </div>
-            <div className="space-y-3 pt-1">
-              <Skeleton className="h-5 w-2/3 bg-black/5 dark:bg-white/10" />
-              <Skeleton className="h-4 w-full bg-black/5 dark:bg-white/10" />
-              <Skeleton className="h-4 w-5/6 bg-black/5 dark:bg-white/10" />
-              <div className="pt-2">
-                <Skeleton className="h-20 w-full rounded-xl bg-black/5 dark:bg-white/10" />
-              </div>
-              <Skeleton className="h-4 w-4/5 bg-black/5 dark:bg-white/10" />
-              <Skeleton className="h-4 w-3/4 bg-black/5 dark:bg-white/10" />
-            </div>
-          </div>
-        ) : (
-          <>
-            {showCachedWhileRegenerating && (
-              <div className="bg-label/5 text-label/60 mb-3 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs">
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                正在重新生成分析…
-              </div>
-            )}
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-              {displayContent}
-            </ReactMarkdown>
-          </>
-        )}
-        {/* Blinking cursor while streaming */}
-        {isStreaming && streamContent.length > 0 && (
-          <motion.span
-            className="bg-purple ml-1 inline-block h-4 w-[2px] align-middle"
-            animate={{ opacity: [1, 0] }}
-            transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
-          />
-        )}
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          {insight.content}
+        </ReactMarkdown>
       </div>
 
       {/* Footer */}
-      {displayModel && streamStatus !== 'streaming' && (
+      {insight.model && (
         <div className="text-label/30 mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs">
-          <span>由 {getProviderLabel(displayModel)} 生成</span>
-          {insight?.generatedAt && (
+          <span>由 {getProviderLabel(insight.model)} 生成</span>
+          {insight.generatedAt && (
             <span>{new Date(insight.generatedAt).toLocaleDateString('zh-CN')}</span>
           )}
         </div>
