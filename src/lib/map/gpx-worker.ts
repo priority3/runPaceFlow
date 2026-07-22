@@ -69,7 +69,9 @@ function parseGpxInWorker(gpxString: string): GpxWorkerOutput {
 
     // Distance from previous point
     if (trackPoints.length > 0) {
-      const prev = trackPoints.at(-1)
+      // Reason: `.at(-1)` types as `T | undefined` under TS >=5.8 narrowing;
+      // plain indexing under the length guard stays `T` on old and new tsc.
+      const prev = trackPoints[trackPoints.length - 1]
       cumulativeDistance += haversineDistance(prev.latitude, prev.longitude, lat, lon)
     }
 
@@ -116,7 +118,9 @@ function parseGpxInWorker(gpxString: string): GpxWorkerOutput {
       if (Number.isNaN(lat) || Number.isNaN(lon)) continue
 
       if (trackPoints.length > 0) {
-        const prev = trackPoints.at(-1)
+        // Reason: `.at(-1)` types as `T | undefined` under TS >=5.8 narrowing;
+        // plain indexing under the length guard stays `T` on old and new tsc.
+        const prev = trackPoints[trackPoints.length - 1]
         cumulativeDistance += haversineDistance(prev.latitude, prev.longitude, lat, lon)
       }
 
