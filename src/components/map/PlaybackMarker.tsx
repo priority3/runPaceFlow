@@ -9,6 +9,8 @@
 import { Marker } from 'react-map-gl/maplibre'
 
 import type { TrackPoint } from '@/lib/map/pace-utils'
+import { useTheme } from '@/lib/theme'
+import { getSportColors } from '@/lib/theme/palette'
 
 export interface PlaybackMarkerProps {
   current?: TrackPoint
@@ -17,13 +19,10 @@ export interface PlaybackMarkerProps {
   accentColor?: string
 }
 
-export function PlaybackMarker({
-  current,
-  start,
-  end,
-  accentColor = '#007AFF',
-}: PlaybackMarkerProps) {
+export function PlaybackMarker({ current, start, end, accentColor }: PlaybackMarkerProps) {
+  const { resolvedTheme } = useTheme()
   if (!current && !start && !end) return null
+  const markerColor = accentColor ?? getSportColors(resolvedTheme).running
 
   return (
     <>
@@ -48,17 +47,17 @@ export function PlaybackMarker({
           <div className="pointer-events-none relative">
             <div
               className="absolute -inset-3 rounded-full opacity-30 blur-[0.5px]"
-              style={{ backgroundColor: accentColor }}
+              style={{ backgroundColor: markerColor }}
             />
             <div className="absolute -inset-2 animate-ping rounded-full opacity-30 [animation-duration:1.4s] [animation-timing-function:ease-in-out]">
               <div
                 className="h-full w-full rounded-full"
-                style={{ backgroundColor: accentColor }}
+                style={{ backgroundColor: markerColor }}
               />
             </div>
             <div
               className="h-3.5 w-3.5 rounded-full shadow-[0_10px_28px_rgba(0,0,0,0.35)] ring-2 ring-white/90"
-              style={{ backgroundColor: accentColor }}
+              style={{ backgroundColor: markerColor }}
             />
           </div>
         </Marker>

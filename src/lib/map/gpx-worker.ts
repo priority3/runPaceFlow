@@ -69,7 +69,7 @@ function parseGpxInWorker(gpxString: string): GpxWorkerOutput {
 
     // Distance from previous point
     if (trackPoints.length > 0) {
-      const prev = trackPoints[trackPoints.length - 1]
+      const prev = trackPoints.at(-1)
       cumulativeDistance += haversineDistance(prev.latitude, prev.longitude, lat, lon)
     }
 
@@ -116,7 +116,7 @@ function parseGpxInWorker(gpxString: string): GpxWorkerOutput {
       if (Number.isNaN(lat) || Number.isNaN(lon)) continue
 
       if (trackPoints.length > 0) {
-        const prev = trackPoints[trackPoints.length - 1]
+        const prev = trackPoints.at(-1)
         cumulativeDistance += haversineDistance(prev.latitude, prev.longitude, lat, lon)
       }
 

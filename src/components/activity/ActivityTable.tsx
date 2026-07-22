@@ -10,7 +10,6 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { motion } from 'framer-motion'
 import {
   Bike,
-  Calendar,
   ChevronRight,
   Clock,
   Flame,
@@ -145,8 +144,8 @@ function getActivityTypeMeta(type: string) {
     return {
       label: '骑行',
       icon: Bike,
-      className: 'bg-green/10 text-green',
-      metricClassName: 'text-green',
+      className: 'bg-orange/10 text-orange',
+      metricClassName: 'text-orange',
     }
   }
 
@@ -285,17 +284,17 @@ export function ActivityTable({
   if (activities.length === 0) {
     return (
       <motion.div
-        className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/50 py-16 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
+        className="premium-surface flex flex-col items-center justify-center py-16"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="mb-4 rounded-full bg-white/60 p-4 dark:bg-white/10">
+        <div className="bg-secondary-system-background mb-4 rounded-lg p-4">
           <TrendingUp className="text-label/40 h-8 w-8" />
         </div>
         <p className="text-label text-lg font-medium">还没有活动记录</p>
         <p className="text-label/50 mt-2 text-center text-sm">
-          同步你的运动数据后
+          后台接入活动后
           <br />
           活动将显示在这里
         </p>
@@ -324,10 +323,10 @@ export function ActivityTable({
         className="group"
       >
         <Link href={`/activity/${activity.id}`} onMouseEnter={() => handleMouseEnter(activity.id)}>
-          <RippleContainer className="rounded-xl" color="rgba(0, 0, 0, 0.08)">
+          <RippleContainer className="rounded-lg" color="rgba(36, 87, 197, 0.06)">
             <motion.div
-              className="rounded-xl border-0 bg-transparent px-5 py-4 transition-colors duration-150 hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent"
-              whileHover={{ scale: 1.01 }}
+              className="group hover:bg-secondary-system-background rounded-lg px-3 py-5 transition-colors duration-200 sm:px-4"
+              whileHover={{ x: 3 }}
               whileTap={{ scale: 0.98 }}
               transition={springs.snappy}
             >
@@ -339,6 +338,9 @@ export function ActivityTable({
                       <h3 className="text-label truncate font-medium">
                         {getSmartActivityTitle(activity)}
                       </h3>
+                      <p className="text-tertiary-label mt-1 text-xs">
+                        {formatDateWithWeekday(new Date(activity.startTime))}
+                      </p>
                       {/* Show original title as subtitle if using smart title or race name */}
                       {activity.raceName &&
                         activity.title &&
@@ -425,14 +427,6 @@ export function ActivityTable({
                         </span>
                       </div>
                     )}
-
-                    {/* Date with weekday */}
-                    <div className="ml-auto flex items-center gap-1.5">
-                      <Calendar className="text-label/30 h-3.5 w-3.5" />
-                      <span className="text-label/50">
-                        {formatDateWithWeekday(new Date(activity.startTime))}
-                      </span>
-                    </div>
                   </div>
                 </div>
 
@@ -451,7 +445,7 @@ export function ActivityTable({
   if (!virtualized || !scrollRef) {
     return (
       <motion.div
-        className={`space-y-2 ${className}`}
+        className={`grid gap-3 lg:grid-cols-2 ${className}`}
         variants={containerVariants}
         initial="hidden"
         animate="visible"

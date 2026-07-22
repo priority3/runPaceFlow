@@ -7,6 +7,7 @@
 'use client'
 
 import { formatPace, paceToSpeed } from '@/lib/pace/calculator'
+import { PACE_COLOR_VARS } from '@/lib/theme/palette'
 import { cn } from '@/lib/utils'
 
 type MetricMode = 'pace' | 'speed'
@@ -39,11 +40,31 @@ function calculatePaceDistribution(
 
   // Define pace zones relative to average
   const zones: Omit<PaceZone, 'count' | 'percentage' | 'totalDistance'>[] = [
-    { label: '极快', minPace: 0, maxPace: averagePace - 30, color: 'bg-green' },
-    { label: '快', minPace: averagePace - 30, maxPace: averagePace - 10, color: 'bg-green/60' },
-    { label: '平均', minPace: averagePace - 10, maxPace: averagePace + 10, color: 'bg-yellow' },
-    { label: '慢', minPace: averagePace + 10, maxPace: averagePace + 30, color: 'bg-orange' },
-    { label: '极慢', minPace: averagePace + 30, maxPace: Infinity, color: 'bg-red' },
+    { label: '极快', minPace: 0, maxPace: averagePace - 30, color: PACE_COLOR_VARS.veryFast },
+    {
+      label: '快',
+      minPace: averagePace - 30,
+      maxPace: averagePace - 10,
+      color: PACE_COLOR_VARS.fast,
+    },
+    {
+      label: '平均',
+      minPace: averagePace - 10,
+      maxPace: averagePace + 10,
+      color: PACE_COLOR_VARS.average,
+    },
+    {
+      label: '慢',
+      minPace: averagePace + 10,
+      maxPace: averagePace + 30,
+      color: PACE_COLOR_VARS.slow,
+    },
+    {
+      label: '极慢',
+      minPace: averagePace + 30,
+      maxPace: Infinity,
+      color: PACE_COLOR_VARS.verySlow,
+    },
   ]
 
   const totalSplits = splits.length
@@ -98,12 +119,7 @@ export function PaceDistribution({
 
   if (splits.length === 0) {
     return (
-      <div
-        className={cn(
-          'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-          className,
-        )}
-      >
+      <div className={cn('premium-surface p-6', className)}>
         <h3 className="text-label/80 mb-4 text-sm font-medium">{metricLabel}分布</h3>
         <p className="text-label/50 text-center text-sm">暂无{metricLabel}数据</p>
       </div>
@@ -113,12 +129,7 @@ export function PaceDistribution({
   const maxPercentage = Math.max(...distribution.map((z) => z.percentage))
 
   return (
-    <div
-      className={cn(
-        'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-        className,
-      )}
-    >
+    <div className={cn('premium-surface p-6', className)}>
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-label/80 text-sm font-medium">{metricLabel}分布</h3>
         <span className="text-label/50 text-xs">
@@ -136,11 +147,12 @@ export function PaceDistribution({
                 {zone.count} 公里 · {zone.percentage.toFixed(0)}%
               </span>
             </div>
-            <div className="h-4 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+            <div className="bg-tertiary-system-fill h-4 overflow-hidden rounded-full">
               <div
-                className={cn('h-full rounded-full transition-all duration-500', zone.color)}
+                className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${maxPercentage > 0 ? (zone.percentage / maxPercentage) * 100 : 0}%`,
+                  backgroundColor: zone.color,
                 }}
               />
             </div>
@@ -153,7 +165,7 @@ export function PaceDistribution({
       </div>
 
       {/* Summary */}
-      <div className="mt-4 border-t border-white/10 pt-4">
+      <div className="bg-secondary-system-background mt-4 rounded-lg px-4 py-3">
         <div className="flex items-center justify-between text-xs">
           <span className="text-label/50">{metricLabel}范围</span>
           <span className="text-label/70">

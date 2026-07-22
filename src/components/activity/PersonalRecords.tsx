@@ -192,7 +192,7 @@ export function PersonalRecords({ activities, className }: PersonalRecordsProps)
   }
 
   return (
-    <div className={cn('space-y-6 rounded-2xl border-0 bg-transparent p-4 sm:p-5', className)}>
+    <div className={cn('space-y-6 rounded-lg bg-transparent p-4 sm:p-5', className)}>
       {recordGroups.map((group) => {
         const meta = SPORT_META[group.type]
         const SportIcon = meta.icon
@@ -213,10 +213,7 @@ export function PersonalRecords({ activities, className }: PersonalRecordsProps)
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
               {group.records.map((record) => (
-                <div
-                  key={`${group.type}-${record.title}`}
-                  className="rounded-xl bg-transparent p-3"
-                >
+                <div key={`${group.type}-${record.title}`} className="bg-transparent py-3 pr-3">
                   <div className={cn('mb-2', record.color)}>{record.icon}</div>
                   <div className="text-label/60 mb-1 text-xs">{record.title}</div>
                   <div className="text-label flex items-baseline gap-0.5">

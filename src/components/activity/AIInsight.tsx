@@ -47,34 +47,32 @@ const markdownComponents: Components = {
   ),
   li: ({ children }) => <li className="text-label/80 pl-1">{children}</li>,
   table: ({ children }) => (
-    <div className="my-3 overflow-x-auto rounded-xl border border-white/10 bg-white/30 dark:bg-black/10">
+    <div className="border-separator bg-secondary-system-background my-3 overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">{children}</table>
     </div>
   ),
   thead: ({ children }) => (
-    <thead className="border-b border-white/10 bg-white/40 dark:bg-black/20">{children}</thead>
+    <thead className="border-separator bg-tertiary-system-background border-b">{children}</thead>
   ),
-  tbody: ({ children }) => <tbody className="divide-y divide-white/5">{children}</tbody>,
+  tbody: ({ children }) => <tbody className="divide-separator divide-y">{children}</tbody>,
   tr: ({ children }) => (
-    <tr className="transition-colors hover:bg-white/20 dark:hover:bg-white/5">{children}</tr>
+    <tr className="hover:bg-tertiary-system-background transition-colors">{children}</tr>
   ),
   th: ({ children }) => (
-    <th className="text-label/70 px-3 py-2 text-left text-xs font-medium tracking-wider uppercase">
-      {children}
-    </th>
+    <th className="text-label/70 px-3 py-2 text-left text-xs font-medium uppercase">{children}</th>
   ),
   td: ({ children }) => <td className="text-label/80 px-3 py-2 whitespace-nowrap">{children}</td>,
   code: ({ children, className }) => {
     const isInline = !className
     if (isInline) {
       return (
-        <code className="rounded bg-white/30 px-1.5 py-0.5 text-sm dark:bg-black/20">
+        <code className="bg-secondary-system-background rounded px-1.5 py-0.5 text-sm">
           {children}
         </code>
       )
     }
     return (
-      <code className="block overflow-x-auto rounded-lg bg-white/30 p-3 text-sm dark:bg-black/20">
+      <code className="bg-secondary-system-background block overflow-x-auto rounded-lg p-3 text-sm">
         {children}
       </code>
     )
@@ -84,7 +82,7 @@ const markdownComponents: Components = {
       {children}
     </blockquote>
   ),
-  hr: () => <hr className="my-4 border-white/10" />,
+  hr: () => <hr className="border-separator my-4" />,
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -113,12 +111,7 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
   // No cached insight - show pending message
   if (!insight?.content) {
     return (
-      <div
-        className={cn(
-          'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-          className,
-        )}
-      >
+      <div className={cn('premium-surface p-6', className)}>
         <div className="mb-4 flex items-center gap-2.5">
           <div className="bg-label/5 flex h-8 w-8 items-center justify-center rounded-lg">
             <Sparkles className="text-label/30 h-4 w-4" />
@@ -137,10 +130,7 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={springs.smooth}
-      className={cn(
-        'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-        className,
-      )}
+      className={cn('premium-surface p-6', className)}
     >
       {/* Header */}
       <div className="mb-5 flex items-center gap-2.5">
@@ -166,7 +156,7 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
 
       {/* Footer */}
       {insight.model && (
-        <div className="text-label/30 mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-xs">
+        <div className="text-label/30 border-separator mt-5 flex items-center justify-between border-t pt-4 text-xs">
           <span>由 {getProviderLabel(insight.model)} 生成</span>
           {insight.generatedAt && (
             <span>{new Date(insight.generatedAt).toLocaleDateString('zh-CN')}</span>
@@ -182,12 +172,7 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
  */
 export function AIInsightSkeleton({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-        className,
-      )}
-    >
+    <div className={cn('premium-surface p-6', className)}>
       <div className="mb-5 flex items-center gap-2.5">
         <div className="bg-purple/10 flex h-8 w-8 items-center justify-center rounded-lg">
           <Sparkles className="text-purple h-4 w-4" />
@@ -195,14 +180,14 @@ export function AIInsightSkeleton({ className }: { className?: string }) {
         <span className="text-label font-medium">AI 跑步分析</span>
       </div>
       <div className="space-y-3">
-        <Skeleton className="h-5 w-2/3 bg-black/5 dark:bg-white/10" />
-        <Skeleton className="h-4 w-full bg-black/5 dark:bg-white/10" />
-        <Skeleton className="h-4 w-5/6 bg-black/5 dark:bg-white/10" />
+        <Skeleton className="bg-tertiary-system-fill h-5 w-2/3" />
+        <Skeleton className="bg-tertiary-system-fill h-4 w-full" />
+        <Skeleton className="bg-tertiary-system-fill h-4 w-5/6" />
         <div className="pt-2">
-          <Skeleton className="h-20 w-full rounded-xl bg-black/5 dark:bg-white/10" />
+          <Skeleton className="bg-tertiary-system-fill h-20 w-full rounded-lg" />
         </div>
-        <Skeleton className="h-4 w-4/5 bg-black/5 dark:bg-white/10" />
-        <Skeleton className="h-4 w-3/4 bg-black/5 dark:bg-white/10" />
+        <Skeleton className="bg-tertiary-system-fill h-4 w-4/5" />
+        <Skeleton className="bg-tertiary-system-fill h-4 w-3/4" />
       </div>
     </div>
   )

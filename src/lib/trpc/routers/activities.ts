@@ -5,7 +5,7 @@
  */
 
 import type { SQL } from 'drizzle-orm'
-import { and, count, desc, eq, lt, or } from 'drizzle-orm'
+import { and, count, desc, eq, isNotNull, lt, or } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { activities, splits } from '@/lib/db/schema'
@@ -426,32 +426,70 @@ export const activitiesRouter = createTRPCRouter({
     .input(z.object({ limit: z.number().min(1).max(50).optional().default(20) }).optional())
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 20
+      const routeColumns = {
+        id: activities.id,
+        type: activities.type,
+        startTime: activities.startTime,
+        routeCoordinates: activities.routeCoordinates,
+        averagePace: activities.averagePace,
+      }
 
-      const result = await ctx.db
-        .select({
-          id: activities.id,
-          type: activities.type,
-          routeCoordinates: activities.routeCoordinates,
-          averagePace: activities.averagePace,
-        })
-        .from(activities)
-        .where(eq(activities.isIndoor, false))
-        .orderBy(desc(activities.startTime))
-        .limit(limit)
+      const loadRoutesByType = (type: 'running' | 'cycling') =>
+        ctx.db
+          .select(routeColumns)
+          .from(activities)
+          .where(
+            and(
+              eq(activities.isIndoor, false),
+              eq(activities.type, type),
+              isNotNull(activities.routeCoordinates),
+            ),
+          )
+          .orderBy(desc(activities.startTime))
+          .limit(limit)
 
-      return result
-        .filter((a) => a.routeCoordinates != null)
-        .map((a) => {
-          const raw = JSON.parse(a.routeCoordinates!) as [number, number][]
-          const coordinates = raw.map(([lat, lng]) => ({ lat, lng }))
+      const [runningRoutes, cyclingRoutes] = await Promise.all([
+        loadRoutesByType('running'),
+        loadRoutesByType('cycling'),
+      ])
 
-          return {
-            id: a.id,
-            type: a.type,
-            coordinates,
-            averagePace: a.averagePace,
+      const runningQuota = Math.ceil(limit / 2)
+      const cyclingQuota = Math.floor(limit / 2)
+      const selectedRoutes = [
+        ...runningRoutes.slice(0, runningQuota),
+        ...cyclingRoutes.slice(0, cyclingQuota),
+      ]
+      const selectedIds = new Set(selectedRoutes.map((route) => route.id))
+      const remainingRoutes = [...runningRoutes, ...cyclingRoutes].sort(
+        (a, b) => b.startTime.getTime() - a.startTime.getTime(),
+      )
+
+      for (const route of remainingRoutes) {
+        if (selectedRoutes.length >= limit) break
+        if (selectedIds.has(route.id)) continue
+        selectedRoutes.push(route)
+        selectedIds.add(route.id)
+      }
+
+      return selectedRoutes
+        .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
+        .flatMap((activity) => {
+          try {
+            const raw = JSON.parse(activity.routeCoordinates!) as [number, number][]
+            const coordinates = raw.map(([lat, lng]) => ({ lat, lng }))
+            if (coordinates.length === 0) return []
+
+            return [
+              {
+                id: activity.id,
+                type: activity.type,
+                coordinates,
+                averagePace: activity.averagePace,
+              },
+            ]
+          } catch {
+            return []
           }
         })
-        .filter((a) => a.coordinates.length > 0)
     }),
 })

@@ -48,9 +48,9 @@ export class MapErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl bg-gray-100 dark:bg-gray-900">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-            <AlertTriangle className="h-6 w-6 text-orange-500" />
+        <div className="border-separator bg-secondary-system-background flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border">
+          <div className="bg-orange/10 flex h-12 w-12 items-center justify-center rounded-full">
+            <AlertTriangle className="text-orange h-6 w-6" />
           </div>
           <div className="text-center">
             <p className="text-label text-sm font-medium">地图加载失败</p>
@@ -60,7 +60,7 @@ export class MapErrorBoundary extends Component<Props, State> {
                 : '地图组件初始化出错，其他数据仍可正常查看'}
             </p>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
+          <div className="text-tertiary-label mt-2 flex items-center gap-1.5 text-xs">
             <MapPin className="h-3.5 w-3.5" />
             <span>路线数据可在分段数据中查看</span>
           </div>

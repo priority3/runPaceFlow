@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MapRef } from 'react-map-gl/maplibre'
 import Map from 'react-map-gl/maplibre'
 
+import { useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import type { MapViewport } from '@/types/map'
 
@@ -69,24 +70,43 @@ export interface RunMapProps {
   autoLoad?: boolean
   /** Runtime map style URL from the config center */
   mapStyleUrl?: string
+  /** Force the map's visual theme when it sits inside a fixed-tone stage */
+  appearance?: 'auto' | 'light' | 'dark'
 }
 
-const DEFAULT_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
+const CARTO_LIGHT_MAP_STYLES = new Set([
+  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+])
+const DEFAULT_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+const DEFAULT_DARK_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+
+function resolveMapStyle(style: string, theme: 'light' | 'dark') {
+  if (theme === 'dark' && CARTO_LIGHT_MAP_STYLES.has(style)) return DEFAULT_DARK_MAP_STYLE
+  return style
+}
 
 // "No basemap" fallback style. This avoids external tile/style requests
 // and guarantees the route still renders even if a CDN is blocked.
-const FALLBACK_MAP_STYLE: StyleSpecification = {
-  version: 8,
-  name: 'blank',
-  sources: {},
-  layers: [
-    {
-      id: 'background',
-      type: 'background',
-      paint: { 'background-color': '#0b1220' },
-    },
-  ],
+function createFallbackMapStyle(theme: 'light' | 'dark'): StyleSpecification {
+  return {
+    version: 8,
+    name: 'blank',
+    sources: {},
+    layers: [
+      {
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': theme === 'dark' ? '#151b23' : '#f2f5f8' },
+      },
+    ],
+  }
 }
+
+const MAP_GRID_BACKGROUND = `
+  linear-gradient(to right, rgb(var(--color-label) / 0.07) 1px, transparent 1px),
+  linear-gradient(to bottom, rgb(var(--color-label) / 0.07) 1px, transparent 1px)
+`
 
 const DEFAULT_VIEW_STATE: MapViewport = {
   longitude: 116.397428,
@@ -106,7 +126,10 @@ export function RunMap({
   enableFullscreen = true,
   autoLoad = true,
   mapStyleUrl,
+  appearance = 'auto',
 }: RunMapProps) {
+  const { resolvedTheme } = useTheme()
+  const mapTheme = appearance === 'auto' ? resolvedTheme : appearance
   const mapRef = useRef<MapRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const prevBoundsRef = useRef<string | null>(null)
@@ -115,28 +138,28 @@ export function RunMap({
   const [webglUnavailable, setWebglUnavailable] = useState(false)
   // Map mounts immediately by default; set autoLoad=false to use click-to-load mode.
   const [shouldMount, setShouldMount] = useState(autoLoad)
-  const configuredMapStyle = mapStyleUrl || DEFAULT_MAP_STYLE
-  const [mapStyle, setMapStyle] = useState<string | StyleSpecification>(configuredMapStyle)
-  const [fallbackStyleActive, setFallbackStyleActive] = useState(false)
+  const configuredMapStyle = resolveMapStyle(mapStyleUrl || DEFAULT_MAP_STYLE, mapTheme)
+  const [fallbackStyleFor, setFallbackStyleFor] = useState<string | null>(null)
   const [lastStyleError, setLastStyleError] = useState<string | null>(null)
+  const fallbackStyleActive = fallbackStyleFor === configuredMapStyle
+  const mapStyle = fallbackStyleActive ? createFallbackMapStyle(mapTheme) : configuredMapStyle
 
   // Check WebGL support on mount before attempting MapLibre init
   useEffect(() => {
-    if (!isWebGLAvailable()) {
-      setWebglUnavailable(true)
-    }
+    const frame = requestAnimationFrame(() => {
+      if (!isWebGLAvailable()) setWebglUnavailable(true)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [])
-
-  useEffect(() => {
-    setFallbackStyleActive(false)
-    setLastStyleError(null)
-    setMapStyle(configuredMapStyle)
-  }, [configuredMapStyle])
 
   // Generate a key for current bounds
   const boundsKey = bounds
     ? `${bounds.minLng.toFixed(6)},${bounds.maxLng.toFixed(6)},${bounds.minLat.toFixed(6)},${bounds.maxLat.toFixed(6)}`
     : null
+  const minLng = bounds?.minLng
+  const maxLng = bounds?.maxLng
+  const minLat = bounds?.minLat
+  const maxLat = bounds?.maxLat
 
   // Calculate viewport from bounds if provided
   const calculatedViewport = useMemo(() => {
@@ -165,6 +188,28 @@ export function RunMap({
     }
     return { ...DEFAULT_VIEW_STATE, ...initialViewport }
   }, [bounds, initialViewport])
+
+  const fitToBounds = useCallback(
+    (padding: number, duration: number) => {
+      if (
+        minLng === undefined ||
+        maxLng === undefined ||
+        minLat === undefined ||
+        maxLat === undefined
+      ) {
+        return
+      }
+
+      mapRef.current?.getMap()?.fitBounds(
+        [
+          [minLng, minLat],
+          [maxLng, maxLat],
+        ],
+        { padding, duration },
+      )
+    },
+    [maxLat, maxLng, minLat, minLng],
+  )
 
   // Toggle fullscreen mode
   const toggleFullscreen = useCallback(() => {
@@ -199,81 +244,45 @@ export function RunMap({
       // Trigger resize after animation
       const timer = setTimeout(() => {
         mapRef.current?.resize()
-        // Re-fit bounds after resize
-        if (bounds) {
-          const map = mapRef.current?.getMap()
-          map?.fitBounds(
-            [
-              [bounds.minLng, bounds.minLat],
-              [bounds.maxLng, bounds.maxLat],
-            ],
-            {
-              padding: isFullscreen ? 80 : boundsPadding,
-              duration: 300,
-            },
-          )
-        }
+        fitToBounds(isFullscreen ? 80 : boundsPadding, 300)
       }, 100)
       return () => clearTimeout(timer)
     }
     return
-  }, [isFullscreen, bounds, boundsPadding])
+  }, [isFullscreen, boundsPadding, fitToBounds])
 
   // Fit bounds when they change
   useEffect(() => {
-    if (!bounds || !boundsKey) return
+    if (!boundsKey) return
 
     // Check if bounds actually changed
     if (prevBoundsRef.current === boundsKey) return
     prevBoundsRef.current = boundsKey
 
     // Call fitBounds on the map if it's ready
-    const map = mapRef.current?.getMap()
-    if (map) {
+    if (mapRef.current?.getMap()) {
       // Use requestAnimationFrame to ensure map is ready
       requestAnimationFrame(() => {
-        map.fitBounds(
-          [
-            [bounds.minLng, bounds.minLat],
-            [bounds.maxLng, bounds.maxLat],
-          ],
-          {
-            padding: boundsPadding,
-            duration: 0,
-          },
-        )
+        fitToBounds(boundsPadding, 0)
       })
     }
-  }, [bounds, boundsKey, boundsPadding])
+  }, [boundsKey, boundsPadding, fitToBounds])
 
   const retryBasemap = useCallback(() => {
-    setFallbackStyleActive(false)
+    setFallbackStyleFor(null)
     setLastStyleError(null)
     setIsMapLoaded(false)
-    setMapStyle(configuredMapStyle)
-  }, [configuredMapStyle])
+  }, [])
 
   const handleLoad = useCallback(() => {
     setIsMapLoaded(true)
     // Fit bounds immediately after map loads
-    if (bounds && mapRef.current) {
-      const map = mapRef.current.getMap()
-      if (map) {
-        map.fitBounds(
-          [
-            [bounds.minLng, bounds.minLat],
-            [bounds.maxLng, bounds.maxLat],
-          ],
-          {
-            padding: boundsPadding,
-            duration: 0,
-          },
-        )
-        // Update ref to mark bounds as fitted
-        prevBoundsRef.current = boundsKey
-      }
+    if (boundsKey) {
+      fitToBounds(boundsPadding, 0)
+      // Update ref to mark bounds as fitted
+      prevBoundsRef.current = boundsKey
     }
-  }, [bounds, boundsKey, boundsPadding])
+  }, [boundsKey, boundsPadding, fitToBounds])
 
   const shouldTreatAsFatal = useCallback((error: Error): boolean => {
     const message = error.message.toLowerCase()
@@ -312,27 +321,25 @@ export function RunMap({
         isNetworkish &&
         !fallbackStyleActive &&
         !isMapLoaded &&
-        typeof mapStyle === 'string' &&
-        mapStyle.startsWith('http')
+        configuredMapStyle.startsWith('http')
       ) {
         setLastStyleError(message)
-        setFallbackStyleActive(true)
-        setMapStyle(FALLBACK_MAP_STYLE)
+        setFallbackStyleFor(configuredMapStyle)
         return
       }
 
       // Otherwise: keep the map running. Tile errors are expected occasionally.
     },
-    [fallbackStyleActive, isMapLoaded, mapStyle, shouldTreatAsFatal],
+    [configuredMapStyle, fallbackStyleActive, isMapLoaded, shouldTreatAsFatal],
   )
 
   // WebGL unavailable fallback
   if (webglUnavailable) {
     return (
       <div ref={containerRef} className={cn('relative', className)}>
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl bg-gray-100 dark:bg-gray-900">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-            <MapPin className="h-6 w-6 text-orange-500" />
+        <div className="border-separator bg-secondary-system-background flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border">
+          <div className="bg-orange/10 flex h-12 w-12 items-center justify-center rounded-full">
+            <MapPin className="text-orange h-6 w-6" />
           </div>
           <div className="text-center">
             <p className="text-label text-sm font-medium">地图无法显示</p>
@@ -347,15 +354,12 @@ export function RunMap({
   if (!shouldMount) {
     return (
       <div ref={containerRef} className={cn('relative', className)}>
-        <div className="absolute inset-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900">
+        <div className="border-separator bg-secondary-system-background absolute inset-0 overflow-hidden rounded-lg border">
           {/* Grid pattern background */}
           <div
             className="absolute inset-0 opacity-20"
             style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
-              `,
+              backgroundImage: MAP_GRID_BACKGROUND,
               backgroundSize: '40px 40px',
             }}
           />
@@ -365,7 +369,7 @@ export function RunMap({
             <button
               type="button"
               onClick={() => setShouldMount(true)}
-              className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-5 py-2.5 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/40 dark:hover:bg-black/60"
+              className="border-separator bg-tertiary-system-background hover:bg-system-background flex items-center gap-2 rounded-lg border px-5 py-2.5 text-sm font-medium shadow-sm transition-colors"
             >
               <MapPin className="text-blue h-4 w-4" />
               <span className="text-label">加载地图</span>
@@ -397,29 +401,12 @@ export function RunMap({
     <>
       {/* Map skeleton loading state */}
       {showSkeleton && !isMapLoaded && (
-        <div className="absolute inset-0 z-10 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900">
-          {/* Animated gradient background */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
-            animate={{
-              backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-            style={{ backgroundSize: '200% 100%' }}
-          />
-
+        <div className="border-separator bg-secondary-system-background absolute inset-0 z-10 overflow-hidden rounded-lg border">
           {/* Grid pattern overlay */}
           <div
             className="absolute inset-0 opacity-20"
             style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px)
-              `,
+              backgroundImage: MAP_GRID_BACKGROUND,
               backgroundSize: '40px 40px',
             }}
           />
@@ -482,7 +469,7 @@ export function RunMap({
           type="button"
           onClick={toggleFullscreen}
           className={cn(
-            'absolute z-20 flex items-center justify-center rounded-lg border border-white/20 bg-white/80 p-2 shadow-sm backdrop-blur-xl transition-colors hover:bg-white dark:border-white/10 dark:bg-black/60 dark:hover:bg-black/80',
+            'border-separator bg-tertiary-system-background/92 hover:bg-tertiary-system-background absolute z-20 flex items-center justify-center rounded-lg border p-2 shadow-sm backdrop-blur-xl transition-colors',
             isFullscreen ? 'top-4 right-4' : 'right-3 bottom-3',
           )}
           whileHover={{ scale: 1.05 }}
@@ -499,9 +486,10 @@ export function RunMap({
 
       {/* Basemap fallback banner */}
       {fallbackStyleActive && (
-        <div className="absolute top-3 left-3 z-20 max-w-[calc(100%-1.5rem)] rounded-xl border border-white/20 bg-white/80 px-3 py-2 text-xs shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/60">
+        <div className="border-separator bg-tertiary-system-background/92 absolute top-3 left-3 z-20 max-w-[calc(100%-1.5rem)] rounded-lg border px-3 py-2 text-xs shadow-sm backdrop-blur-xl">
           <div className="text-label/70">
-            底图加载失败，已切换到简洁模式{lastStyleError ? '（网络受限）' : ''}
+            <span>底图加载失败，已切换到简洁模式</span>
+            {lastStyleError && <span>（网络受限）</span>}
           </div>
           <div className="mt-1 flex items-center gap-2">
             <button
@@ -530,7 +518,7 @@ export function RunMap({
       <AnimatePresence>
         {isFullscreen && (
           <motion.div
-            className="fixed inset-0 z-50 bg-black"
+            className="bg-system-background fixed inset-0 z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -538,7 +526,7 @@ export function RunMap({
           >
             {/* Close hint */}
             <motion.div
-              className="absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/60 px-4 py-2 text-sm text-white/70 backdrop-blur-xl"
+              className="border-separator bg-tertiary-system-background/92 text-secondary-label absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-full border px-4 py-2 text-sm shadow-sm backdrop-blur-xl"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}

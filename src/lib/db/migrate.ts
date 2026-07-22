@@ -18,7 +18,7 @@ export async function runMigrations() {
 }
 
 // Reason: Allow direct execution via `bun run src/lib/db/migrate.ts`
-// while still exporting runMigrations for programmatic use (e.g. from sync script)
+// while still exporting runMigrations for programmatic use.
 if (import.meta.main) {
   runMigrations()
     .then(() => {

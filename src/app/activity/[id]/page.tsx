@@ -29,7 +29,9 @@ import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import type { TrackPoint } from '@/lib/map/pace-utils'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
 import { calculateSpeed, formatDuration, formatPace, paceToSpeed } from '@/lib/pace/calculator'
-import { formatDate, formatTime } from '@/lib/utils'
+import { useTheme } from '@/lib/theme'
+import { getTrainingColors } from '@/lib/theme/palette'
+import { cn, formatDate, formatTime } from '@/lib/utils'
 import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
 import type { Split } from '@/types/activity'
 
@@ -39,7 +41,7 @@ const RunMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[300px] animate-pulse rounded-2xl bg-gray-100 sm:h-[400px] dark:bg-gray-900" />
+      <div className="bg-secondary-system-background h-[300px] animate-pulse rounded-lg sm:h-[400px]" />
     ),
   },
 )
@@ -83,6 +85,8 @@ const AIInsight = dynamic(() =>
 )
 
 export default function ActivityDetailPage() {
+  const { resolvedTheme } = useTheme()
+  const trainingColors = getTrainingColors(resolvedTheme)
   const params = useParams()
   const searchParams = useSearchParams()
   const activityId = params.id as string
@@ -149,7 +153,7 @@ export default function ActivityDetailPage() {
     const markers = parsedPoints.length > 0 ? createKilometerMarkers(points) : []
 
     return {
-      paceSegments: createPaceSegments(points, averagePace, 50),
+      paceSegments: createPaceSegments(points, averagePace, 50, resolvedTheme),
       kmMarkers: markers,
       trackPoints: points,
       bounds: mapBounds,
@@ -201,12 +205,11 @@ export default function ActivityDetailPage() {
   if (isLoading || !isMounted) {
     return (
       <div className="bg-system-background min-h-screen">
-        <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
         <DetailHeader />
         <div className="relative container mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 lg:px-8">
-          <div className="mb-8 h-64 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl sm:h-80 dark:bg-black/20" />
-          <div className="mb-6 h-24 animate-pulse rounded-xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
-          <div className="h-64 animate-pulse rounded-2xl bg-white/40 backdrop-blur-xl dark:bg-black/20" />
+          <div className="bg-secondary-system-background mb-8 h-64 animate-pulse rounded-lg sm:h-80" />
+          <div className="bg-secondary-system-background mb-6 h-24 animate-pulse rounded-lg" />
+          <div className="bg-secondary-system-background h-64 animate-pulse rounded-lg" />
         </div>
       </div>
     )
@@ -216,11 +219,10 @@ export default function ActivityDetailPage() {
   if (error || !data) {
     return (
       <div className="bg-system-background min-h-screen">
-        <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
         <DetailHeader />
         <div className="relative container mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 lg:px-8">
           <motion.div
-            className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/50 py-16 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
+            className="premium-surface flex flex-col items-center justify-center py-16"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
@@ -266,9 +268,6 @@ export default function ActivityDetailPage() {
 
   return (
     <div className="bg-system-background min-h-screen">
-      {/* Subtle gradient overlay for glassmorphic depth */}
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-gray-100/50 via-transparent to-gray-200/30 dark:from-gray-900/50 dark:to-gray-800/30" />
-
       <DetailHeader
         rightSlot={
           !activity.isIndoor &&
@@ -276,7 +275,7 @@ export default function ActivityDetailPage() {
             <div className="flex items-center gap-2">
               <motion.button
                 onClick={handlePlayPause}
-                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-4 py-2 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
+                className="premium-surface hover:bg-secondary-system-background flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
                 whileTap={{ scale: 0.98 }}
                 transition={springs.snappy}
               >
@@ -295,7 +294,7 @@ export default function ActivityDetailPage() {
               {animationProgress > 0 && (
                 <motion.button
                   onClick={handleStopPlayback}
-                  className="text-label/60 hover:text-label flex items-center gap-2 rounded-xl border border-white/20 bg-white/40 px-3 py-2 text-sm backdrop-blur-xl transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
+                  className="premium-surface text-secondary-label hover:text-label hover:bg-secondary-system-background flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={springs.snappy}
@@ -312,8 +311,8 @@ export default function ActivityDetailPage() {
       <div className="relative container mx-auto max-w-6xl px-4 pt-20 pb-6 sm:px-6 sm:pt-24 sm:pb-8 lg:px-8">
         {/* Map Section - Only show for outdoor activities, skip in debug modes */}
         {!activity.isIndoor && !skipMap && (
-          <section className="mb-6">
-            <div className="relative overflow-hidden rounded-2xl shadow-lg shadow-black/10 dark:shadow-black/30">
+          <section className="mb-0">
+            <div className="relative overflow-hidden rounded-lg shadow-[0_24px_70px_rgba(24,33,47,0.16)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.42)]">
               <div className="h-[300px] sm:h-[400px]">
                 <MapErrorBoundary>
                   <RunMap
@@ -331,7 +330,7 @@ export default function ActivityDetailPage() {
                           segments={paceSegments}
                           activityId={`${activityId}-ghost`}
                           variant="mono"
-                          color="#0f172a"
+                          color={trainingColors.routeMono}
                           opacity={0.22}
                           showGlow={false}
                         />
@@ -382,7 +381,10 @@ export default function ActivityDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mb-6 rounded-xl border border-white/20 bg-white/50 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/20"
+          className={cn(
+            'premium-surface px-5 py-4 sm:px-6 sm:py-5',
+            !activity.isIndoor && !skipMap ? 'relative z-20 mx-3 -mt-14 mb-8 sm:mx-6' : 'mb-8',
+          )}
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Title and date */}
@@ -463,7 +465,7 @@ export default function ActivityDetailPage() {
             <AnimatedTabsContent value="pace">
               {chartSplits.length > 0 ? (
                 <div className="space-y-6">
-                  <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                  <div className="premium-surface p-6">
                     <h3 className="text-label/80 mb-4 text-sm font-medium">每公里{metricLabel}</h3>
                     <PaceChart
                       splits={chartSplits}
@@ -478,7 +480,7 @@ export default function ActivityDetailPage() {
                   />
                 </div>
               ) : (
-                <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                <div className="premium-surface text-secondary-label p-8 text-center">
                   {noMetricDataText}
                 </div>
               )}
@@ -490,7 +492,7 @@ export default function ActivityDetailPage() {
                 <div className="space-y-6">
                   {/* Heart Rate Chart */}
                   {heartRateData.length > 0 && (
-                    <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                    <div className="premium-surface p-6">
                       <h3 className="text-label/80 mb-4 text-sm font-medium">心率变化</h3>
                       <HeartRateChart
                         data={heartRateData}
@@ -514,12 +516,12 @@ export default function ActivityDetailPage() {
             {/* Splits Table Tab */}
             <AnimatedTabsContent value="splits">
               {chartSplits.length > 0 ? (
-                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                <div className="premium-surface p-6">
                   <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
                   <SplitsTable splits={chartSplits} metric={metricMode} />
                 </div>
               ) : (
-                <div className="text-label/50 rounded-2xl border border-white/20 bg-white/50 p-8 text-center backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                <div className="premium-surface text-secondary-label p-8 text-center">
                   暂无分段数据
                 </div>
               )}
@@ -545,11 +547,11 @@ export default function ActivityDetailPage() {
             {/* More Data Tab - Calories and other stats */}
             {activity.calories && (
               <AnimatedTabsContent value="more">
-                <div className="rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+                <div className="premium-surface p-6">
                   <h3 className="text-label/80 mb-4 text-sm font-medium">其他数据</h3>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {activity.calories && (
-                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                      <div className="bg-secondary-system-background rounded-lg p-4">
                         <div className="text-label/50 text-xs">卡路里</div>
                         <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
                           {activity.calories}
@@ -558,7 +560,7 @@ export default function ActivityDetailPage() {
                       </div>
                     )}
                     {activity.bestPace && (
-                      <div className="rounded-xl bg-white/40 p-4 dark:bg-white/5">
+                      <div className="bg-secondary-system-background rounded-lg p-4">
                         <div className="text-label/50 text-xs">{bestMetricTitle}</div>
                         <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
                           {isCycling
@@ -591,19 +593,19 @@ export default function ActivityDetailPage() {
 
 function DetailHeader({ rightSlot }: { rightSlot?: React.ReactNode }) {
   return (
-    <header className="bg-system-background/75 fixed inset-x-0 top-0 z-40 border-b border-white/10 backdrop-blur-xl">
+    <header className="bg-system-background/90 fixed inset-x-0 top-0 z-40 shadow-[0_8px_30px_rgba(24,33,47,0.045)] backdrop-blur-xl dark:shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-3">
           <Image
             src="/logo-mark.png?v=1"
             alt="RunPaceFlow"
-            width={48}
-            height={48}
+            width={40}
+            height={40}
             priority
             unoptimized
-            className="h-12 w-12 shrink-0 bg-transparent object-contain dark:invert"
+            className="h-10 w-10 shrink-0 bg-transparent object-contain dark:invert"
           />
-          <span className="text-label text-lg font-semibold tracking-tight transition-opacity group-hover:opacity-80">
+          <span className="font-display text-label text-base font-semibold transition-opacity group-hover:opacity-80">
             RunPaceFlow
           </span>
         </Link>

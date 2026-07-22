@@ -39,7 +39,7 @@ interface StreakData {
  * Get color intensity based on distance
  */
 function getIntensityColor(distance: number): string {
-  if (distance === 0) return 'bg-black/5 dark:bg-white/5'
+  if (distance === 0) return 'bg-quaternary-system-fill'
   if (distance < 3000) return 'bg-green/20'
   if (distance < 5000) return 'bg-green/40'
   if (distance < 8000) return 'bg-green/60'
@@ -236,7 +236,7 @@ function DayCell({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="w-64 rounded-xl border border-white/20 bg-white/90 p-4 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-black/90"
+                className="border-separator bg-tertiary-system-background w-64 rounded-lg border p-4 shadow-xl"
               >
                 {/* Header */}
                 <div className="mb-3 flex items-center justify-between">
@@ -260,11 +260,11 @@ function DayCell({
 
                 {/* Stats */}
                 <div className="mb-3 grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-black/5 p-2 dark:bg-white/5">
+                  <div className="bg-secondary-system-background rounded-lg p-2">
                     <div className="text-label/50 text-xs">活动次数</div>
                     <div className="text-label text-lg font-semibold">{day.count}</div>
                   </div>
-                  <div className="rounded-lg bg-black/5 p-2 dark:bg-white/5">
+                  <div className="bg-secondary-system-background rounded-lg p-2">
                     <div className="text-label/50 text-xs">总距离</div>
                     <div className="text-label text-lg font-semibold">
                       {(day.distance / 1000).toFixed(1)}
@@ -281,7 +281,7 @@ function DayCell({
                       <Link
                         key={activity.id}
                         href={`/activity/${activity.id}`}
-                        className="flex items-center justify-between rounded-lg bg-black/5 p-2 transition-colors hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                        className="bg-secondary-system-background hover:bg-tertiary-system-background flex items-center justify-between rounded-lg p-2 transition-colors"
                         onClick={() => setOpen(false)}
                       >
                         <div className="min-w-0 flex-1">
@@ -301,7 +301,7 @@ function DayCell({
                 </div>
 
                 {/* Arrow */}
-                <Popover.Arrow className="fill-white/90 dark:fill-black/90" />
+                <Popover.Arrow className="fill-tertiary-system-background" />
               </motion.div>
             </Popover.Content>
           </Popover.Portal>
@@ -325,7 +325,7 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
   const dayLabels = ['日', '一', '二', '三', '四', '五', '六']
 
   return (
-    <div className={cn('rounded-2xl border-0 bg-transparent p-4 sm:p-5', className)}>
+    <div className={cn('rounded-lg bg-transparent p-4 sm:p-5', className)}>
       {/* Header with streak badges */}
       <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Streak badges */}
@@ -365,7 +365,7 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
           <div className="mb-1 flex pl-8">
             {monthLabels.map(({ label, weekIndex }, i) => (
               <span
-                key={`${label}-${i}`}
+                key={`${label}-${weekIndex}`}
                 className="text-label/40 text-xs"
                 style={{
                   marginLeft:
@@ -390,8 +390,8 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
 
             {/* Weeks */}
             <div className="flex gap-0.5">
-              {weeks.map((week, weekIndex) => (
-                <div key={`week-${weekIndex}`} className="flex flex-col gap-0.5">
+              {weeks.map((week) => (
+                <div key={week[0].date.toISOString()} className="flex flex-col gap-0.5">
                   {week.map((day) => {
                     const dateKey = day.date.toISOString().split('T')[0]
                     const isToday = dateKey === todayKey
@@ -409,7 +409,7 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
       {/* Legend */}
       <div className="mt-4 flex items-center justify-end gap-1 text-xs">
         <span className="text-label/40 mr-1">少</span>
-        <div className="h-3 w-3 rounded-sm bg-black/5 dark:bg-white/5" />
+        <div className="bg-quaternary-system-fill h-3 w-3 rounded-sm" />
         <div className="bg-green/20 h-3 w-3 rounded-sm" />
         <div className="bg-green/40 h-3 w-3 rounded-sm" />
         <div className="bg-green/60 h-3 w-3 rounded-sm" />

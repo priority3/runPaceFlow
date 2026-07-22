@@ -11,6 +11,8 @@ import { useMemo } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
 
 import type { PaceSegment } from '@/lib/map/pace-utils'
+import { useTheme } from '@/lib/theme'
+import { getTrainingColors } from '@/lib/theme/palette'
 
 export interface PaceRouteLayerProps {
   segments: PaceSegment[]
@@ -29,11 +31,14 @@ export function PaceRouteLayer({
   segments,
   activityId,
   variant = 'pace',
-  color = '#374151',
+  color,
   opacity = 0.9,
   showGlow = true,
 }: PaceRouteLayerProps) {
+  const { resolvedTheme } = useTheme()
+  const monoColor = color ?? getTrainingColors(resolvedTheme).routeMono
   // Combine all segments into a single LineString with gradient stops
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const { geojson, gradientStops } = useMemo(() => {
     if (!segments || segments.length === 0) {
       return { geojson: null, gradientStops: null }
@@ -114,7 +119,7 @@ export function PaceRouteLayer({
           id={`pace-line-glow-${activityId}`}
           type="line"
           paint={{
-            'line-color': '#0f172a',
+            'line-color': getTrainingColors(resolvedTheme).routeMono,
             'line-width': ['interpolate', ['linear'], ['zoom'], 10, 7, 14, 10, 18, 18],
             'line-opacity': 0.16,
             'line-blur': 6,
@@ -129,7 +134,7 @@ export function PaceRouteLayer({
         id={`pace-line-${activityId}`}
         type="line"
         paint={{
-          'line-color': variant === 'pace' ? segments[0]?.color || color : color,
+          'line-color': variant === 'pace' ? segments[0]?.color || monoColor : monoColor,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 3.5, 14, 5, 18, 9],
           'line-opacity': opacity,
           ...(variant === 'pace' && gradientStops && gradientStops.length >= 2

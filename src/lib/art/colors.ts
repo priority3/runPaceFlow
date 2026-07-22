@@ -5,26 +5,28 @@
  * Uses Apple UIKit color system for consistency
  */
 
+import { HEART_RATE_ZONE_COLORS, PACE_COLORS, SPORT_COLORS } from '@/lib/theme/palette'
+
 /**
- * Heart rate zone colors (blue → green → yellow → orange → red)
+ * Heart rate zone colors (neutral → blue → muted violet → vermilion → red)
  */
 export const heartRateZoneColors = {
-  zone1: '#007AFF', // Blue - Recovery (50-60% max HR)
-  zone2: '#34C759', // Green - Aerobic (60-70% max HR)
-  zone3: '#FFCC00', // Yellow - Tempo (70-80% max HR)
-  zone4: '#FF9500', // Orange - Threshold (80-90% max HR)
-  zone5: '#FF3B30', // Red - Anaerobic (90-100% max HR)
+  zone1: HEART_RATE_ZONE_COLORS[0],
+  zone2: HEART_RATE_ZONE_COLORS[1],
+  zone3: HEART_RATE_ZONE_COLORS[2],
+  zone4: HEART_RATE_ZONE_COLORS[3],
+  zone5: HEART_RATE_ZONE_COLORS[4],
 } as const
 
 /**
  * Pace zone colors (fast to slow)
  */
 export const paceZoneColors = {
-  veryFast: '#34C759', // Green - Much faster than average
-  fast: '#30D158', // Light green - Faster than average
-  average: '#FFCC00', // Yellow - Near average
-  slow: '#FF9500', // Orange - Slower than average
-  verySlow: '#FF3B30', // Red - Much slower than average
+  veryFast: PACE_COLORS.veryFast,
+  fast: PACE_COLORS.fast,
+  average: PACE_COLORS.average,
+  slow: PACE_COLORS.slow,
+  verySlow: PACE_COLORS.verySlow,
 } as const
 
 /**
@@ -194,7 +196,7 @@ export const artThemes = {
   default: {
     background: '#000000',
     foreground: '#FFFFFF',
-    accent: '#007AFF',
+    accent: SPORT_COLORS.running,
   },
   warm: {
     background: '#1A1A2E',

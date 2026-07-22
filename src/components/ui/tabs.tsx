@@ -55,8 +55,13 @@ const AnimatedTabs = ({
     }
   }, [value])
 
+  const contextValue = React.useMemo(
+    () => ({ activeTab, setActiveTab: handleValueChange }),
+    [activeTab, handleValueChange],
+  )
+
   return (
-    <TabsContext value={{ activeTab, setActiveTab: handleValueChange }}>
+    <TabsContext value={contextValue}>
       <TabsPrimitive.Root ref={ref} value={activeTab} onValueChange={handleValueChange} {...props}>
         {children}
       </TabsPrimitive.Root>
@@ -137,7 +142,7 @@ const TabsList = ({
         listRef.current = node
       }}
       className={cn(
-        'relative inline-flex items-center gap-1 rounded-xl border border-white/20 bg-white/40 p-1 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
+        'bg-secondary-system-background relative inline-flex items-center gap-1 rounded-lg p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]',
         className,
       )}
       {...props}
@@ -145,7 +150,7 @@ const TabsList = ({
       {/* Sliding indicator */}
       {indicatorStyle.width > 0 && (
         <motion.div
-          className="absolute top-1 bottom-1 rounded-lg bg-white/60 shadow-sm dark:bg-white/10"
+          className="bg-tertiary-system-background absolute top-1 bottom-1 rounded-md shadow-[0_4px_14px_rgba(24,33,47,0.1)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.32)]"
           initial={false}
           animate={{
             left: indicatorStyle.left,
@@ -178,7 +183,7 @@ const TabsTrigger = ({
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'relative z-10 inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+      'relative z-10 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
       'text-label/60 hover:text-label/80',
       'focus-visible:ring-blue/50 focus-visible:ring-2 focus-visible:outline-none',
       'disabled:pointer-events-none disabled:opacity-50',

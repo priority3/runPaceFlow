@@ -35,7 +35,7 @@ export function Skeleton({
     height: height || undefined,
   }
 
-  const baseClasses = 'relative overflow-hidden bg-fill animate-pulse'
+  const baseClasses = 'bg-system-fill relative overflow-hidden animate-pulse'
 
   const variantClasses = {
     default: 'rounded-xl',
@@ -71,7 +71,12 @@ export function SkeletonGroup({ className }: { className?: string }) {
  */
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn('border-separator bg-fill rounded-2xl border p-6', className)}>
+    <div
+      className={cn(
+        'border-separator bg-secondary-system-background rounded-lg border p-6',
+        className,
+      )}
+    >
       <div className="space-y-3">
         <Skeleton className="h-4 w-1/3" />
         <Skeleton className="h-8 w-1/2" />

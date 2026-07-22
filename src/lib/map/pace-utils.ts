@@ -4,6 +4,7 @@
  */
 
 import { getPaceColor } from '@/lib/pace/calculator'
+import type { PaletteMode } from '@/lib/theme/palette'
 import type { Coordinate, PacePoint } from '@/types/map'
 
 /**
@@ -45,6 +46,7 @@ export function createPaceSegments(
   trackPoints: TrackPoint[],
   averagePace: number,
   segmentLength = 100,
+  paletteMode: PaletteMode = 'light',
 ): PaceSegment[] {
   if (trackPoints.length < 2) return []
 
@@ -69,7 +71,7 @@ export function createPaceSegments(
       const pace = duration > 0 ? (duration / segmentDistance) * 1000 : averagePace
 
       // 获取颜色
-      const color = getPaceColor(pace, averagePace)
+      const color = getPaceColor(pace, averagePace, paletteMode)
 
       segments.push({
         coordinates: [...currentSegment],

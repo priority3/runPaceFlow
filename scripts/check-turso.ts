@@ -6,6 +6,7 @@
  */
 
 import fs from 'node:fs'
+
 import { createClient } from '@libsql/client'
 
 // Read .env.local for credentials
@@ -32,7 +33,7 @@ if (!dbUrl) {
   process.exit(1)
 }
 
-console.log('DB URL:', dbUrl.substring(0, 30) + '...')
+console.info('DB URL:', `${dbUrl.slice(0, 30)}...`)
 
 const client = createClient({ url: dbUrl, authToken: dbToken })
 
@@ -40,21 +41,13 @@ const client = createClient({ url: dbUrl, authToken: dbToken })
 const result = await client.execute(
   'SELECT id, title, source, start_time, distance, created_at FROM activities ORDER BY start_time DESC LIMIT 5',
 )
-console.log('\n=== Latest 5 activities in Turso ===')
+console.info('\n=== Latest 5 activities in Turso ===')
 for (const row of result.rows) {
   const startDate = new Date(Number(row.start_time) * 1000).toISOString()
   const dist = (Number(row.distance) / 1000).toFixed(2)
-  console.log(`  ${startDate} | ${dist}km | ${row.title} | source: ${row.source}`)
+  console.info(`  ${startDate} | ${dist}km | ${row.title} | source: ${row.source}`)
 }
 
 // Total count
 const countResult = await client.execute('SELECT COUNT(*) as cnt FROM activities')
-console.log(`\nTotal activities: ${countResult.rows[0].cnt}`)
-
-// Sync logs
-const syncResult = await client.execute('SELECT * FROM sync_logs ORDER BY started_at DESC LIMIT 3')
-console.log('\n=== Recent sync logs ===')
-for (const row of syncResult.rows) {
-  const startedAt = new Date(Number(row.started_at) * 1000).toISOString()
-  console.log(`  ${startedAt} | ${row.source} | ${row.status} | count: ${row.activities_count}`)
-}
+console.info(`\nTotal activities: ${countResult.rows[0].cnt}`)

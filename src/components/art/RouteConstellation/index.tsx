@@ -63,7 +63,7 @@ export function RouteConstellation({
 
   if (kmMarkers.length === 0 || !bounds) {
     return (
-      <div className="text-label/50 flex h-64 items-center justify-center rounded-2xl border border-white/20 bg-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+      <div className="premium-surface text-secondary-label flex h-64 items-center justify-center">
         暂无公里标记数据，无法生成星座图
       </div>
     )
@@ -76,7 +76,7 @@ export function RouteConstellation({
       className="space-y-4"
     >
       {/* Canvas container */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-white/20 bg-black shadow-lg dark:border-white/10">
+      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-black shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
         <ConstellationCanvas
           markers={markers}
           bounds={bounds}

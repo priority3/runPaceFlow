@@ -2,7 +2,7 @@
  * Smart Activity Naming Module
  *
  * Provides intelligent naming for running activities based on:
- * 1. Stored race event name (matched during sync)
+ * 1. Stored race event name from the activity database
  * 2. Distance classification (5K, 10K, Half Marathon, Full Marathon, etc.)
  */
 
@@ -110,7 +110,7 @@ export function generateSmartName(
 ): string {
   const { distance, raceName } = activity
 
-  // Step 1: Use stored race name if available (matched during sync)
+  // Step 1: Use stored race name if available
   if (raceName) {
     return raceName
   }

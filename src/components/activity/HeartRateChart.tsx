@@ -55,7 +55,7 @@ const CustomTooltip = ({ active, payload, maxHR }: any) => {
     const percentage = maxHR ? Math.round((hr / maxHR) * 100) : 0
 
     return (
-      <div className="rounded-xl border border-white/30 bg-white/90 p-3 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black/80">
+      <div className="border-separator bg-tertiary-system-background rounded-lg border p-3 shadow-lg">
         <p className="text-label mb-1 text-sm font-medium">
           {(data.distance / 1000).toFixed(2)} km
         </p>
@@ -84,12 +84,13 @@ export function HeartRateChart({
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
+    const frame = requestAnimationFrame(() => setIsMounted(true))
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex h-[250px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
+      <div className="bg-secondary-system-background flex h-[250px] items-center justify-center rounded-lg">
         <p className="text-label/50">暂无心率数据</p>
       </div>
     )
@@ -97,7 +98,7 @@ export function HeartRateChart({
 
   // Show placeholder during SSR
   if (!isMounted) {
-    return <div className="h-[250px] animate-pulse rounded-xl bg-white/30 dark:bg-black/10" />
+    return <div className="bg-secondary-system-background h-[250px] animate-pulse rounded-lg" />
   }
 
   // Prepare chart data - sample every N points to avoid too many data points
@@ -131,12 +132,16 @@ export function HeartRateChart({
         <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
           <defs>
             <linearGradient id="heartRateGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+              <stop offset="5%" stopColor="var(--rpf-heart)" stopOpacity={0.28} />
+              <stop offset="95%" stopColor="var(--rpf-heart)" stopOpacity={0} />
             </linearGradient>
           </defs>
 
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(156, 163, 175, 0.2)" vertical={false} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="rgba(var(--color-separator))"
+            vertical={false}
+          />
 
           <XAxis
             dataKey="distance"
@@ -145,11 +150,11 @@ export function HeartRateChart({
               value: '公里',
               position: 'insideBottom',
               offset: -5,
-              style: { fill: 'rgba(107, 114, 128, 0.6)' },
+              style: { fill: 'rgba(var(--color-secondaryLabel))' },
             }}
-            tick={{ fill: 'rgba(107, 114, 128, 0.6)', fontSize: 12 }}
-            axisLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
-            tickLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
+            tick={{ fill: 'rgba(var(--color-secondaryLabel))', fontSize: 12 }}
+            axisLine={{ stroke: 'rgba(var(--color-separator))' }}
+            tickLine={{ stroke: 'rgba(var(--color-separator))' }}
           />
 
           <YAxis
@@ -158,11 +163,11 @@ export function HeartRateChart({
               value: 'bpm',
               angle: -90,
               position: 'insideLeft',
-              style: { fill: 'rgba(107, 114, 128, 0.6)' },
+              style: { fill: 'rgba(var(--color-secondaryLabel))' },
             }}
-            tick={{ fill: 'rgba(107, 114, 128, 0.6)', fontSize: 12 }}
-            axisLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
-            tickLine={{ stroke: 'rgba(156, 163, 175, 0.3)' }}
+            tick={{ fill: 'rgba(var(--color-secondaryLabel))', fontSize: 12 }}
+            axisLine={{ stroke: 'rgba(var(--color-separator))' }}
+            tickLine={{ stroke: 'rgba(var(--color-separator))' }}
           />
 
           <Tooltip content={<CustomTooltip maxHR={effectiveMaxHR} />} />
@@ -171,13 +176,13 @@ export function HeartRateChart({
           {averageHeartRate && (
             <ReferenceLine
               y={averageHeartRate}
-              stroke="rgba(239, 68, 68, 0.6)"
+              stroke="var(--rpf-heart)"
               strokeDasharray="5 5"
               strokeWidth={2}
               label={{
                 value: `平均 ${averageHeartRate} bpm`,
                 position: 'right',
-                fill: 'rgba(239, 68, 68, 0.8)',
+                fill: 'var(--rpf-heart)',
                 fontSize: 11,
               }}
             />
@@ -187,11 +192,16 @@ export function HeartRateChart({
           <Area
             type="monotone"
             dataKey="heartRate"
-            stroke="#ef4444"
+            stroke="var(--rpf-heart)"
             strokeWidth={2}
             fill="url(#heartRateGradient)"
             dot={false}
-            activeDot={{ r: 4, fill: '#ef4444', stroke: '#fff', strokeWidth: 2 }}
+            activeDot={{
+              r: 4,
+              fill: 'var(--rpf-heart)',
+              stroke: 'rgb(var(--color-tertiarySystemBackground))',
+              strokeWidth: 2,
+            }}
           />
         </AreaChart>
       </ResponsiveContainer>

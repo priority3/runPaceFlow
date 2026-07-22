@@ -61,7 +61,7 @@ export function ArtExportButton({ onDownload, onCopy, onShare, disabled }: ArtEx
         <motion.button
           onClick={handleCopy}
           disabled={disabled}
-          className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-3 py-2 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 disabled:opacity-50 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
+          className="premium-surface hover:bg-secondary-system-background flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           whileTap={{ scale: 0.98 }}
         >
           <Copy className="h-4 w-4" />
@@ -74,7 +74,7 @@ export function ArtExportButton({ onDownload, onCopy, onShare, disabled }: ArtEx
         <motion.button
           onClick={handleShare}
           disabled={disabled}
-          className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/60 px-3 py-2 text-sm font-medium backdrop-blur-xl transition-colors hover:bg-white/80 disabled:opacity-50 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/40"
+          className="premium-surface hover:bg-secondary-system-background flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           whileTap={{ scale: 0.98 }}
         >
           <Share2 className="h-4 w-4" />
@@ -87,7 +87,7 @@ export function ArtExportButton({ onDownload, onCopy, onShare, disabled }: ArtEx
         <motion.button
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled || isExporting}
-          className="bg-blue/90 hover:bg-blue flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-xl transition-colors disabled:opacity-50"
+          className="bg-blue hover:bg-blue/90 border-blue flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
           whileTap={{ scale: 0.98 }}
         >
           <Download className="h-4 w-4" />
@@ -104,14 +104,15 @@ export function ArtExportButton({ onDownload, onCopy, onShare, disabled }: ArtEx
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full right-0 z-20 mt-2 w-56 overflow-hidden rounded-xl border border-white/20 bg-white/90 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black/80"
+              className="premium-surface absolute top-full right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg"
             >
               <div className="max-h-80 overflow-y-auto py-1">
                 {(Object.keys(socialPresets) as SocialPreset[]).map((preset) => (
                   <button
+                    type="button"
                     key={preset}
                     onClick={() => handleDownload(preset)}
-                    className="text-label hover:bg-fill-tertiary flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors"
+                    className="text-label hover:bg-tertiary-system-fill flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors"
                   >
                     <span className="truncate">{socialPresets[preset].name}</span>
                     <span className="text-label/50 shrink-0 text-xs">

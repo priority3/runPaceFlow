@@ -133,12 +133,12 @@ export function ArtGallery({
               key={type.value}
               onClick={() => !isDisabled && setSelectedType(type.value)}
               disabled={isDisabled}
-              className={`relative flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all ${
+              className={`relative flex flex-col items-center gap-2 rounded-lg p-4 text-center transition-all ${
                 isSelected
-                  ? 'border-blue bg-blue/10 text-blue'
+                  ? 'bg-blue/10 text-blue shadow-[inset_0_0_0_1px_rgba(36,87,197,0.28),0_12px_30px_rgba(36,87,197,0.1)]'
                   : isDisabled
-                    ? 'text-label/30 cursor-not-allowed border-white/10 bg-white/20 dark:bg-black/10'
-                    : 'text-label hover:border-blue/50 border-white/20 bg-white/50 hover:bg-white/70 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30'
+                    ? 'text-label/30 bg-secondary-system-background cursor-not-allowed'
+                    : 'premium-surface text-label hover:-translate-y-0.5'
               }`}
               whileTap={!isDisabled ? { scale: 0.98 } : undefined}
             >
@@ -194,7 +194,7 @@ export function ArtGallery({
         {((selectedType === 'fingerprint' && !hasSplitData) ||
           (selectedType === 'flowfield' && !hasRouteData) ||
           (selectedType === 'constellation' && !hasRouteData)) && (
-          <div className="text-label/50 flex h-64 items-center justify-center rounded-2xl border border-white/20 bg-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+          <div className="premium-surface text-secondary-label flex h-64 items-center justify-center">
             数据不足，无法生成此类型的艺术图
           </div>
         )}

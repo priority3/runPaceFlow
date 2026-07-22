@@ -10,6 +10,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
 
 import type { PaceSegment } from '@/lib/map/pace-utils'
+import { useTheme } from '@/lib/theme'
+import { getTrainingColors } from '@/lib/theme/palette'
 
 export interface AnimatedRouteProps {
   segments: PaceSegment[]
@@ -32,21 +34,22 @@ export function AnimatedRoute({
   onAnimationComplete,
   speed = 1,
 }: AnimatedRouteProps) {
+  const { resolvedTheme } = useTheme()
+  const trainingColors = getTrainingColors(resolvedTheme)
   const [visibleSegments, setVisibleSegments] = useState<PaceSegment[]>([])
   const animationRef = useRef<number | undefined>(undefined)
   const startTimeRef = useRef<number | undefined>(undefined)
   const pausedTimeRef = useRef<number>(0)
   const totalPausedTimeRef = useRef<number>(0)
 
-  const segmentDistances = useMemo(
-    () => segments.map((segment) => estimateSegmentDistance(segment.coordinates)),
-    [segments],
-  )
-
-  const totalDistance = useMemo(
-    () => segmentDistances.reduce((sum, dist) => sum + dist, 0),
-    [segmentDistances],
-  )
+  // Keep distance calculation stable during requestAnimationFrame-driven renders.
+  const { segmentDistances, totalDistance } = useMemo(() => {
+    const distances = segments.map((segment) => estimateSegmentDistance(segment.coordinates))
+    return {
+      segmentDistances: distances,
+      totalDistance: distances.reduce((sum, distance) => sum + distance, 0),
+    }
+  }, [segments])
 
   // 动画持续时间（毫秒）
   const animationDuration = 5000 / speed // 5 秒基础时长，可通过 speed 调整
@@ -89,8 +92,7 @@ export function AnimatedRoute({
       const visible: PaceSegment[] = []
       let currentDistance = 0
 
-      for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i]
+      for (const [i, segment] of segments.entries()) {
         const segmentDist = segmentDistances[i] ?? 0
         const nextDistance = currentDistance + segmentDist
 
@@ -180,7 +182,7 @@ export function AnimatedRoute({
         id={`animated-line-glow-${activityId}`}
         type="line"
         paint={{
-          'line-color': '#0f172a',
+          'line-color': trainingColors.routeMono,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 7, 14, 10, 18, 18],
           'line-opacity': 0.18,
           'line-blur': 6,

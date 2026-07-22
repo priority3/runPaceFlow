@@ -24,7 +24,7 @@ export interface SplitsTableProps {
 export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableProps) {
   if (!splits || splits.length === 0) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
+      <div className="bg-secondary-system-background flex min-h-[200px] items-center justify-center rounded-lg">
         <p className="text-label/50">暂无分段数据</p>
       </div>
     )
@@ -84,14 +84,14 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
 
   return (
     <div className={className}>
-      <div className="overflow-hidden rounded-xl border border-white/20 backdrop-blur-xl dark:border-white/10">
+      <div className="bg-tertiary-system-background overflow-hidden rounded-lg">
         {/* Scrollable table container */}
         <div className="max-h-[400px] overflow-y-auto sm:max-h-[500px]">
           <table className="w-full table-fixed text-sm">
             {colGroup}
             {/* Sticky header */}
             <thead className="sticky top-0 z-10">
-              <tr className="border-b border-white/10 bg-white/60 backdrop-blur-md dark:bg-black/40">
+              <tr className="bg-secondary-system-background">
                 <th className="text-label/60 px-4 py-3 text-left text-xs font-medium">公里</th>
                 <th className="text-label/60 px-4 py-3 text-right text-xs font-medium">
                   {metricLabel}
@@ -109,12 +109,12 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
               {tableData.map((data, index) => (
                 <tr
                   key={data.kilometer}
-                  className={`border-b border-white/10 transition-colors hover:bg-white/20 dark:hover:bg-white/5 ${
+                  className={`hover:bg-secondary-system-background transition-colors ${
                     data.isFastest
-                      ? 'bg-white/40 dark:bg-white/10'
+                      ? 'bg-blue/10'
                       : index % 2 === 0
-                        ? 'bg-white/20 dark:bg-black/5'
-                        : 'bg-white/10 dark:bg-transparent'
+                        ? 'bg-secondary-system-background/45'
+                        : 'bg-transparent'
                   }`}
                 >
                   {/* Kilometer */}
@@ -122,7 +122,7 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
                     <div className="flex items-center gap-2">
                       <span>第 {data.kilometer} km</span>
                       {data.isFastest && (
-                        <span className="rounded-full bg-gray-200/60 px-2 py-0.5 text-xs dark:bg-white/10">
+                        <span className="bg-tertiary-system-fill rounded-full px-2 py-0.5 text-xs">
                           最快
                         </span>
                       )}
@@ -155,7 +155,7 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
         </div>
 
         {/* Sticky summary row - always visible outside scroll container */}
-        <div className="border-t border-white/20 bg-white/60 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md dark:bg-black/40 dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
+        <div className="bg-secondary-system-background shadow-[0_-8px_24px_rgba(24,33,47,0.05)]">
           <table className="w-full text-sm">
             {colGroup}
             <tfoot>

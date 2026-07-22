@@ -35,10 +35,10 @@ export const activities = sqliteTable('activities', {
   // 室内/户外标识
   isIndoor: integer('is_indoor', { mode: 'boolean' }).default(false), // true = 室内（跑步机等）
 
-  // 赛事名称（同步时通过 zuicool.com 匹配获取）
+  // 赛事名称（由数据接入侧写入）
   raceName: text('race_name'), // 如 "2025 北京马拉松"
 
-  // 天气数据（同步时通过 Open-Meteo 获取）
+  // 天气数据（由数据接入侧写入）
   weatherData: text('weather_data'), // JSON: { temperature, humidity, windSpeed, weatherCode, description }
 
   // 时间戳
@@ -72,14 +72,14 @@ export const splits = sqliteTable('splits', {
 })
 
 /**
- * 用户配置表 - 存储用户信息和同步配置（单用户系统）
+ * 用户配置表 - 保留历史用户信息和数据接入元信息（单用户系统）
  */
 export const userProfile = sqliteTable('user_profile', {
   id: text('id').primaryKey(),
   name: text('name'),
   avatar: text('avatar'),
 
-  // 同步配置
+  // 历史数据源配置，展示端不再直接使用这些凭据发起数据接入
   syncSource: text('sync_source'), // 'nike' | 'strava' | 'garmin'
   nikeAccessToken: text('nike_access_token'),
   stravaAccessToken: text('strava_access_token'),
@@ -96,7 +96,7 @@ export const userProfile = sqliteTable('user_profile', {
 })
 
 /**
- * 同步日志表 - 记录每次数据同步的结果
+ * 数据接入日志表 - 兼容历史同步记录，展示端只读
  */
 export const syncLogs = sqliteTable('sync_logs', {
   id: text('id').primaryKey(),

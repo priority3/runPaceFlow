@@ -69,7 +69,7 @@ export function PaceFlowField({
 
   if (paceSegments.length === 0 || !bounds) {
     return (
-      <div className="text-label/50 flex h-64 items-center justify-center rounded-2xl border border-white/20 bg-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+      <div className="premium-surface text-secondary-label flex h-64 items-center justify-center">
         暂无路线数据，无法生成流场
       </div>
     )
@@ -82,7 +82,7 @@ export function PaceFlowField({
       className="space-y-4"
     >
       {/* Canvas container */}
-      <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/20 bg-black shadow-lg dark:border-white/10">
+      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
         <FlowFieldCanvas
           coordinates={coordinates}
           paces={paces}
@@ -102,7 +102,7 @@ export function PaceFlowField({
           <div className="text-sm text-white/60">
             {settings.isPlaying ? (
               <span className="flex items-center gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                <span className="bg-green h-2 w-2 animate-pulse rounded-full" />
                 播放中
               </span>
             ) : (

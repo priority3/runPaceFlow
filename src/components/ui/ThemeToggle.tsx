@@ -41,7 +41,7 @@ export function ThemeToggle() {
     <motion.button
       type="button"
       onClick={cycleTheme}
-      className="flex items-center gap-2 rounded-full border border-white/20 bg-white/50 px-3 py-1.5 text-sm backdrop-blur-xl transition-colors hover:bg-white/70 dark:border-white/10 dark:bg-black/30 dark:hover:bg-black/50"
+      className="border-separator bg-tertiary-system-background hover:bg-secondary-system-background focus-visible:ring-blue/40 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       title={`当前: ${themeLabels[theme]}`}

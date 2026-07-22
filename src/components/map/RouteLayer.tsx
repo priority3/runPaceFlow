@@ -10,6 +10,7 @@
 import { useMemo } from 'react'
 import { Layer, Source } from 'react-map-gl/maplibre'
 
+import { SPORT_COLORS } from '@/lib/theme/palette'
 import type { RouteData } from '@/types/map'
 
 export interface RouteLayerProps {
@@ -30,7 +31,7 @@ export function RouteLayer({ routes }: RouteLayerProps) {
         type: 'Feature',
         properties: {
           id: route.id,
-          color: route.color ?? '#007aff',
+          color: route.color ?? SPORT_COLORS.running,
           width: route.width ?? 3,
         },
         geometry: {

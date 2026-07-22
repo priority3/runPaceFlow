@@ -17,7 +17,7 @@ export function ArtControlPanel({ title, children, className = '' }: ArtControlP
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border border-white/20 bg-white/50 p-3 backdrop-blur-xl sm:p-4 dark:border-white/10 dark:bg-black/20 ${className}`}
+      className={`premium-surface rounded-lg p-3 sm:p-4 ${className}`}
     >
       <h4 className="text-label/80 mb-3 text-sm font-medium">{title}</h4>
       <div className="space-y-3">{children}</div>
@@ -55,11 +55,12 @@ interface ToggleButtonProps {
 export function ToggleButton({ active, onClick, children }: ToggleButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
         active
           ? 'bg-blue text-white'
-          : 'bg-fill-tertiary text-label/60 hover:bg-fill-secondary hover:text-label'
+          : 'bg-tertiary-system-fill text-label/60 hover:bg-secondary-system-fill hover:text-label'
       }`}
     >
       {children}
@@ -97,7 +98,7 @@ export function SliderControl({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="bg-fill-tertiary accent-blue h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full sm:w-24 sm:flex-none"
+        className="bg-tertiary-system-fill accent-blue h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full sm:w-24 sm:flex-none"
       />
       <span className="text-label/60 w-12 shrink-0 text-right text-sm tabular-nums">
         {formatValue ? formatValue(value) : value}
@@ -122,14 +123,15 @@ export function SegmentedControl<T extends string>({
   onChange,
 }: SegmentedControlProps<T>) {
   return (
-    <div className="bg-fill-tertiary inline-flex w-full overflow-x-auto rounded-lg p-1 sm:w-auto">
+    <div className="bg-tertiary-system-fill inline-flex w-full overflow-x-auto rounded-lg p-1 sm:w-auto">
       {options.map((option) => (
         <button
+          type="button"
           key={option.value}
           onClick={() => onChange(option.value)}
           className={`shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             value === option.value
-              ? 'text-label bg-white shadow-sm dark:bg-black/40'
+              ? 'bg-tertiary-system-background text-label shadow-sm'
               : 'text-label/60 hover:text-label'
           }`}
         >

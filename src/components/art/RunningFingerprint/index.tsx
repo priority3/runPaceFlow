@@ -26,6 +26,8 @@ interface RunningFingerprintProps {
   activityTitle?: string
 }
 
+const EMPTY_ELEVATION_DATA: number[] = []
+
 /**
  * Running Fingerprint visualization component
  * Generates unique circular patterns from running data
@@ -34,7 +36,7 @@ export function RunningFingerprint({
   splits,
   averagePace,
   maxHeartRate,
-  elevationData = [],
+  elevationData = EMPTY_ELEVATION_DATA,
   activityTitle = '跑步指纹',
 }: RunningFingerprintProps) {
   const settings = useAtomValue(fingerprintSettingsAtom)
@@ -71,7 +73,7 @@ export function RunningFingerprint({
 
   if (splits.length === 0) {
     return (
-      <div className="text-label/50 flex h-64 items-center justify-center rounded-2xl border border-white/20 bg-white/50 backdrop-blur-xl dark:border-white/10 dark:bg-black/20">
+      <div className="premium-surface text-secondary-label flex h-64 items-center justify-center">
         暂无分段数据，无法生成指纹
       </div>
     )
@@ -84,7 +86,7 @@ export function RunningFingerprint({
       className="space-y-4"
     >
       {/* Canvas container - max width on larger screens for better proportions */}
-      <div className="relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-2xl border border-white/20 bg-black shadow-lg dark:border-white/10">
+      <div className="relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-lg bg-black shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
         <FingerprintCanvas
           splits={fingerprintSplits}
           mode={settings.mode}

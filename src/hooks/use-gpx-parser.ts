@@ -10,8 +10,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import type { TrackPoint } from '@/lib/map/pace-utils'
 import type { GpxWorkerOutput } from '@/lib/map/gpx-worker'
+import type { TrackPoint } from '@/lib/map/pace-utils'
 
 export interface GpxParseResult {
   trackPoints: TrackPoint[]

@@ -3,6 +3,9 @@
  * 提供各种配速相关的计算功能
  */
 
+import type { PaletteMode } from '@/lib/theme/palette'
+import { getPaceColors } from '@/lib/theme/palette'
+
 /**
  * 计算配速（秒/公里）
  * @param distance 距离（米）
@@ -101,19 +104,19 @@ export interface PaceZone {
  * @param averagePace 平均配速（秒/公里）
  * @returns 颜色值
  */
-export function getPaceColor(pace: number, averagePace: number): string {
+export function getPaceColor(
+  pace: number,
+  averagePace: number,
+  mode: PaletteMode = 'light',
+): string {
   const diff = pace - averagePace
+  const colors = getPaceColors(mode)
 
-  // 比平均配速快超过 30 秒：绿色
-  if (diff < -30) return '#22c55e'
-  // 比平均配速快 0-30 秒：浅绿色
-  if (diff < 0) return '#84cc16'
-  // 与平均配速接近（±10秒）：黄色
-  if (diff < 10) return '#eab308'
-  // 比平均配速慢 10-30 秒：橙色
-  if (diff < 30) return '#f97316'
-  // 比平均配速慢超过 30 秒：红色
-  return '#ef4444'
+  if (diff < -30) return colors.veryFast
+  if (diff < 0) return colors.fast
+  if (diff < 10) return colors.average
+  if (diff < 30) return colors.slow
+  return colors.verySlow
 }
 
 /**

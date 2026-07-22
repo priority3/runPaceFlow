@@ -10,6 +10,8 @@ import type { CSSProperties } from 'react'
 
 import type { TrackPoint } from '@/lib/map/pace-utils'
 import { formatDuration, formatPace, paceToSpeed } from '@/lib/pace/calculator'
+import { useTheme } from '@/lib/theme'
+import { getSportColors } from '@/lib/theme/palette'
 
 type MetricMode = 'pace' | 'speed'
 
@@ -38,9 +40,10 @@ export function FloatingInfoCard({
   progress,
   metric = 'pace',
 }: FloatingInfoCardProps) {
+  const { resolvedTheme } = useTheme()
   if (!currentPoint) return null
 
-  const accent = currentPaceColor || '#007AFF'
+  const accent = currentPaceColor || getSportColors(resolvedTheme).running
   const displayPace = currentPace ?? averagePace
   const isSpeedMode = metric === 'speed'
   const currentMetricValue = isSpeedMode
@@ -59,7 +62,7 @@ export function FloatingInfoCard({
   return (
     <div className="pointer-events-none absolute top-4 left-4 z-10">
       <div
-        className="w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-white/20 bg-white/80 px-4 py-3 shadow-lg shadow-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-black/65 dark:shadow-black/30"
+        className="border-separator bg-tertiary-system-background/92 w-64 max-w-[calc(100vw-2rem)] rounded-lg border px-4 py-3 shadow-lg backdrop-blur-xl"
         style={{ '--accent': accent } as CSSProperties}
       >
         <div className="mb-2 flex items-center justify-between gap-3">
@@ -74,7 +77,7 @@ export function FloatingInfoCard({
               </div>
             </div>
           </div>
-          <div className="text-secondary-label rounded-full bg-white/60 px-2 py-1 text-xs tabular-nums dark:bg-black/30">
+          <div className="text-secondary-label bg-secondary-system-background rounded-md px-2 py-1 text-xs tabular-nums">
             {progress.toFixed(0)}%
           </div>
         </div>
@@ -119,7 +122,7 @@ export function FloatingInfoCard({
           </div>
         </div>
 
-        <div className="bg-fill/70 mt-3 h-1.5 w-full overflow-hidden rounded-full">
+        <div className="bg-system-fill/70 mt-3 h-1.5 w-full overflow-hidden rounded-full">
           <div
             className="h-full rounded-full transition-[width] duration-100"
             style={{ width: `${progress}%`, backgroundColor: 'var(--accent)' }}

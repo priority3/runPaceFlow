@@ -6,6 +6,7 @@
 
 'use client'
 
+import { HEART_RATE_ZONE_COLOR_VARS } from '@/lib/theme/palette'
 import { cn } from '@/lib/utils'
 
 export interface HeartRateZonesProps {
@@ -18,11 +19,41 @@ export interface HeartRateZonesProps {
  * Heart rate zone definitions based on max heart rate percentage
  */
 const ZONES = [
-  { name: 'Z1 恢复', min: 50, max: 60, color: 'bg-gray', description: '轻松恢复' },
-  { name: 'Z2 有氧', min: 60, max: 70, color: 'bg-blue', description: '基础耐力' },
-  { name: 'Z3 有氧耐力', min: 70, max: 80, color: 'bg-green', description: '提升耐力' },
-  { name: 'Z4 乳酸阈值', min: 80, max: 90, color: 'bg-orange', description: '提升速度' },
-  { name: 'Z5 无氧', min: 90, max: 100, color: 'bg-red', description: '最大强度' },
+  {
+    name: 'Z1 恢复',
+    min: 50,
+    max: 60,
+    color: HEART_RATE_ZONE_COLOR_VARS[0],
+    description: '轻松恢复',
+  },
+  {
+    name: 'Z2 有氧',
+    min: 60,
+    max: 70,
+    color: HEART_RATE_ZONE_COLOR_VARS[1],
+    description: '基础耐力',
+  },
+  {
+    name: 'Z3 有氧耐力',
+    min: 70,
+    max: 80,
+    color: HEART_RATE_ZONE_COLOR_VARS[2],
+    description: '提升耐力',
+  },
+  {
+    name: 'Z4 乳酸阈值',
+    min: 80,
+    max: 90,
+    color: HEART_RATE_ZONE_COLOR_VARS[3],
+    description: '提升速度',
+  },
+  {
+    name: 'Z5 无氧',
+    min: 90,
+    max: 100,
+    color: HEART_RATE_ZONE_COLOR_VARS[4],
+    description: '最大强度',
+  },
 ]
 
 /**
@@ -64,12 +95,7 @@ export function HeartRateZones({ averageHeartRate, maxHeartRate, className }: He
   // Need both values to calculate zones
   if (!averageHeartRate || !maxHeartRate) {
     return (
-      <div
-        className={cn(
-          'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-          className,
-        )}
-      >
+      <div className={cn('premium-surface p-6', className)}>
         <h3 className="text-label/80 mb-4 text-sm font-medium">心率区间</h3>
         <p className="text-label/50 text-center text-sm">暂无心率数据</p>
       </div>
@@ -80,12 +106,7 @@ export function HeartRateZones({ averageHeartRate, maxHeartRate, className }: He
   const avgPercentage = Math.round((averageHeartRate / maxHeartRate) * 100)
 
   return (
-    <div
-      className={cn(
-        'rounded-2xl border border-white/20 bg-white/50 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-black/20',
-        className,
-      )}
-    >
+    <div className={cn('premium-surface p-6', className)}>
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-label/80 text-sm font-medium">心率区间</h3>
         <span className="text-label/50 text-xs">平均 {avgPercentage}% 最大心率</span>
@@ -101,10 +122,10 @@ export function HeartRateZones({ averageHeartRate, maxHeartRate, className }: He
                 {zone.min}-{zone.max}% · {percentage}%
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+            <div className="bg-tertiary-system-fill h-2 overflow-hidden rounded-full">
               <div
-                className={cn('h-full rounded-full transition-all duration-500', zone.color)}
-                style={{ width: `${percentage}%` }}
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${percentage}%`, backgroundColor: zone.color }}
               />
             </div>
             <p className="text-label/40 mt-0.5 text-xs">{zone.description}</p>
@@ -113,7 +134,7 @@ export function HeartRateZones({ averageHeartRate, maxHeartRate, className }: He
       </div>
 
       {/* Summary stats */}
-      <div className="mt-4 grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+      <div className="bg-secondary-system-background mt-4 grid grid-cols-2 gap-4 rounded-lg px-4 py-3">
         <div>
           <span className="text-label/50 text-xs">平均心率</span>
           <p className="text-label text-lg font-semibold tabular-nums">

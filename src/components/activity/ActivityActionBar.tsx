@@ -100,7 +100,7 @@ export function ActivityActionBar({
       {/* Fixed bottom action bar - only visible on mobile */}
       <motion.div
         className={cn(
-          'fixed right-0 bottom-0 left-0 z-40 border-t border-white/20 bg-white/80 px-4 py-3 backdrop-blur-xl sm:hidden dark:border-white/10 dark:bg-black/80',
+          'bg-system-background/92 fixed right-0 bottom-0 left-0 z-40 px-4 py-3 shadow-[0_-10px_35px_rgba(24,33,47,0.1)] backdrop-blur-xl sm:hidden',
           className,
         )}
         initial={{ y: 100 }}
@@ -112,7 +112,7 @@ export function ActivityActionBar({
           <motion.button
             type="button"
             onClick={handleShare}
-            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors active:bg-white/50 dark:active:bg-white/10"
+            className="active:bg-secondary-system-background flex flex-1 flex-col items-center gap-1 rounded-lg py-2 transition-colors"
             whileTap={{ scale: 0.95 }}
           >
             <Share2 className="text-blue h-5 w-5" />
@@ -126,7 +126,7 @@ export function ActivityActionBar({
               setShowExportMenu(!showExportMenu)
               setShowShareMenu(false)
             }}
-            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors active:bg-white/50 dark:active:bg-white/10"
+            className="active:bg-secondary-system-background flex flex-1 flex-col items-center gap-1 rounded-lg py-2 transition-colors"
             whileTap={{ scale: 0.95 }}
           >
             <Download className="text-green h-5 w-5" />
@@ -141,7 +141,7 @@ export function ActivityActionBar({
         <motion.button
           type="button"
           onClick={handleShare}
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/80 shadow-lg backdrop-blur-xl transition-colors hover:bg-white dark:border-white/10 dark:bg-black/60 dark:hover:bg-black/80"
+          className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           title="分享"
@@ -156,7 +156,7 @@ export function ActivityActionBar({
             setShowExportMenu(!showExportMenu)
             setShowShareMenu(false)
           }}
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/80 shadow-lg backdrop-blur-xl transition-colors hover:bg-white dark:border-white/10 dark:bg-black/60 dark:hover:bg-black/80"
+          className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           title="导出"
@@ -169,14 +169,14 @@ export function ActivityActionBar({
       <AnimatePresence>
         {showShareMenu && (
           <motion.div
-            className="fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-2xl border border-white/20 bg-white/90 shadow-xl backdrop-blur-xl sm:right-20 sm:bottom-24 dark:border-white/10 dark:bg-black/90"
+            className="premium-surface fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-lg sm:right-20 sm:bottom-24"
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <div className="border-separator flex items-center justify-between border-b px-4 py-3">
               <span className="text-label text-sm font-medium">分享活动</span>
               <button
                 type="button"
@@ -204,14 +204,14 @@ export function ActivityActionBar({
       <AnimatePresence>
         {showExportMenu && (
           <motion.div
-            className="fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-2xl border border-white/20 bg-white/90 shadow-xl backdrop-blur-xl sm:right-20 sm:bottom-12 dark:border-white/10 dark:bg-black/90"
+            className="premium-surface fixed right-4 bottom-20 z-50 w-64 overflow-hidden rounded-lg sm:right-20 sm:bottom-12"
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <div className="border-separator flex items-center justify-between border-b px-4 py-3">
               <span className="text-label text-sm font-medium">导出格式</span>
               <button
                 type="button"

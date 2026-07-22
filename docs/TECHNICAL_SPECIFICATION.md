@@ -2,7 +2,7 @@
 
 ## 📋 项目概述
 
-**RunPaceFlow** 是一个现代化的跑步记录与分析平台，结合了 [running_page](https://github.com/yihong0618/running_page) 的数据同步能力和 [cyc-earth](https://github.com/sun0225SUN/cyc-earth) 的现代化架构，提供更丰富的地图交互、配速分析和 AI 智能建议功能。
+**RunPaceFlow** 是一个现代化的运动记录可视化展示端。它从 RunPaceFlow Admin 管理的活动数据库和运行时配置读取数据，提供地图交互、配速分析和 AI 智能建议功能；数据接入、第三方平台凭据和自动化工作流由 admin 侧统一负责。
 
 数据流
 https://github.com/superleeyom/blog/issues/54
@@ -13,7 +13,7 @@ https://github.com/superleeyom/blog/issues/54
 - 📊 **配速分析**: 每公里配速图表、最快配速标记、配速区间分析
 - 🤖 **AI 智能建议**: 基于训练数据的个性化建议、受伤风险预警
 - 🎨 **现代化 UI**: 基于 shadcn/ui 的精美界面、深色模式支持
-- 🔄 **多平台同步**: 支持 Garmin、Strava、Nike Run Club 等主流平台
+- 🔒 **只读展示边界**: 前台只读取已入库活动和 admin 导出的运行时配置
 - 📱 **响应式设计**: 完美适配移动端和桌面端
 
 ---
@@ -21,50 +21,58 @@ https://github.com/superleeyom/blog/issues/54
 ## 🛠 技术栈
 
 ### 前端框架
+
 - **Next.js 15+** - React 全栈框架，支持 App Router
 - **React 19** - 最新的 React 特性
 - **TypeScript** - 类型安全
 
 ### UI 层
+
 - **Tailwind CSS 4** - 原子化 CSS 框架
 - **shadcn/ui** - 高质量的 React 组件库
 - **Framer Motion** - 流畅的动画库
 - **Lucide Icons** - 现代化图标库
 
 ### 地图可视化
+
 - **Mapbox GL JS** - 高性能地图渲染
 - **react-map-gl** - React Mapbox 封装
 - **deck.gl** - 大数据可视化层（可选）
 - **turf.js** - 地理空间计算
 
 ### 数据管理
+
 - **tRPC** - 类型安全的 API 层
 - **TanStack Query** - 数据获取和缓存
 - **Zustand** - 轻量级状态管理
 - **Drizzle ORM** - 类型安全的 ORM
 
 ### 数据库
+
 - **Turso (libSQL)** - 分布式 SQLite
 - **SQLite** - 本地开发数据库
 
 ### AI 功能
+
 - **OpenAI API** / **Anthropic Claude** - AI 建议生成
 - **LangChain** - AI 应用框架（可选）
 - **Vercel AI SDK** - AI 流式响应
 
-### 数据同步
-- **Python 3.11+** - 数据同步脚本
-- **Garmin Connect API** - Garmin 数据
-- **Strava API** - Strava 数据
-- **Nike Run Club API** - Nike 数据
+### 数据接入边界
+
+- **RunPaceFlow Admin** - 统一管理数据接入、平台凭据和 PR Agent 工作流
+- **Runtime settings export** - 前台通过 admin 导出的配置读取数据库和目标设置
+- **libSQL / SQLite** - 前台只读活动库并渲染展示体验
 
 ### 开发工具
+
 - **Biome** - 代码格式化和检查
 - **Lefthook** - Git hooks 管理
 - **Drizzle Kit** - 数据库迁移
 - **Bun / pnpm** - 包管理器
 
 ### 部署
+
 - **Vercel** - 主要部署平台
 - **GitHub Actions** - CI/CD 自动化
 - **Umami** - 隐私友好的分析工具
@@ -87,7 +95,7 @@ runPaceFlow/
 │   │   │   └── layout.tsx
 │   │   ├── api/                      # API Routes
 │   │   │   ├── trpc/[trpc]/         # tRPC 端点
-│   │   │   ├── sync/                # 数据同步端点
+│   │   │   ├── runtime-config/      # 运行时配置端点
 │   │   │   └── ai/                  # AI 建议端点
 │   │   └── layout.tsx
 │   │
@@ -131,7 +139,7 @@ runPaceFlow/
 │   │   │   └── root.ts
 │   │   └── services/                # 业务逻辑
 │   │       ├── activity-service.ts
-│   │       ├── sync-service.ts
+│   │       ├── runtime-config.ts
 │   │       └── ai-service.ts
 │   │
 │   ├── stores/                      # Zustand 状态管理
@@ -152,18 +160,9 @@ runPaceFlow/
 │   └── styles/                      # 样式文件
 │       └── globals.css
 │
-├── scripts/                         # Python 同步脚本
-│   ├── sync/
-│   │   ├── garmin_sync.py
-│   │   ├── strava_sync.py
-│   │   └── nike_sync.py
-│   ├── parsers/
-│   │   ├── gpx_parser.py
-│   │   ├── tcx_parser.py
-│   │   └── fit_parser.py
-│   └── utils/
-│       ├── pace_calculator.py
-│       └── db_utils.py
+├── scripts/                         # 本地诊断脚本
+│   ├── check-turso.ts
+│   └── debug-map.ts
 │
 ├── public/                          # 静态资源
 │   ├── icons/
@@ -171,7 +170,6 @@ runPaceFlow/
 │
 ├── .github/
 │   └── workflows/
-│       ├── sync-data.yml           # 自动同步数据
 │       └── deploy.yml              # 部署流程
 │
 ├── drizzle/                        # 数据库相关
@@ -283,6 +281,7 @@ runPaceFlow/
 ### 1. 地图交互与动画
 
 #### 路线回放功能
+
 ```typescript
 // RoutePlayer.tsx
 - 播放/暂停控制
@@ -294,6 +293,7 @@ runPaceFlow/
 ```
 
 #### 配速可视化
+
 ```typescript
 // 配速热力图
 - 使用渐变色表示不同配速区间
@@ -309,6 +309,7 @@ runPaceFlow/
 ```
 
 #### 3D 地形视图
+
 ```typescript
 // 可选功能
 - 切换 2D/3D 视图
@@ -319,6 +320,7 @@ runPaceFlow/
 ### 2. 配速分析系统
 
 #### 配速图表
+
 ```typescript
 // PaceChart.tsx
 interface PaceChartData {
@@ -338,6 +340,7 @@ interface PaceChartData {
 ```
 
 #### 配速统计
+
 ```typescript
 // 关键指标
 - 平均配速
@@ -349,6 +352,7 @@ interface PaceChartData {
 ```
 
 #### 分段数据表
+
 ```typescript
 // SplitsTable.tsx
 每公里显示:
@@ -364,6 +368,7 @@ interface PaceChartData {
 ### 3. AI 智能建议系统
 
 #### 训练建议
+
 ```typescript
 // AI 分析内容
 - 训练负荷评估（是否过度训练）
@@ -380,6 +385,7 @@ interface PaceChartData {
 ```
 
 #### 受伤风险预警
+
 ```typescript
 // 预警指标
 - 训练量突然增加（>10% 每周）
@@ -394,54 +400,39 @@ interface PaceChartData {
 ```
 
 #### 目标达成分析
+
 ```typescript
 // 目标类型
-- 完成马拉松/半马
-- 提升配速
-- 增加跑量
-- 减重目标
-
-// AI 反馈
-- 当前进度
-- 预测完成时间
-- 训练计划调整
+;-完成马拉松 / 半马 -
+  提升配速 -
+  增加跑量 -
+  减重目标 -
+  // AI 反馈
+  当前进度 -
+  预测完成时间 -
+  训练计划调整
 ```
 
-### 4. 数据同步系统
+### 4. 数据接入边界
 
-#### 支持的平台
+#### 前台职责
+
 ```typescript
-// Garmin Connect
-- 自动同步活动
-- 支持 GPX/TCX/FIT 格式
-- 获取详细的传感器数据
-
-// Strava
-- OAuth 授权
-- 活动自动导入
-- 支持 Kudos 同步
-
-// Nike Run Club
-- Token 认证
-- 活动列表获取
-- GPX 数据导出
-
-// 手动上传
-- 拖拽上传 GPX/TCX/FIT 文件
-- 自动解析和存储
+// RunPaceFlow
+- 读取共享活动库
+- 展示活动列表、统计、地图路线和详情页
+- 从 admin 拉取运行时配置和目标设置
+- 生成或读取 AI 运动洞察
 ```
 
-#### 同步策略
-```typescript
-// GitHub Actions 定时任务
-- 每小时检查新活动
-- 增量同步机制
-- 失败重试逻辑
-- 数据一致性校验
+#### Admin 职责
 
-// 手动触发同步
-- 用户手动点击同步按钮
-- WebSocket 实时进度显示
+```typescript
+// RunPaceFlow Admin
+- 管理第三方平台凭据
+- 执行活动数据接入和回填
+- 管理 PR Agent 工作流
+- 导出前台运行所需配置
 ```
 
 ---
@@ -449,6 +440,7 @@ interface PaceChartData {
 ## 🎨 UI/UX 设计原则
 
 ### 设计风格
+
 - **简洁现代**: 采用卡片式布局，留白充足
 - **数据驱动**: 重点突出关键数据，次要信息弱化
 - **色彩系统**:
@@ -459,14 +451,16 @@ interface PaceChartData {
 ### 关键页面设计
 
 #### 首页 - 总览地图
+
 ```
 - 顶部: 统计卡片（总里程、本周跑量、本月跑量）
 - 中间: 大地图显示所有跑步路线
 - 底部: 最近活动列表
-- 右侧: 快捷操作（同步、上传、设置）
+- 右侧: 训练焦点、目标、路线和活动列表入口
 ```
 
 #### 活动详情页
+
 ```
 - 顶部: 活动标题、时间、关键数据
 - 地图区域: 带回放功能的路线图
@@ -476,6 +470,7 @@ interface PaceChartData {
 ```
 
 #### 统计分析页
+
 ```
 - 时间筛选器（周/月/年/全部）
 - 趋势图表（距离、配速、心率）
@@ -485,6 +480,7 @@ interface PaceChartData {
 ```
 
 ### 响应式设计
+
 ```
 Desktop (≥1024px):
 - 侧边栏导航
@@ -510,39 +506,26 @@ Mobile (< 768px):
 ### tRPC Router 结构
 
 ```typescript
-// activity router
-trpc.activity.list                  // 获取活动列表
-trpc.activity.getById               // 获取单个活动
-trpc.activity.create                // 创建活动
-trpc.activity.update                // 更新活动
-trpc.activity.delete                // 删除活动
-trpc.activity.getSplits             // 获取分段数据
-trpc.activity.getPaceAnalysis       // 获取配速分析
+// activities router
+trpc.activities.list // 获取活动列表
+trpc.activities.listInfinite // 获取无限滚动活动列表
+trpc.activities.getById // 获取单个活动
+trpc.activities.getSplits // 获取分段数据
+trpc.activities.getWithSplits // 获取活动和分段详情
+trpc.activities.getGpxData // 获取活动 GPX 数据
+trpc.activities.getStats // 获取训练统计
+trpc.activities.getMapRoutes // 获取首页地图路线
 
-// stats router
-trpc.stats.summary                  // 总览统计
-trpc.stats.byPeriod                 // 按时间段统计
-trpc.stats.personalRecords          // 个人记录
-trpc.stats.trends                   // 趋势数据
-
-// ai router
-trpc.ai.getInsights                 // 获取 AI 洞察
-trpc.ai.generateAdvice              // 生成训练建议
-trpc.ai.checkInjuryRisk             // 检查受伤风险
-trpc.ai.suggestGoal                 // 建议目标
-
-// sync router
-trpc.sync.triggerSync               // 触发同步
-trpc.sync.getStatus                 // 获取同步状态
-trpc.sync.uploadFile                // 上传文件
+// insights router
+trpc.insights.getForActivity // 获取缓存 AI 洞察
 ```
 
-### REST API (用于 Webhook)
+### REST API
+
 ```
-POST /api/webhook/garmin            // Garmin webhook
-POST /api/webhook/strava            // Strava webhook
-POST /api/sync/manual               // 手动同步
-GET  /api/health                    // 健康检查
+GET  /api/runtime-config            // 获取公开运行时配置
+GET  /api/runtime-config/stream     // 运行时配置 SSE 更新
+GET  /api/insights/stream           // AI 洞察流式生成
 ```
 
 ---
@@ -550,17 +533,19 @@ GET  /api/health                    // 健康检查
 ## 🚀 开发路线图
 
 ### Phase 1 - MVP (4-6 周)
-**目标**: 基本的活动展示和数据同步
+
+**目标**: 基本的活动展示和数据读取
 
 - [ ] 搭建 Next.js 项目框架
 - [ ] 设计并实现数据库 schema
 - [ ] 实现基础的地图展示
 - [ ] 实现活动列表和详情页
-- [ ] 实现 Strava 数据同步
+- [ ] 接入 admin 管理的活动库
 - [ ] 基础的配速图表展示
 - [ ] 响应式布局
 
 ### Phase 2 - 增强功能 (4-6 周)
+
 **目标**: 核心地图交互和配速分析
 
 - [ ] 路线回放动画
@@ -569,10 +554,10 @@ GET  /api/health                    // 健康检查
 - [ ] 完整的配速分析系统
 - [ ] 分段数据表
 - [ ] 统计分析页面
-- [ ] Garmin 数据同步
-- [ ] Nike Run Club 同步
+- [ ] 扩展 admin 数据接入能力
 
 ### Phase 3 - AI 功能 (3-4 周)
+
 **目标**: AI 智能建议
 
 - [ ] 集成 OpenAI/Claude API
@@ -582,6 +567,7 @@ GET  /api/health                    // 健康检查
 - [ ] AI 对话界面（可选）
 
 ### Phase 4 - 优化与扩展 (持续)
+
 **目标**: 用户体验优化
 
 - [ ] 性能优化（大量数据）
@@ -612,18 +598,9 @@ NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=""
 OPENAI_API_KEY=""                   # 或 ANTHROPIC_API_KEY
 AI_MODEL="gpt-4o-mini"              # 或 claude-3-5-sonnet
 
-# Strava
-STRAVA_CLIENT_ID=""
-STRAVA_CLIENT_SECRET=""
-STRAVA_REFRESH_TOKEN=""
-
-# Garmin
-GARMIN_EMAIL=""
-GARMIN_PASSWORD=""
-GARMIN_IS_CN="false"                # 中国区设为 true
-
-# Nike Run Club
-NIKE_ACCESS_TOKEN=""
+# Admin runtime config
+RUNPACEFLOW_ADMIN_URL="http://localhost:3030"
+CONFIG_EXPORT_TOKEN=""
 
 # Analytics
 NEXT_PUBLIC_UMAMI_ANALYTICS_ID=""
@@ -639,6 +616,7 @@ NEXT_PUBLIC_DEFAULT_LOCALE="en"
 ## 📊 性能优化策略
 
 ### 前端优化
+
 - **代码分割**: 路由级别的动态导入
 - **图片优化**: Next.js Image 组件，WebP 格式
 - **数据预取**: TanStack Query 预取机制
@@ -646,18 +624,21 @@ NEXT_PUBLIC_DEFAULT_LOCALE="en"
 - **懒加载**: 地图和图表组件懒加载
 
 ### 地图优化
+
 - **瓦片缓存**: Mapbox 瓦片缓存策略
 - **路线简化**: 简化 GPX 坐标点（Douglas-Peucker 算法）
 - **聚合显示**: 大量活动时使用聚合显示
 - **WebGL 渲染**: 充分利用 GPU 加速
 
 ### 数据库优化
+
 - **索引**: 在常用查询字段添加索引
 - **分页**: 活动列表使用游标分页
 - **缓存**: 统计数据使用 Redis 缓存（可选）
-- **批量操作**: 数据同步使用批量插入
+- **只读查询**: 前台避免写入型批处理，活动接入由 admin 承担
 
 ### AI 请求优化
+
 - **流式响应**: 使用 AI SDK 的流式输出
 - **缓存建议**: 相似训练数据缓存 AI 建议
 - **后台任务**: AI 分析放入后台队列
@@ -668,21 +649,25 @@ NEXT_PUBLIC_DEFAULT_LOCALE="en"
 ## 🧪 测试策略
 
 ### 单元测试
+
 - 配速计算逻辑
 - GPX 解析器
 - 数据转换函数
 
 ### 集成测试
+
 - API 端点测试
 - 数据库操作测试
-- 数据同步流程测试
+- 活动库读取和运行时配置读取测试
 
 ### E2E 测试
+
 - 关键用户流程
 - 地图交互测试
 - 数据上传流程
 
 ### 测试工具
+
 - **Vitest** - 单元测试
 - **Playwright** - E2E 测试
 - **React Testing Library** - 组件测试
@@ -692,6 +677,7 @@ NEXT_PUBLIC_DEFAULT_LOCALE="en"
 ## 📦 部署方案
 
 ### Vercel 部署 (推荐)
+
 ```bash
 1. 连接 GitHub 仓库
 2. 配置环境变量
@@ -699,6 +685,7 @@ NEXT_PUBLIC_DEFAULT_LOCALE="en"
 ```
 
 ### 自托管部署
+
 ```bash
 # 使用 Docker
 docker build -t runpaceflow .
@@ -710,6 +697,7 @@ pm2 start npm --name "runpaceflow" -- start
 ```
 
 ### CI/CD 流程
+
 ```yaml
 # .github/workflows/deploy.yml
 - 代码检查（Biome）
@@ -724,17 +712,20 @@ pm2 start npm --name "runpaceflow" -- start
 ## 🔒 安全考虑
 
 ### 数据安全
+
 - 敏感信息加密存储
 - API Token 定期轮换
 - 用户数据隔离
 
 ### API 安全
+
 - Rate limiting
 - CORS 配置
 - CSRF 保护
 - SQL 注入防护（Drizzle ORM）
 
 ### 隐私保护
+
 - 可选的路线模糊化
 - 起点/终点隐藏选项
 - 数据导出和删除功能
@@ -745,32 +736,36 @@ pm2 start npm --name "runpaceflow" -- start
 ## 📚 参考资源
 
 ### 技术文档
+
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Mapbox GL JS API](https://docs.mapbox.com/mapbox-gl-js/api/)
 - [tRPC Documentation](https://trpc.io/docs)
 - [Drizzle ORM](https://orm.drizzle.team/docs/overview)
 
 ### 灵感来源
+
 - [running_page](https://github.com/yihong0618/running_page)
 - [cyc-earth](https://github.com/sun0225SUN/cyc-earth)
-- [Strava](https://www.strava.com)
-- [Garmin Connect](https://connect.garmin.com)
+- RunPaceFlow Admin
 
 ---
 
 ## 📝 待确认事项
 
 ### 技术选型
+
 - [ ] AI 服务选择: OpenAI vs Claude vs 本地模型
 - [ ] 数据库: Turso vs PostgreSQL vs SQLite
 - [ ] 认证方案: NextAuth.js vs Clerk vs 自研
 
 ### 功能优先级
+
 - [ ] 社交功能是否纳入 MVP
 - [ ] 是否支持多用户
 - [ ] 是否需要移动端 App
 
 ### 设计细节
+
 - [ ] 主题色确认
 - [ ] Logo 设计
 - [ ] 品牌命名最终确认
@@ -780,14 +775,16 @@ pm2 start npm --name "runpaceflow" -- start
 ## 🎯 成功指标
 
 ### 技术指标
+
 - 首屏加载时间 < 2s
 - Lighthouse 性能分数 > 90
 - 地图帧率 > 30fps
 - API 响应时间 < 200ms
 
 ### 用户指标
+
 - 活动上传成功率 > 99%
-- 数据同步准确率 > 99.9%
+- 活动展示准确率 > 99.9%
 - 用户留存率 (Week 1) > 60%
 - AI 建议有用性评分 > 4/5
 
@@ -796,6 +793,7 @@ pm2 start npm --name "runpaceflow" -- start
 ## 🤝 贡献指南
 
 ### 开发流程
+
 1. Fork 项目
 2. 创建特性分支
 3. 提交变更
@@ -803,12 +801,14 @@ pm2 start npm --name "runpaceflow" -- start
 5. 创建 Pull Request
 
 ### 代码规范
+
 - 使用 Biome 格式化代码
 - TypeScript strict 模式
 - 组件使用函数式组件
 - 优先使用 Server Components
 
 ### 提交规范
+
 - feat: 新功能
 - fix: 修复
 - docs: 文档

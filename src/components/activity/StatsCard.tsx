@@ -8,7 +8,7 @@
 
 import { motion } from 'framer-motion'
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 
 import { AnimatedNumber } from '@/components/ui/animated-number'
 import { cn } from '@/lib/utils'
@@ -51,7 +51,7 @@ function calculateTrend(current: number, previous: number): number | null {
  */
 function Sparkline({
   data,
-  color = 'var(--color-blue)',
+  color = 'rgb(var(--color-blue))',
   width = 80,
   height = 24,
 }: {
@@ -60,6 +60,9 @@ function Sparkline({
   width?: number
   height?: number
 }) {
+  const gradientId = useId()
+  // The sparkline is rendered alongside animated counters, so keep its geometry stable.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const { path, areaPath, points } = useMemo(() => {
     if (!data || data.length < 2) return { path: '', areaPath: '', points: [] }
 
@@ -96,8 +99,6 @@ function Sparkline({
   }, [data, width, height])
 
   if (!data || data.length < 2) return null
-
-  const gradientId = `sparkline-gradient-${Math.random().toString(36).slice(2)}`
 
   return (
     <svg
@@ -182,7 +183,7 @@ export function StatsCard({
 
   // Parse numeric value for animation
   const numericValue = typeof value === 'number' ? value : Number.parseFloat(value.toString())
-  const isNumeric = !isNaN(numericValue)
+  const isNumeric = !Number.isNaN(numericValue)
   const decimals =
     typeof value === 'string' && value.includes('.') ? value.split('.')[1]?.length || 0 : 0
 
@@ -190,10 +191,10 @@ export function StatsCard({
   const effectiveSparklineColor =
     sparklineColor ||
     (isTrendPositive
-      ? 'var(--color-green)'
+      ? 'rgb(var(--color-green))'
       : isTrendNegative
-        ? 'var(--color-red)'
-        : 'var(--color-blue)')
+        ? 'rgb(var(--color-red))'
+        : 'rgb(var(--color-blue))')
 
   return (
     <motion.div
@@ -263,13 +264,10 @@ export function StatsCard({
               {goalUnit}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+          <div className="bg-tertiary-system-fill h-1.5 overflow-hidden rounded-full">
             <motion.div
               key={`progress-${title}-${goalProgress}`}
-              className={cn(
-                'h-full rounded-full',
-                goalProgress >= 100 ? 'bg-green' : goalProgress >= 50 ? 'bg-blue' : 'bg-orange',
-              )}
+              className={cn('h-full rounded-full', goalProgress >= 100 ? 'bg-green' : 'bg-blue')}
               initial={{ width: '0%' }}
               animate={{ width: `${goalProgress}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}

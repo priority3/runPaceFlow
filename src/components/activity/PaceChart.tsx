@@ -2,7 +2,7 @@
  * PaceChart Component
  *
  * Bar chart with color-coded pace visualization and loading animation
- * Green = fast, Yellow = average, Red = slow
+ * Blue = fast, neutral = average, vermilion = slow
  */
 
 'use client'
@@ -22,6 +22,7 @@ import {
 } from 'recharts'
 
 import { formatPace, paceToSpeed } from '@/lib/pace/calculator'
+import { PACE_COLOR_VARS } from '@/lib/theme/palette'
 
 type MetricMode = 'pace' | 'speed'
 
@@ -41,21 +42,16 @@ export interface PaceChartProps {
 
 /**
  * Get color based on pace relative to average
- * Green = faster than average, Yellow = near average, Red = slower than average
+ * Uses a colour-blind-conscious blue-to-vermilion scale.
  */
 function getPaceBarColor(pace: number, averagePace: number): string {
   const diff = pace - averagePace
 
-  // Faster than average by 15+ seconds: bright green
-  if (diff < -15) return '#22c55e'
-  // Faster than average by 0-15 seconds: light green
-  if (diff < 0) return '#84cc16'
-  // Near average (±10 seconds): yellow
-  if (diff < 10) return '#eab308'
-  // Slower than average by 10-20 seconds: orange
-  if (diff < 20) return '#f97316'
-  // Slower than average by 20+ seconds: red
-  return '#ef4444'
+  if (diff < -15) return PACE_COLOR_VARS.veryFast
+  if (diff < 0) return PACE_COLOR_VARS.fast
+  if (diff < 10) return PACE_COLOR_VARS.average
+  if (diff < 20) return PACE_COLOR_VARS.slow
+  return PACE_COLOR_VARS.verySlow
 }
 
 // Custom Tooltip component - glassmorphic style
@@ -78,7 +74,7 @@ const CustomTooltip = ({ active, payload, fastestKm, averagePace, metric }: any)
           : '平均'
 
     return (
-      <div className="rounded-xl border border-white/30 bg-white/90 p-3 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black/80">
+      <div className="border-separator bg-tertiary-system-background rounded-lg border p-3 shadow-lg">
         <p className="text-label mb-1 text-sm font-medium">
           第 {data.kilometer} 公里
           {isFastest && (
@@ -111,7 +107,7 @@ export function PaceChart({ splits, averagePace, className, metric = 'pace' }: P
 
   if (!splits || splits.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-xl border border-white/20 bg-white/30 backdrop-blur-xl dark:border-white/10 dark:bg-black/10">
+      <div className="bg-secondary-system-background flex h-[300px] items-center justify-center rounded-lg">
         <p className="text-label/50">{emptyText}</p>
       </div>
     )
@@ -119,7 +115,7 @@ export function PaceChart({ splits, averagePace, className, metric = 'pace' }: P
 
   // Show placeholder during SSR
   if (!isMounted) {
-    return <div className="h-[300px] animate-pulse rounded-xl bg-white/30 dark:bg-black/10" />
+    return <div className="bg-secondary-system-background h-[300px] animate-pulse rounded-lg" />
   }
 
   // Prepare chart data
@@ -224,7 +220,7 @@ export function PaceChart({ splits, averagePace, className, metric = 'pace' }: P
                 metric={metric}
               />
             }
-            cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
+            cursor={{ fill: 'rgba(var(--color-tertiarySystemFill))' }}
           />
 
           {/* Average pace reference line */}
@@ -264,23 +260,23 @@ export function PaceChart({ splits, averagePace, className, metric = 'pace' }: P
         transition={{ delay: 0.3, duration: 0.4 }}
       >
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-[#22c55e]" />
+          <div className="h-3 w-3 rounded-sm bg-[var(--rpf-pace-very-fast)]" />
           <span className="text-label/60">{isSpeedMode ? '更快' : '快 (>15秒)'}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-[#84cc16]" />
+          <div className="h-3 w-3 rounded-sm bg-[var(--rpf-pace-fast)]" />
           <span className="text-label/60">较快</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-[#eab308]" />
+          <div className="h-3 w-3 rounded-sm bg-[var(--rpf-pace-average)]" />
           <span className="text-label/60">平均</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-[#f97316]" />
+          <div className="h-3 w-3 rounded-sm bg-[var(--rpf-pace-slow)]" />
           <span className="text-label/60">较慢</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-sm bg-[#ef4444]" />
+          <div className="h-3 w-3 rounded-sm bg-[var(--rpf-pace-very-slow)]" />
           <span className="text-label/60">{isSpeedMode ? '更慢' : '慢 (>20秒)'}</span>
         </div>
       </motion.div>

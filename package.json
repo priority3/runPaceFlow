@@ -12,11 +12,10 @@
     "dev": "next dev",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "lint": "eslint --fix",
+    "postinstall": "patch-package",
     "prepare": "simple-git-hooks",
     "start": "next start",
-    "sync": "bun run scripts/sync.ts",
-    "type-check": "tsc --noEmit",
-    "postinstall": "patch-package"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

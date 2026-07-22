@@ -19,9 +19,8 @@ export interface AnimatedButtonProps extends Omit<HTMLMotionProps<'button'>, 're
 
 const variants = {
   default: 'bg-blue text-white hover:bg-blue/90 shadow-sm',
-  ghost: 'bg-transparent hover:bg-white/20 dark:hover:bg-white/10',
-  outline:
-    'border border-white/20 bg-white/40 hover:bg-white/60 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30',
+  ghost: 'bg-transparent hover:bg-secondary-system-background',
+  outline: 'premium-surface bg-tertiary-system-background hover:bg-secondary-system-background',
 }
 
 const sizes = {
@@ -43,10 +42,9 @@ export const AnimatedButton = ({
     <motion.button
       ref={ref}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors',
+        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
         'focus-visible:ring-blue/50 focus-visible:ring-2 focus-visible:outline-none',
         'disabled:pointer-events-none disabled:opacity-50',
-        'backdrop-blur-xl',
         variants[variant],
         sizes[size],
         className,
