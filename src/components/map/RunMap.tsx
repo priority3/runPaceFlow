@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { MapPin, Maximize2, Minimize2 } from 'lucide-react'
 import type { StyleSpecification } from 'maplibre-gl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { MapRef } from 'react-map-gl/maplibre'
 import Map from 'react-map-gl/maplibre'
 
@@ -470,7 +471,7 @@ export function RunMap({
           onClick={toggleFullscreen}
           className={cn(
             'border-separator bg-tertiary-system-background/92 hover:bg-tertiary-system-background absolute z-20 flex items-center justify-center rounded-lg border p-2 shadow-sm backdrop-blur-xl transition-colors',
-            isFullscreen ? 'top-4 right-4' : 'right-3 bottom-3',
+            isFullscreen ? 'top-4 right-4' : 'top-3 right-3',
           )}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -514,30 +515,36 @@ export function RunMap({
         {!isFullscreen && mapContent}
       </div>
 
-      {/* Fullscreen overlay */}
-      <AnimatePresence>
-        {isFullscreen && (
-          <motion.div
-            className="bg-system-background fixed inset-0 z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {/* Close hint */}
-            <motion.div
-              className="border-separator bg-tertiary-system-background/92 text-secondary-label absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-full border px-4 py-2 text-sm shadow-sm backdrop-blur-xl"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              按 ESC 退出全屏
-            </motion.div>
+      {/* Fullscreen overlay — portaled to <body> so page-level stacking contexts
+          (animated wrappers, z-indexed sections) can't trap it below the fixed
+          header / action bar. */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {isFullscreen && (
+              <motion.div
+                className="bg-system-background fixed inset-0 z-50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {/* Close hint */}
+                <motion.div
+                  className="border-separator bg-tertiary-system-background/92 text-secondary-label absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-full border px-4 py-2 text-sm shadow-sm backdrop-blur-xl"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  按 ESC 退出全屏
+                </motion.div>
 
-            <div className="relative h-full w-full">{mapContent}</div>
-          </motion.div>
+                <div className="relative h-full w-full">{mapContent}</div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </>
   )
 }
