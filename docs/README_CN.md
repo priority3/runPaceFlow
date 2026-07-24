@@ -4,6 +4,14 @@
 
 [English](../README.md)
 
+<p align="center">
+  <img src="../public/screenshots/overview.png" alt="RunPaceFlow 首页预览" width="960" />
+</p>
+
+<p align="center">
+  <img src="../public/screenshots/activity-detail.png" alt="RunPaceFlow 活动详情预览" width="960" />
+</p>
+
 ## 功能
 
 - 只读展示活动数据库中已有的跑步和骑行记录

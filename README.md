@@ -12,6 +12,10 @@ Personal running data visualization app for activities managed by RunPaceFlow Ad
   <img src="./public/screenshots/overview.png" alt="RunPaceFlow dashboard preview" width="960" />
 </p>
 
+<p align="center">
+  <img src="./public/screenshots/activity-detail.png" alt="RunPaceFlow activity detail preview" width="960" />
+</p>
+
 ## Features
 
 - Read-only dashboard for running and cycling activities already stored in the activity database
