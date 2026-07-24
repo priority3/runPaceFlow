@@ -1,127 +1,170 @@
 @import 'tailwindcss-uikit-colors/v4/ios.css';
 @import 'tailwindcss-uikit-colors/selector.css';
 
+/*
+ * Shiro-inspired paper surfaces + brand accent.
+ * UIKit semantic names are kept; values are retuned for warm paper / iOS charcoal.
+ * Sport / pace / HR data colors stay on --rpf-* (not brand chrome).
+ */
+
+@theme inline {
+  --color-accent: rgb(var(--color-accent));
+  --color-accent-content: rgb(var(--color-accent-content));
+}
+
 html,
 html[data-theme='light'] {
-  --color-red: 185 56 56;
-  --color-orange: 185 71 45;
-  --color-yellow: 171 112 18;
-  --color-green: 24 122 91;
-  --color-mint: 36 139 113;
-  --color-teal: 25 128 137;
-  --color-cyan: 31 119 162;
-  --color-blue: 36 87 197;
-  --color-indigo: 68 76 160;
-  --color-purple: 109 95 134;
-  --color-pink: 171 64 110;
-  --color-brown: 126 92 70;
-  --color-gray: 103 113 127;
-  --color-gray2: 137 146 158;
-  --color-gray3: 172 180 190;
-  --color-gray4: 203 209 216;
-  --color-gray5: 226 230 235;
-  --color-gray6: 242 245 248;
-  --color-placeholderText: 137 146 158;
-  --color-separator: 24 33 47 / 0.14;
-  --color-opaqueSeparator: 213 219 226;
-  --color-nonOpaqueSeparator: 24 33 47 / 0.14;
-  --color-link: 36 87 197;
-  --color-systemBackground: 248 249 251;
-  --color-secondarySystemBackground: 242 245 248;
-  --color-tertiarySystemBackground: 255 255 255;
-  --color-systemGroupedBackground: 242 245 248;
-  --color-secondarySystemGroupedBackground: 255 255 255;
-  --color-tertiarySystemGroupedBackground: 248 249 251;
-  --color-systemFill: 82 94 112 / 0.18;
-  --color-secondarySystemFill: 82 94 112 / 0.14;
-  --color-tertiarySystemFill: 82 94 112 / 0.1;
-  --color-quaternarySystemFill: 82 94 112 / 0.07;
-  --color-label: 24 33 47;
-  --color-text: 24 33 47;
-  --color-secondaryLabel: 82 94 112 / 0.88;
-  --color-tertiaryLabel: 82 94 112 / 0.62;
-  --color-quaternaryLabel: 82 94 112 / 0.38;
+  /* Warm paper neutrals (Shiro / innei.in light) */
+  --color-red: 196 73 83;
+  --color-orange: 185 90 45;
+  --color-yellow: 168 122 61;
+  --color-green: 94 159 126;
+  --color-mint: 51 166 184;
+  --color-teal: 48 150 158;
+  --color-cyan: 61 140 168;
+  --color-blue: 61 104 150;
+  --color-indigo: 88 92 160;
+  --color-purple: 132 108 156;
+  --color-pink: 197 100 115;
+  --color-brown: 138 108 86;
+  --color-gray: 120 118 112;
+  --color-gray2: 148 146 140;
+  --color-gray3: 180 178 172;
+  --color-gray4: 208 206 198;
+  --color-gray5: 227 225 219;
+  --color-gray6: 240 239 235;
+  --color-placeholderText: 148 146 140;
+  --color-separator: 36 35 31 / 0.1;
+  --color-opaqueSeparator: 208 206 198;
+  --color-nonOpaqueSeparator: 36 35 31 / 0.1;
+  --color-link: 51 166 184;
 
-  --rpf-running: #2457c5;
-  --rpf-cycling: #b9472d;
-  --rpf-heart: #b93838;
-  --rpf-route-mono: #18212f;
-  --rpf-pace-very-fast: #2457c5;
-  --rpf-pace-fast: #6f8edb;
-  --rpf-pace-average: #7c8797;
-  --rpf-pace-slow: #d27a57;
-  --rpf-pace-very-slow: #b93838;
-  --rpf-heart-zone-1: #7c8797;
-  --rpf-heart-zone-2: #3f70c9;
-  --rpf-heart-zone-3: #6d5f86;
-  --rpf-heart-zone-4: #b9472d;
-  --rpf-heart-zone-5: #b93838;
+  /* Paper stack: page → grouped → card */
+  --color-systemBackground: 250 247 240;
+  --color-secondarySystemBackground: 255 253 248;
+  --color-tertiarySystemBackground: 255 255 255;
+  --color-systemGroupedBackground: 250 247 240;
+  --color-secondarySystemGroupedBackground: 255 253 248;
+  --color-tertiarySystemGroupedBackground: 255 255 255;
+
+  --color-systemFill: 92 90 85 / 0.14;
+  --color-secondarySystemFill: 92 90 85 / 0.11;
+  --color-tertiarySystemFill: 92 90 85 / 0.08;
+  --color-quaternarySystemFill: 92 90 85 / 0.05;
+
+  --color-label: 36 35 31;
+  --color-text: 36 35 31;
+  --color-secondaryLabel: 92 90 85 / 0.9;
+  --color-tertiaryLabel: 92 90 85 / 0.62;
+  --color-quaternaryLabel: 92 90 85 / 0.4;
+
+  /* Brand accent — 浅葱 */
+  --color-accent: 51 166 184;
+  --color-accent-content: 255 255 255;
+
+  /* Semantic training data — Yohaku 和色, further muted for paper charts.
+   * Low chroma so bars/lines sit on cream without looking like a dashboard.
+   */
+  --rpf-running: #4a6f94; /* 縹 soft */
+  --rpf-cycling: #9a7a4a; /* 朽葉 soft */
+  --rpf-heart: #9a5a62; /* 蘇芳 soft */
+  --rpf-route-mono: #403f3a; /* n-8 */
+  /* Pace: cool calm → warm stress */
+  --rpf-pace-very-fast: #4a6f94;
+  --rpf-pace-fast: #6a84a0;
+  --rpf-pace-average: #9a9890;
+  --rpf-pace-slow: #b09060;
+  --rpf-pace-very-slow: #9a5a62;
+  /* HR zones Z1→Z5 */
+  --rpf-heart-zone-1: #b0aea6;
+  --rpf-heart-zone-2: #6a9a80;
+  --rpf-heart-zone-3: #4a6f94;
+  --rpf-heart-zone-4: #9a7a4a;
+  --rpf-heart-zone-5: #9a5a62;
+
+  --rpf-whisper-shadow: 0 4px 24px rgba(36, 35, 31, 0.05);
+  --rpf-header-shadow: 0 8px 30px rgba(36, 35, 31, 0.04);
+  --rpf-glass-bg: 255 253 248 / 0.78;
 }
 
 html[data-theme='dark'] {
-  --color-red: 255 123 123;
-  --color-orange: 255 138 112;
-  --color-yellow: 232 181 91;
-  --color-green: 95 208 165;
-  --color-mint: 94 211 180;
-  --color-teal: 83 196 202;
-  --color-cyan: 105 191 225;
-  --color-blue: 120 166 255;
-  --color-indigo: 151 158 255;
-  --color-purple: 185 167 209;
-  --color-pink: 235 137 177;
-  --color-brown: 196 157 130;
-  --color-gray: 180 190 201;
-  --color-gray2: 139 151 165;
-  --color-gray3: 97 109 123;
-  --color-gray4: 66 77 91;
-  --color-gray5: 42 52 66;
-  --color-gray6: 29 37 48;
-  --color-placeholderText: 139 151 165;
-  --color-separator: 216 224 234 / 0.16;
-  --color-opaqueSeparator: 42 52 66;
-  --color-nonOpaqueSeparator: 216 224 234 / 0.16;
-  --color-link: 120 166 255;
-  --color-systemBackground: 13 17 23;
-  --color-secondarySystemBackground: 21 27 35;
-  --color-tertiarySystemBackground: 29 37 48;
-  --color-systemGroupedBackground: 13 17 23;
-  --color-secondarySystemGroupedBackground: 21 27 35;
-  --color-tertiarySystemGroupedBackground: 29 37 48;
-  --color-systemFill: 180 190 201 / 0.22;
-  --color-secondarySystemFill: 180 190 201 / 0.17;
-  --color-tertiarySystemFill: 180 190 201 / 0.12;
-  --color-quaternarySystemFill: 180 190 201 / 0.08;
-  --color-label: 242 245 248;
-  --color-text: 242 245 248;
-  --color-secondaryLabel: 180 190 201 / 0.9;
-  --color-tertiaryLabel: 180 190 201 / 0.64;
-  --color-quaternaryLabel: 180 190 201 / 0.4;
+  --color-red: 232 120 128;
+  --color-orange: 255 160 112;
+  --color-yellow: 232 188 110;
+  --color-green: 110 200 150;
+  --color-mint: 120 210 220;
+  --color-teal: 100 200 210;
+  --color-cyan: 120 200 230;
+  --color-blue: 120 166 220;
+  --color-indigo: 150 155 230;
+  --color-purple: 190 170 215;
+  --color-pink: 245 150 170;
+  --color-brown: 196 160 130;
+  --color-gray: 170 170 175;
+  --color-gray2: 140 140 145;
+  --color-gray3: 100 100 105;
+  --color-gray4: 72 72 76;
+  --color-gray5: 44 44 48;
+  --color-gray6: 28 28 30;
+  --color-placeholderText: 140 140 145;
+  --color-separator: 235 235 245 / 0.14;
+  --color-opaqueSeparator: 56 56 58;
+  --color-nonOpaqueSeparator: 235 235 245 / 0.14;
+  --color-link: 245 150 170;
 
-  --rpf-running: #78a6ff;
-  --rpf-cycling: #ff8a70;
-  --rpf-heart: #ff7b7b;
-  --rpf-route-mono: #f2f5f8;
-  --rpf-pace-very-fast: #78a6ff;
-  --rpf-pace-fast: #9abaff;
-  --rpf-pace-average: #9aa5b1;
-  --rpf-pace-slow: #ffab91;
-  --rpf-pace-very-slow: #ff7b7b;
-  --rpf-heart-zone-1: #9aa5b1;
-  --rpf-heart-zone-2: #78a6ff;
-  --rpf-heart-zone-3: #b9a7d1;
-  --rpf-heart-zone-4: #ff8a70;
-  --rpf-heart-zone-5: #ff7b7b;
+  /* iOS charcoal stack (Shiro dark) */
+  --color-systemBackground: 28 28 30;
+  --color-secondarySystemBackground: 36 36 38;
+  --color-tertiarySystemBackground: 44 44 46;
+  --color-systemGroupedBackground: 28 28 30;
+  --color-secondarySystemGroupedBackground: 36 36 38;
+  --color-tertiarySystemGroupedBackground: 44 44 46;
+
+  --color-systemFill: 180 180 190 / 0.22;
+  --color-secondarySystemFill: 180 180 190 / 0.17;
+  --color-tertiarySystemFill: 180 180 190 / 0.12;
+  --color-quaternarySystemFill: 180 180 190 / 0.08;
+
+  --color-label: 245 245 247;
+  --color-text: 245 245 247;
+  --color-secondaryLabel: 235 235 245 / 0.72;
+  --color-tertiaryLabel: 235 235 245 / 0.48;
+  --color-quaternaryLabel: 235 235 245 / 0.32;
+
+  /* Brand accent — 桃 */
+  --color-accent: 245 150 170;
+  --color-accent-content: 28 28 30;
+
+  --rpf-running: #8aafd0;
+  --rpf-cycling: #c4a878;
+  --rpf-heart: #c88890;
+  --rpf-route-mono: #e8e8ea;
+  --rpf-pace-very-fast: #8aafd0;
+  --rpf-pace-fast: #a0bdd8;
+  --rpf-pace-average: #a8a8b0;
+  --rpf-pace-slow: #c8b080;
+  --rpf-pace-very-slow: #c88890;
+  --rpf-heart-zone-1: #909098;
+  --rpf-heart-zone-2: #88b8a0;
+  --rpf-heart-zone-3: #8aafd0;
+  --rpf-heart-zone-4: #c4a878;
+  --rpf-heart-zone-5: #c88890;
+
+  --rpf-whisper-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
+  --rpf-header-shadow: 0 8px 30px rgba(0, 0, 0, 0.22);
+  --rpf-glass-bg: 36 36 38 / 0.78;
 }
 
 @layer base {
   * {
     @apply border-separator;
-    letter-spacing: 0;
+    letter-spacing: 0.01em;
   }
 
   html {
     scroll-behavior: smooth;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
   body {
@@ -129,6 +172,33 @@ html[data-theme='dark'] {
     font-family:
       -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial,
       sans-serif;
+  }
+
+  /* Soft paper noise — Shiro-like texture, very low opacity */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 180px 180px;
+  }
+
+  html[data-theme='dark'] body::before {
+    opacity: 0.02;
+  }
+
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  ::selection {
+    background-color: rgb(var(--color-accent) / 0.28);
+    color: rgb(var(--color-label));
   }
 }
 
@@ -150,44 +220,136 @@ section[id] {
   scroll-margin-top: 4.5rem;
 }
 
+/* Whisper elevation — ring + soft multi-layer, no hard drop shadows */
 .premium-surface {
-  border-radius: 8px;
+  border-radius: 0.75rem;
   background: rgb(var(--color-tertiarySystemBackground));
   box-shadow:
-    0 1px 2px rgba(24, 33, 47, 0.05),
-    0 18px 50px rgba(24, 33, 47, 0.07);
+    0 0 0 1px rgb(var(--color-separator)),
+    var(--rpf-whisper-shadow);
 }
 
 .premium-surface-soft {
-  border-radius: 8px;
+  border-radius: 0.75rem;
   background: rgb(var(--color-secondarySystemBackground));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.46);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 html[data-theme='dark'] .premium-surface {
   box-shadow:
+    0 0 0 1px rgb(var(--color-separator)),
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 22px 54px rgba(0, 0, 0, 0.28);
+    var(--rpf-whisper-shadow);
 }
 
 html[data-theme='dark'] .premium-surface-soft {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
+/* Frosted chrome for map chips / floating panels */
+.surface-glass {
+  background: rgba(var(--rpf-glass-bg));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--rpf-header-shadow);
+}
+
 /*
- * Apple UIKit colors are automatically provided by tailwindcss-uikit-colors plugin
- * Available colors:
- * - Labels: label, secondaryLabel, tertiaryLabel, quaternaryLabel
- * - Fills: fill, secondaryFill, tertiaryFill, quaternaryFill
- * - Backgrounds: systemBackground, secondarySystemBackground, tertiarySystemBackground
- * - Grouped: systemGroupedBackground, secondarySystemGroupedBackground, tertiarySystemGroupedBackground
- * - Separators: separator, opaqueSeparator
- * - System colors: red, blue, green, mint, teal, cyan, indigo, purple, pink, brown, gray
+ * Sticky page chrome: blend into paper — no floating strip.
+ * Add .is-scrolled on the header after a few px of scroll.
+ */
+.surface-header {
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    backdrop-filter 0.2s ease;
+}
+
+.surface-header.is-scrolled {
+  background: rgb(var(--color-systemBackground) / 0.82);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  border-bottom-color: rgb(var(--color-separator));
+}
+
+/* Chart / data panel — lighter than premium cards */
+.surface-panel {
+  border-radius: 0.75rem;
+  background: rgb(var(--color-tertiarySystemBackground) / 0.72);
+  box-shadow: 0 0 0 1px rgb(var(--color-separator));
+}
+
+html[data-theme='dark'] .surface-panel {
+  background: rgb(var(--color-tertiarySystemBackground) / 0.55);
+}
+
+/*
+ * Paper shimmer skeleton — soft fill + slow highlight sweep.
+ * Avoids solid white blocks that fight the warm page background.
+ */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgb(var(--color-label) / 0.055);
+  border-radius: 0.375rem;
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--color-label) / 0.06) 45%,
+    rgb(var(--color-label) / 0.1) 50%,
+    rgb(var(--color-label) / 0.06) 55%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+html[data-theme='dark'] .skeleton-shimmer {
+  background: rgb(var(--color-label) / 0.08);
+}
+
+html[data-theme='dark'] .skeleton-shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--color-label) / 0.05) 45%,
+    rgb(var(--color-label) / 0.1) 50%,
+    rgb(var(--color-label) / 0.05) 55%,
+    transparent 100%
+  );
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/*
+ * Apple UIKit colors are provided by tailwindcss-uikit-colors.
+ * Brand chrome: accent / accent-content (Shiro 浅葱 / 桃).
+ * Data chrome: --rpf-* for run / cycle / HR / pace.
  */
 
 /* MapLibre Popup Styles */
 .maplibregl-popup-content {
-  @apply border-separator bg-secondary-system-background rounded-lg border shadow-lg;
+  @apply border-separator bg-secondary-system-background rounded-lg border;
+  box-shadow: var(--rpf-whisper-shadow);
   padding: 0 !important;
 }
 
@@ -214,7 +376,7 @@ html[data-theme='dark'] .premium-surface-soft {
 /* Thin, subtle scrollbar for internal list panels */
 .scrollbar-subtle {
   scrollbar-width: thin;
-  scrollbar-color: rgba(17, 24, 39, 0.18) transparent;
+  scrollbar-color: rgba(36, 35, 31, 0.16) transparent;
 }
 
 .scrollbar-subtle::-webkit-scrollbar {
@@ -227,19 +389,19 @@ html[data-theme='dark'] .premium-surface-soft {
 
 .scrollbar-subtle::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background-color: rgba(17, 24, 39, 0.18);
+  background-color: rgba(36, 35, 31, 0.16);
 }
 
 .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(17, 24, 39, 0.26);
+  background-color: rgba(36, 35, 31, 0.26);
 }
 
 :root[data-theme='dark'] .scrollbar-subtle {
-  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 :root[data-theme='dark'] .scrollbar-subtle::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.22);
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 :root[data-theme='dark'] .scrollbar-subtle::-webkit-scrollbar-thumb:hover {

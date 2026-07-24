@@ -1,7 +1,5 @@
 /**
- * ThemeToggle Component
- *
- * Button to toggle between light/dark/system themes
+ * ThemeToggle — cycles light / dark / system with Shiro-like micro motion.
  */
 
 'use client'
@@ -9,6 +7,7 @@
 import { motion } from 'framer-motion'
 import { Monitor, Moon, Sun } from 'lucide-react'
 
+import { pressable, springs } from '@/lib/animation'
 import type { Theme } from '@/lib/theme'
 import { useTheme } from '@/lib/theme'
 
@@ -41,21 +40,22 @@ export function ThemeToggle() {
     <motion.button
       type="button"
       onClick={cycleTheme}
-      className="border-separator bg-tertiary-system-background hover:bg-secondary-system-background focus-visible:ring-blue/40 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      className="text-secondary-label hover:text-label focus-visible:ring-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+      whileHover={pressable.whileHover}
+      whileTap={pressable.whileTap}
+      transition={pressable.transition}
       title={`当前: ${themeLabels[theme]}`}
+      aria-label={`切换主题，当前: ${themeLabels[theme]}`}
     >
       <motion.div
         key={theme}
-        initial={{ rotate: -90, opacity: 0 }}
+        initial={{ rotate: -80, opacity: 0 }}
         animate={{ rotate: 0, opacity: 1 }}
-        exit={{ rotate: 90, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        transition={springs.snappy}
       >
-        <Icon className="text-label h-4 w-4" />
+        <Icon className="h-4 w-4" />
       </motion.div>
-      <span className="text-label/70 hidden sm:inline">{themeLabels[theme]}</span>
+      <span className="hidden sm:inline">{themeLabels[theme]}</span>
     </motion.button>
   )
 }

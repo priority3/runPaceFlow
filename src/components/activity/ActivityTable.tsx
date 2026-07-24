@@ -78,15 +78,11 @@ const containerVariants = {
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: 'spring' as const,
-      stiffness: 350,
-      damping: 25,
-    },
+    transition: springs.smooth,
   },
 }
 
@@ -162,7 +158,7 @@ function getActivityTypeMeta(type: string) {
     label: '运动',
     icon: TrendingUp,
     className: 'bg-gray/10 text-label/60',
-    metricClassName: 'text-blue',
+    metricClassName: 'text-accent',
   }
 }
 
@@ -323,7 +319,7 @@ export function ActivityTable({
         className="group"
       >
         <Link href={`/activity/${activity.id}`} onMouseEnter={() => handleMouseEnter(activity.id)}>
-          <RippleContainer className="rounded-lg" color="rgba(36, 87, 197, 0.06)">
+          <RippleContainer className="rounded-lg">
             <motion.div
               className="group hover:bg-secondary-system-background rounded-lg px-3 py-5 transition-colors duration-200 sm:px-4"
               whileHover={{ x: 3 }}

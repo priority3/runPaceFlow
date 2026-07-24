@@ -1,39 +1,66 @@
 /**
- * Animation Configuration
+ * Animation configuration — Shiro-style perceptual springs.
  *
- * Spring-based animation presets following Apple's guidelines
- * from WWDC 2023 "Animate with springs"
+ * Prefer duration + bounce for UI motion; keep stiffness/damping
+ * only for micro interaction rebound (press feedback).
  */
 
-// Spring presets
+import type { Transition } from 'framer-motion'
+
+/** Perceptual spring presets (duration + bounce), inspired by Shiro. */
 export const springs = {
-  // Smooth - no bounce, for subtle transitions
+  /** No bounce — panels, page content, soft fades */
   smooth: {
     type: 'spring' as const,
-    stiffness: 300,
-    damping: 30,
+    duration: 0.4,
+    bounce: 0,
   },
-  // Snappy - small bounce, for interactions
+  /** Small bounce — tabs, chips, snappy UI */
   snappy: {
     type: 'spring' as const,
-    stiffness: 400,
-    damping: 25,
+    duration: 0.4,
+    bounce: 0.15,
   },
-  // Bouncy - larger bounce, for emphasis
+  /** Higher bounce — emphasis / playful moments */
   bouncy: {
     type: 'spring' as const,
-    stiffness: 300,
-    damping: 15,
+    duration: 0.4,
+    bounce: 0.3,
   },
-  // Quick - fast response, minimal overshoot
+  /** Press / hover micro feedback */
+  microRebound: {
+    type: 'spring' as const,
+    stiffness: 300,
+    damping: 20,
+  },
+  /** Soft panel settle */
+  soft: {
+    type: 'spring' as const,
+    duration: 0.35,
+    stiffness: 120,
+    damping: 20,
+  },
+  /** Alias used by older call sites */
   quick: {
     type: 'spring' as const,
-    stiffness: 500,
-    damping: 35,
+    duration: 0.28,
+    bounce: 0.05,
   },
+  /** Alias: gentle ≈ smooth */
+  gentle: {
+    type: 'spring' as const,
+    duration: 0.4,
+    bounce: 0,
+  },
+} satisfies Record<string, Transition>
+
+/** Shared pressable interaction (Shiro MotionButton). */
+export const pressable = {
+  whileHover: { scale: 1.02 },
+  whileTap: { scale: 0.95 },
+  transition: springs.microRebound,
 }
 
-// Common animation variants
 export const fadeIn = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
@@ -41,38 +68,37 @@ export const fadeIn = {
 }
 
 export const slideUp = {
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -10 },
+  exit: { opacity: 0, y: -8 },
 }
 
-// Page transition config
 export const pageTransition = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
-  transition: { duration: 0.15 },
+  transition: { duration: 0.12 },
 }
 
-// Interaction feedback
+/** @deprecated use pressable */
 export const tapScale = {
-  whileTap: { scale: 0.98 },
-  transition: springs.snappy,
+  whileTap: { scale: 0.95 },
+  transition: springs.microRebound,
 }
 
+/** @deprecated use pressable */
 export const hoverScale = {
   whileHover: { scale: 1.02 },
-  transition: springs.snappy,
+  transition: springs.microRebound,
 }
 
-// Stagger config - keep it very fast to not block users
+/** Keep staggers short so lists never block interaction. */
 export const fastStagger = {
-  staggerChildren: 0.02,
+  staggerChildren: 0.03,
 }
 
-// Layout animation config for shared elements
-export const layoutTransition = {
-  type: 'spring' as const,
-  stiffness: 350,
-  damping: 30,
+export const layoutTransition: Transition = {
+  type: 'spring',
+  duration: 0.35,
+  bounce: 0.1,
 }

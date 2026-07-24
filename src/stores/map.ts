@@ -41,6 +41,17 @@ export const isPlayingAtom = atom(false)
 export const animationProgressAtom = atom(0)
 
 /**
+ * Playback speed multiplier for AnimatedRoute
+ */
+export const playbackSpeedAtom = atom<0.5 | 1 | 2>(1)
+
+/**
+ * Shared kilometer selection across map markers, pace chart, and splits table.
+ * null = nothing focused.
+ */
+export const selectedKilometerAtom = atom<number | null>(null)
+
+/**
  * Whether to show all routes on the map
  */
 export const showAllRoutesAtom = atom(true)

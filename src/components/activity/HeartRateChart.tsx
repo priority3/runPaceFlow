@@ -55,13 +55,13 @@ const CustomTooltip = ({ active, payload, maxHR }: any) => {
     const percentage = maxHR ? Math.round((hr / maxHR) * 100) : 0
 
     return (
-      <div className="border-separator bg-tertiary-system-background rounded-lg border p-3 shadow-lg">
-        <p className="text-label mb-1 text-sm font-medium">
+      <div className="surface-glass rounded-xl px-3.5 py-2.5">
+        <p className="text-secondary-label mb-1 text-xs font-medium">
           {(data.distance / 1000).toFixed(2)} km
         </p>
-        <p className="text-red text-lg font-semibold tabular-nums">{hr} bpm</p>
+        <p className="font-data text-red text-base font-medium tabular-nums">{hr} bpm</p>
         {maxHR && (
-          <p className="text-label/60 text-xs">
+          <p className="text-tertiary-label mt-0.5 text-[11px]">
             {zoneName} · {percentage}% 最大心率
           </p>
         )}
@@ -98,7 +98,7 @@ export function HeartRateChart({
 
   // Show placeholder during SSR
   if (!isMounted) {
-    return <div className="bg-secondary-system-background h-[250px] animate-pulse rounded-lg" />
+    return <div className="skeleton-shimmer h-[240px] rounded-xl" />
   }
 
   // Prepare chart data - sample every N points to avoid too many data points
@@ -124,21 +124,21 @@ export function HeartRateChart({
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
     >
-      <ResponsiveContainer width="100%" height={250}>
-        <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+      <ResponsiveContainer width="100%" height={240}>
+        <AreaChart data={chartData} margin={{ top: 8, right: 24, left: 4, bottom: 8 }}>
           <defs>
             <linearGradient id="heartRateGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--rpf-heart)" stopOpacity={0.28} />
+              <stop offset="5%" stopColor="var(--rpf-heart)" stopOpacity={0.14} />
               <stop offset="95%" stopColor="var(--rpf-heart)" stopOpacity={0} />
             </linearGradient>
           </defs>
 
           <CartesianGrid
-            strokeDasharray="3 3"
+            strokeDasharray="2 6"
             stroke="rgba(var(--color-separator))"
             vertical={false}
           />
@@ -146,58 +146,47 @@ export function HeartRateChart({
           <XAxis
             dataKey="distance"
             tickFormatter={formatXAxis}
-            label={{
-              value: '公里',
-              position: 'insideBottom',
-              offset: -5,
-              style: { fill: 'rgba(var(--color-secondaryLabel))' },
-            }}
-            tick={{ fill: 'rgba(var(--color-secondaryLabel))', fontSize: 12 }}
-            axisLine={{ stroke: 'rgba(var(--color-separator))' }}
-            tickLine={{ stroke: 'rgba(var(--color-separator))' }}
+            tick={{ fill: 'rgba(var(--color-tertiaryLabel))', fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            tickMargin={8}
           />
 
           <YAxis
             domain={[Math.max(60, minHR - 10), maxHR + 10]}
-            label={{
-              value: 'bpm',
-              angle: -90,
-              position: 'insideLeft',
-              style: { fill: 'rgba(var(--color-secondaryLabel))' },
-            }}
-            tick={{ fill: 'rgba(var(--color-secondaryLabel))', fontSize: 12 }}
-            axisLine={{ stroke: 'rgba(var(--color-separator))' }}
-            tickLine={{ stroke: 'rgba(var(--color-separator))' }}
+            tick={{ fill: 'rgba(var(--color-tertiaryLabel))', fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+            width={36}
           />
 
           <Tooltip content={<CustomTooltip maxHR={effectiveMaxHR} />} />
 
-          {/* Average heart rate reference line */}
           {averageHeartRate && (
             <ReferenceLine
               y={averageHeartRate}
               stroke="var(--rpf-heart)"
-              strokeDasharray="5 5"
-              strokeWidth={2}
+              strokeDasharray="4 6"
+              strokeWidth={1.5}
+              strokeOpacity={0.75}
               label={{
-                value: `平均 ${averageHeartRate} bpm`,
-                position: 'right',
+                value: `均 ${averageHeartRate}`,
+                position: 'insideTopRight',
                 fill: 'var(--rpf-heart)',
                 fontSize: 11,
               }}
             />
           )}
 
-          {/* Heart rate area */}
           <Area
             type="monotone"
             dataKey="heartRate"
             stroke="var(--rpf-heart)"
-            strokeWidth={2}
+            strokeWidth={1.5}
             fill="url(#heartRateGradient)"
             dot={false}
             activeDot={{
-              r: 4,
+              r: 3.5,
               fill: 'var(--rpf-heart)',
               stroke: 'rgb(var(--color-tertiarySystemBackground))',
               strokeWidth: 2,
@@ -206,26 +195,25 @@ export function HeartRateChart({
         </AreaChart>
       </ResponsiveContainer>
 
-      {/* Stats summary */}
       <motion.div
-        className="mt-4 flex flex-wrap items-center justify-center gap-6 text-sm"
+        className="mt-3 flex flex-wrap items-center justify-center gap-5 text-xs"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.4 }}
+        transition={{ delay: 0.15, duration: 0.3 }}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-label/50">最低</span>
-          <span className="text-label font-medium tabular-nums">{minHR} bpm</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-tertiary-label">最低</span>
+          <span className="font-data text-label font-medium tabular-nums">{minHR}</span>
         </div>
         {averageHeartRate && (
-          <div className="flex items-center gap-2">
-            <span className="text-label/50">平均</span>
-            <span className="text-red font-medium tabular-nums">{averageHeartRate} bpm</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-tertiary-label">平均</span>
+            <span className="font-data text-red font-medium tabular-nums">{averageHeartRate}</span>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <span className="text-label/50">最高</span>
-          <span className="text-label font-medium tabular-nums">{maxHR} bpm</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-tertiary-label">最高</span>
+          <span className="font-data text-label font-medium tabular-nums">{maxHR}</span>
         </div>
       </motion.div>
     </motion.div>

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import * as React from 'react'
 
+import { springs } from '@/lib/animation'
 import { cn } from '@/lib/utils'
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -19,6 +20,9 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   fadeIn?: boolean
 }
 
+const cardSurfaceClass =
+  'premium-surface text-label rounded-lg border-0 bg-tertiary-system-background'
+
 const Card = ({
   ref,
   className,
@@ -32,34 +36,18 @@ const Card = ({
     return (
       <motion.div
         ref={ref}
-        initial={fadeIn ? { opacity: 0, y: 20 } : undefined}
+        initial={fadeIn ? { opacity: 0, y: 12 } : undefined}
         animate={fadeIn ? { opacity: 1, y: 0 } : undefined}
-        whileHover={animated ? { y: -2, scale: 1.005 } : undefined}
+        whileHover={animated ? { y: -2 } : undefined}
         whileTap={animated ? { scale: 0.995 } : undefined}
-        transition={{
-          type: 'spring',
-          stiffness: 300,
-          damping: 30,
-        }}
-        className={cn(
-          'border-separator bg-secondary-system-background text-label rounded-2xl border shadow-sm',
-          className,
-        )}
+        transition={springs.soft}
+        className={cn(cardSurfaceClass, className)}
         {...(props as any)}
       />
     )
   }
 
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'border-separator bg-secondary-system-background text-label rounded-2xl border shadow-sm',
-        className,
-      )}
-      {...props}
-    />
-  )
+  return <div ref={ref} className={cn(cardSurfaceClass, className)} {...props} />
 }
 Card.displayName = 'Card'
 

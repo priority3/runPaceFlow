@@ -1,31 +1,30 @@
 /**
- * KilometerMarkers Component
- *
- * Displays kilometer markers on the map with pace information
+ * KilometerMarkers — map km pins with shared selection highlight.
  */
 
 'use client'
 
-import { useState } from 'react'
+import { useAtom } from 'jotai'
 import { Marker, Popup } from 'react-map-gl/maplibre'
 
 import type { KilometerMarker } from '@/lib/map/pace-utils'
 import { formatPace, paceToSpeed } from '@/lib/pace/calculator'
+import { cn } from '@/lib/utils'
+import { selectedKilometerAtom } from '@/stores/map'
 
 type MetricMode = 'pace' | 'speed'
 
 export interface KilometerMarkersProps {
   markers: KilometerMarker[]
   metric?: MetricMode
+  /** When true, selecting a marker also notifies parent via onSelect. */
+  onSelect?: (kilometer: number) => void
 }
 
-/**
- * 渲染每公里标记点
- * 点击标记点显示配速信息
- */
-export function KilometerMarkers({ markers, metric = 'pace' }: KilometerMarkersProps) {
-  const [selectedMarker, setSelectedMarker] = useState<KilometerMarker | null>(null)
+export function KilometerMarkers({ markers, metric = 'pace', onSelect }: KilometerMarkersProps) {
+  const [selectedKm, setSelectedKm] = useAtom(selectedKilometerAtom)
   const isSpeedMode = metric === 'speed'
+  const selectedMarker = markers.find((marker) => marker.kilometer === selectedKm) ?? null
 
   if (!markers || markers.length === 0) {
     return null
@@ -33,41 +32,48 @@ export function KilometerMarkers({ markers, metric = 'pace' }: KilometerMarkersP
 
   return (
     <>
-      {/* 渲染所有标记点 */}
-      {markers.map((marker) => (
-        <Marker
-          key={`km-${marker.kilometer}`}
-          longitude={marker.coordinate.longitude}
-          latitude={marker.coordinate.latitude}
-          anchor="center"
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setSelectedMarker(marker)
-            }}
-            className="bg-blue flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-white text-[11px] leading-none font-semibold text-white shadow-md transition-transform hover:scale-110"
-            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+      {markers.map((marker) => {
+        const selected = selectedKm === marker.kilometer
+        return (
+          <Marker
+            key={`km-${marker.kilometer}`}
+            longitude={marker.coordinate.longitude}
+            latitude={marker.coordinate.latitude}
+            anchor="center"
           >
-            {marker.kilometer}
-          </button>
-        </Marker>
-      ))}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                const next = selected ? null : marker.kilometer
+                setSelectedKm(next)
+                if (next !== null) onSelect?.(next)
+              }}
+              className={cn(
+                'flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-[10px] leading-none font-medium transition-transform hover:scale-110',
+                selected
+                  ? 'bg-accent text-accent-content ring-accent/30 scale-110 shadow-[0_2px_10px_rgba(36,35,31,0.2)] ring-4'
+                  : 'bg-label/90 text-system-background shadow-[0_2px_8px_rgba(36,35,31,0.16)] ring-2 ring-white/90 dark:ring-black/30',
+              )}
+            >
+              {marker.kilometer}
+            </button>
+          </Marker>
+        )
+      })}
 
-      {/* Popup 显示配速信息 */}
       {selectedMarker && (
         <Popup
           longitude={selectedMarker.coordinate.longitude}
           latitude={selectedMarker.coordinate.latitude}
           anchor="bottom"
-          onClose={() => setSelectedMarker(null)}
+          onClose={() => setSelectedKm(null)}
           closeButton={true}
           closeOnClick={false}
           className="map-popup"
         >
           <div className="p-2">
-            <div className="text-label mb-1 text-sm font-bold">
+            <div className="text-label mb-1 text-sm font-medium">
               第 {selectedMarker.kilometer} 公里
             </div>
             <div className="text-secondary-label text-xs">

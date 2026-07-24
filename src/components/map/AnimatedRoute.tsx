@@ -1,7 +1,7 @@
 /**
  * AnimatedRoute Component
  *
- * Animates the drawing of a route with pace-based colors
+ * Draws pace-colored route with play/pause and external seek (scrub).
  */
 
 'use client'
@@ -17,19 +17,60 @@ export interface AnimatedRouteProps {
   segments: PaceSegment[]
   activityId: string
   isPlaying: boolean
+  /** External progress 0-100. When scrubbing / paused, drives visible length. */
+  progress?: number
   onProgressChange?: (progress: number) => void
   onAnimationComplete?: () => void
-  speed?: number // 动画速度倍数，默认 1
+  speed?: number
 }
 
 /**
- * 动画绘制路线组件
- * 使用 requestAnimationFrame 实现平滑动画
+ * Clip segments so only the first `progressRatio` of total distance is visible.
  */
+function clipSegmentsByProgress(
+  segments: PaceSegment[],
+  segmentDistances: number[],
+  totalDistance: number,
+  progressRatio: number,
+): PaceSegment[] {
+  if (segments.length === 0 || totalDistance <= 0) return []
+
+  const targetDistance = totalDistance * Math.min(1, Math.max(0, progressRatio))
+  if (targetDistance <= 0) return []
+
+  const visible: PaceSegment[] = []
+  let currentDistance = 0
+
+  for (const [i, segment] of segments.entries()) {
+    const segmentDist = segmentDistances[i] ?? 0
+    const nextDistance = currentDistance + segmentDist
+
+    if (nextDistance <= targetDistance) {
+      visible.push(segment)
+      currentDistance = nextDistance
+      continue
+    }
+
+    const remaining = Math.max(0, targetDistance - currentDistance)
+    const fraction = segmentDist > 0 ? Math.min(1, remaining / segmentDist) : 1
+    const totalPoints = segment.coordinates.length
+    const visiblePoints = Math.max(2, Math.floor(totalPoints * fraction))
+
+    visible.push({
+      ...segment,
+      coordinates: segment.coordinates.slice(0, Math.min(totalPoints, visiblePoints)),
+    })
+    break
+  }
+
+  return visible
+}
+
 export function AnimatedRoute({
   segments,
   activityId,
   isPlaying,
+  progress = 0,
   onProgressChange,
   onAnimationComplete,
   speed = 1,
@@ -38,11 +79,9 @@ export function AnimatedRoute({
   const trainingColors = getTrainingColors(resolvedTheme)
   const [visibleSegments, setVisibleSegments] = useState<PaceSegment[]>([])
   const animationRef = useRef<number | undefined>(undefined)
-  const startTimeRef = useRef<number | undefined>(undefined)
-  const pausedTimeRef = useRef<number>(0)
-  const totalPausedTimeRef = useRef<number>(0)
+  // Anchor: when play starts, map wall-clock to current progress so scrub resumes cleanly.
+  const playAnchorRef = useRef<{ wallMs: number; progressRatio: number } | null>(null)
 
-  // Keep distance calculation stable during requestAnimationFrame-driven renders.
   const { segmentDistances, totalDistance } = useMemo(() => {
     const distances = segments.map((segment) => estimateSegmentDistance(segment.coordinates))
     return {
@@ -51,109 +90,85 @@ export function AnimatedRoute({
     }
   }, [segments])
 
-  // 动画持续时间（毫秒）
-  const animationDuration = 5000 / speed // 5 秒基础时长，可通过 speed 调整
+  // Base full-route duration ~8s at 1x (was 5s/speed with speed=0.2 → very slow).
+  // External `speed` multiplies: 0.5x slower, 2x faster.
+  const animationDuration = 8000 / Math.max(0.25, speed)
 
+  // When paused / scrubbing: paint from external progress.
   useEffect(() => {
-    if (!segments || segments.length === 0) return
+    if (isPlaying) return
+    playAnchorRef.current = null
+    if (!segments.length || totalDistance <= 0) {
+      setVisibleSegments([])
+      return
+    }
+    setVisibleSegments(
+      clipSegmentsByProgress(segments, segmentDistances, totalDistance, progress / 100),
+    )
+  }, [isPlaying, progress, segments, segmentDistances, totalDistance])
 
-    // 如果不是播放状态，清除动画
-    if (!isPlaying) {
+  // When playing: advance from current progress with rAF.
+  useEffect(() => {
+    if (!isPlaying || !segments.length || totalDistance <= 0) {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
         animationRef.current = undefined
       }
-      // 记录暂停时间
-      if (startTimeRef.current && !pausedTimeRef.current) {
-        pausedTimeRef.current = performance.now()
-      }
       return
     }
 
-    // 恢复播放：计算总暂停时长
-    if (pausedTimeRef.current && startTimeRef.current) {
-      totalPausedTimeRef.current += performance.now() - pausedTimeRef.current
-      pausedTimeRef.current = 0
+    const startRatio = Math.min(0.999, Math.max(0, progress / 100))
+    playAnchorRef.current = {
+      wallMs: performance.now(),
+      progressRatio: startRatio,
     }
 
-    // 动画函数
     const animate = (timestamp: number) => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp
-      }
+      const anchor = playAnchorRef.current
+      if (!anchor) return
 
-      // 计算实际经过的时间（排除暂停时间）
-      const elapsed = timestamp - startTimeRef.current - totalPausedTimeRef.current
-      const progress = Math.min(elapsed / animationDuration, 1)
+      const elapsed = timestamp - anchor.wallMs
+      // Remaining duration scales with what's left of the route.
+      const remainingRatio = Math.max(0.001, 1 - anchor.progressRatio)
+      const remainingDuration = animationDuration * remainingRatio
+      const advanced = Math.min(1, elapsed / remainingDuration)
+      const nextRatio = Math.min(1, anchor.progressRatio + remainingRatio * advanced)
 
-      // 根据进度（距离）计算应该显示哪些段，避免分段数量不均导致的节奏跳动
-      const targetDistance = totalDistance * progress
+      setVisibleSegments(
+        clipSegmentsByProgress(segments, segmentDistances, totalDistance, nextRatio),
+      )
+      onProgressChange?.(nextRatio * 100)
 
-      const visible: PaceSegment[] = []
-      let currentDistance = 0
-
-      for (const [i, segment] of segments.entries()) {
-        const segmentDist = segmentDistances[i] ?? 0
-        const nextDistance = currentDistance + segmentDist
-
-        // Whole segment visible
-        if (nextDistance <= targetDistance) {
-          visible.push(segment)
-          currentDistance = nextDistance
-          continue
-        }
-
-        // Partially visible segment — clip by points as an approximation
-        const remaining = Math.max(0, targetDistance - currentDistance)
-        const fraction = segmentDist > 0 ? Math.min(1, remaining / segmentDist) : 1
-        const totalPoints = segment.coordinates.length
-        const visiblePoints = Math.max(2, Math.floor(totalPoints * fraction))
-
-        visible.push({
-          ...segment,
-          coordinates: segment.coordinates.slice(0, Math.min(totalPoints, visiblePoints)),
-        })
-        break
-      }
-
-      setVisibleSegments(visible)
-
-      // 通知外部进度变化
-      onProgressChange?.(progress * 100)
-
-      // 如果动画未完成，继续
-      if (progress < 1) {
+      if (nextRatio < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
-        // 动画完成
         onAnimationComplete?.()
-        startTimeRef.current = undefined
-        totalPausedTimeRef.current = 0
+        playAnchorRef.current = null
       }
     }
 
-    // 启动动画
     animationRef.current = requestAnimationFrame(animate)
 
-    // 清理函数
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
+        animationRef.current = undefined
       }
     }
+    // Reason: only re-anchor when play starts / speed changes / route data changes —
+    // not on every progress tick from ourselves (would reset animation).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- progress intentionally only read at play start
   }, [
-    segments,
-    segmentDistances,
-    totalDistance,
     isPlaying,
     speed,
     animationDuration,
+    segments,
+    segmentDistances,
+    totalDistance,
     onProgressChange,
     onAnimationComplete,
   ])
 
-  // Reason: Combine all visible segments into a single GeoJSON FeatureCollection
-  // so MapLibre only manages one Source + Layer instead of N, reducing GPU overhead.
   const combinedGeoJson = useMemo(() => {
     if (visibleSegments.length === 0) return null
 
@@ -196,8 +211,6 @@ export function AnimatedRoute({
         id={`animated-line-${activityId}`}
         type="line"
         paint={{
-          // Reason: data-driven styling — each feature's color comes from its
-          // properties, so a single layer can render multi-colored segments.
           'line-color': ['get', 'color'],
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 3.5, 14, 5, 18, 9],
           'line-opacity': 0.95,
@@ -224,7 +237,7 @@ function estimateSegmentDistance(coordinates: [number, number][]): number {
 }
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000 // meters
+  const R = 6371000
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lon2 - lon1)
   const a =

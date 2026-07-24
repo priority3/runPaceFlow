@@ -11,15 +11,16 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Copy, Download, FileText, Image as ImageIcon, Share2, X } from 'lucide-react'
 import * as React from 'react'
 
+import { pressable, springs } from '@/lib/animation'
 import { cn } from '@/lib/utils'
 
 export interface ActivityActionBarProps {
   activityId: string
   activityTitle: string
   className?: string
-  /** Callback when share is triggered */
+  /** Hide desktop FABs (share lives in the info card). */
+  mobileOnly?: boolean
   onShare?: () => void
-  /** Callback when export is triggered */
   onExport?: (format: 'gpx' | 'image') => void
 }
 
@@ -27,6 +28,7 @@ export function ActivityActionBar({
   activityId,
   activityTitle,
   className,
+  mobileOnly = false,
   onShare,
   onExport,
 }: ActivityActionBarProps) {
@@ -100,12 +102,12 @@ export function ActivityActionBar({
       {/* Fixed bottom action bar - only visible on mobile */}
       <motion.div
         className={cn(
-          'bg-system-background/92 fixed right-0 bottom-0 left-0 z-40 px-4 py-3 shadow-[0_-10px_35px_rgba(24,33,47,0.1)] backdrop-blur-xl sm:hidden',
+          'surface-glass fixed right-0 bottom-0 left-0 z-40 px-4 py-3 sm:hidden',
           className,
         )}
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        transition={springs.soft}
       >
         <div className="mx-auto flex max-w-lg items-center justify-around gap-4">
           {/* Share button */}
@@ -113,9 +115,10 @@ export function ActivityActionBar({
             type="button"
             onClick={handleShare}
             className="active:bg-secondary-system-background flex flex-1 flex-col items-center gap-1 rounded-lg py-2 transition-colors"
-            whileTap={{ scale: 0.95 }}
+            whileTap={pressable.whileTap}
+            transition={pressable.transition}
           >
-            <Share2 className="text-blue h-5 w-5" />
+            <Share2 className="text-accent h-5 w-5" />
             <span className="text-label/70 text-xs">分享</span>
           </motion.button>
 
@@ -127,7 +130,8 @@ export function ActivityActionBar({
               setShowShareMenu(false)
             }}
             className="active:bg-secondary-system-background flex flex-1 flex-col items-center gap-1 rounded-lg py-2 transition-colors"
-            whileTap={{ scale: 0.95 }}
+            whileTap={pressable.whileTap}
+            transition={pressable.transition}
           >
             <Download className="text-green h-5 w-5" />
             <span className="text-label/70 text-xs">导出</span>
@@ -136,34 +140,38 @@ export function ActivityActionBar({
       </motion.div>
 
       {/* Desktop floating action buttons */}
-      <div className="fixed right-6 bottom-6 z-40 hidden flex-col gap-3 sm:flex">
-        {/* Share button */}
-        <motion.button
-          type="button"
-          onClick={handleShare}
-          className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="分享"
-        >
-          <Share2 className="text-blue h-5 w-5" />
-        </motion.button>
+      {!mobileOnly && (
+        <div className="fixed right-6 bottom-6 z-40 hidden flex-col gap-3 sm:flex">
+          {/* Share button */}
+          <motion.button
+            type="button"
+            onClick={handleShare}
+            className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
+            whileHover={pressable.whileHover}
+            whileTap={pressable.whileTap}
+            transition={pressable.transition}
+            title="分享"
+          >
+            <Share2 className="text-accent h-5 w-5" />
+          </motion.button>
 
-        {/* Export button */}
-        <motion.button
-          type="button"
-          onClick={() => {
-            setShowExportMenu(!showExportMenu)
-            setShowShareMenu(false)
-          }}
-          className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="导出"
-        >
-          <Download className="text-green h-5 w-5" />
-        </motion.button>
-      </div>
+          {/* Export button */}
+          <motion.button
+            type="button"
+            onClick={() => {
+              setShowExportMenu(!showExportMenu)
+              setShowShareMenu(false)
+            }}
+            className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
+            whileHover={pressable.whileHover}
+            whileTap={pressable.whileTap}
+            transition={pressable.transition}
+            title="导出"
+          >
+            <Download className="text-green h-5 w-5" />
+          </motion.button>
+        </div>
+      )}
 
       {/* Share menu popup */}
       <AnimatePresence>
@@ -173,7 +181,7 @@ export function ActivityActionBar({
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            transition={springs.snappy}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-separator flex items-center justify-between border-b px-4 py-3">
@@ -208,7 +216,7 @@ export function ActivityActionBar({
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            transition={springs.snappy}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-separator flex items-center justify-between border-b px-4 py-3">
@@ -227,7 +235,7 @@ export function ActivityActionBar({
                 onClick={() => handleExport('gpx')}
                 className="text-label/80 hover:bg-label/5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
               >
-                <FileText className="text-blue h-4 w-4" />
+                <FileText className="text-accent h-4 w-4" />
                 <div className="text-left">
                   <div>GPX 文件</div>
                   <div className="text-label/40 text-xs">可导入其他运动应用</div>

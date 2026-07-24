@@ -26,9 +26,11 @@ import { useState } from 'react'
 
 import { ActivityTable } from '@/components/activity/ActivityTable'
 import { Header } from '@/components/layout/Header'
+import { ActivityRowSkeleton, SportPanelSkeleton } from '@/components/ui/skeleton'
 import { useActivityStats, useInfiniteActivities, useMapRoutes } from '@/hooks/use-activities'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useRuntimeConfig } from '@/hooks/use-runtime-config'
+import { springs } from '@/lib/animation'
 import type { PublicRuntimeConfig } from '@/lib/runtime-config/types'
 import { useTheme } from '@/lib/theme'
 import { getSportColors } from '@/lib/theme/palette'
@@ -40,7 +42,7 @@ const RunMap = dynamic(
   () => import('@/components/map/RunMap').then((module) => ({ default: module.RunMap })),
   {
     ssr: false,
-    loading: () => <div className="bg-tertiary-system-background h-full min-h-80 animate-pulse" />,
+    loading: () => <div className="skeleton-shimmer h-full min-h-80 rounded-2xl" />,
   },
 )
 
@@ -106,8 +108,8 @@ const FOCUS_META: Record<
   goals: {
     label: '目标',
     icon: Target,
-    colorClassName: 'bg-blue',
-    softClassName: 'bg-blue/10 text-blue',
+    colorClassName: 'bg-accent',
+    softClassName: 'bg-accent/10 text-accent',
   },
   recovery: {
     label: '负荷',
@@ -390,7 +392,7 @@ function PaceRibbon({
               key={activity?.id ?? `ribbon-loading-${index}`}
               className={cn(
                 'relative z-10 min-w-1 flex-1 rounded-full',
-                isLoading ? 'bg-quaternary-system-fill animate-pulse' : 'bg-blue',
+                isLoading ? 'skeleton-shimmer' : 'bg-accent',
               )}
               style={{ height: `${height}%`, opacity: 0.28 + (index / 20) * 0.72 }}
               initial={isLoading ? false : { scaleY: 0 }}
@@ -484,7 +486,7 @@ function FocusConsole({
                 onClick={() => setSelectedId(item.id)}
                 className={cn(
                   'text-tertiary-label flex min-h-9 items-center gap-2 text-sm font-medium transition-colors',
-                  'focus-visible:outline-blue focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4',
+                  'focus-visible:outline-accent focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4',
                   selected ? 'text-label' : 'hover:text-secondary-label',
                 )}
               >
@@ -510,7 +512,7 @@ function FocusConsole({
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            transition={reduceMotion ? { duration: 0.12 } : springs.smooth}
             className="mt-9 grid items-end gap-6 sm:grid-cols-[minmax(0,1fr)_auto]"
           >
             <div className="min-w-0">
@@ -533,7 +535,7 @@ function FocusConsole({
       <button
         type="button"
         onClick={scrollToSection}
-        className="text-blue focus-visible:outline-blue mt-9 inline-flex h-10 w-fit items-center gap-2 text-sm font-semibold transition-all hover:gap-3 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4"
+        className="text-accent focus-visible:outline-accent mt-9 inline-flex h-10 w-fit items-center gap-2 text-sm font-semibold transition-all hover:gap-3 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4"
       >
         {focus.actionLabel}
         <ArrowDown className="h-4 w-4" />
@@ -772,12 +774,12 @@ export default function HomePage() {
       <main>
         <section
           id="overview"
-          className="scroll-mt-20 px-5 pt-10 pb-20 sm:px-7 sm:pt-14 lg:px-10 lg:pt-16 lg:pb-28"
+          className="scroll-mt-14 px-5 pt-8 pb-20 sm:px-7 sm:pt-12 lg:px-10 lg:pt-14 lg:pb-28"
         >
           <div className="mx-auto max-w-[82rem]">
             <div className="mb-10 flex items-center justify-between gap-4">
               <div className="text-secondary-label flex items-center gap-2 text-sm font-medium">
-                <Activity className="text-blue h-4 w-4" />
+                <Activity className="text-accent h-4 w-4" />
                 <span>今日训练</span>
               </div>
               <span className="text-tertiary-label text-xs">
@@ -809,7 +811,7 @@ export default function HomePage() {
                   {visibleRoutes.length > 0 && <RouteLayer routes={visibleRoutes} />}
                 </RunMap>
 
-                <div className="bg-tertiary-system-background/88 text-label absolute top-3 left-3 z-20 flex items-center gap-1 rounded-full p-1 shadow-sm backdrop-blur-xl">
+                <div className="surface-glass text-label absolute top-3 left-3 z-20 flex items-center gap-1 rounded-full p-1">
                   <div className="pointer-events-none flex items-center gap-2 px-2">
                     <Route className="h-4 w-4" />
                     <span className="text-xs font-medium tabular-nums">
@@ -843,7 +845,7 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="bg-tertiary-system-background/88 text-secondary-label pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-4 rounded-full px-3 py-2 text-[11px] shadow-sm backdrop-blur-xl">
+                <div className="surface-glass text-secondary-label pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-4 rounded-full px-3 py-2 text-[11px]">
                   {SPORT_TYPES.map((type) => (
                     <span
                       key={type}
@@ -922,7 +924,7 @@ export default function HomePage() {
                       onClick={() => setStatsPeriod(period)}
                       className={cn(
                         'text-secondary-label min-h-9 rounded-md px-4 text-sm font-medium transition-colors',
-                        'focus-visible:outline-blue focus-visible:outline-2 focus-visible:outline-offset-2',
+                        'focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2',
                         statsPeriod === period && 'bg-system-background text-label shadow-sm',
                       )}
                     >
@@ -934,13 +936,13 @@ export default function HomePage() {
             />
 
             {statsLoading ? (
-              <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-                {[0, 1].map((index) => (
-                  <div
-                    key={`sport-loading-${index}`}
-                    className="bg-secondary-system-background h-72 animate-pulse rounded-lg"
-                  />
-                ))}
+              <div
+                className="grid gap-12 lg:grid-cols-2 lg:gap-16"
+                role="status"
+                aria-label="训练量加载中"
+              >
+                <SportPanelSkeleton />
+                <SportPanelSkeleton />
               </div>
             ) : sportStats ? (
               <AnimatePresence mode="wait" initial={false}>
@@ -1010,12 +1012,13 @@ export default function HomePage() {
             )}
 
             {activitiesLoading ? (
-              <div className="space-y-3">
-                {[0, 1, 2].map((index) => (
-                  <div
-                    key={`activity-loading-${index}`}
-                    className="bg-system-background h-24 animate-pulse rounded-lg"
-                  />
+              <div
+                className="divide-separator/60 divide-y"
+                role="status"
+                aria-label="活动列表加载中"
+              >
+                {[0, 1, 2, 3].map((index) => (
+                  <ActivityRowSkeleton key={`activity-loading-${index}`} />
                 ))}
               </div>
             ) : (
@@ -1028,7 +1031,7 @@ export default function HomePage() {
                   type="button"
                   onClick={() => void fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="text-blue focus-visible:outline-blue inline-flex h-11 items-center gap-2 text-sm font-semibold transition-all hover:gap-3 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="text-accent focus-visible:outline-accent inline-flex h-11 items-center gap-2 text-sm font-semibold transition-all hover:gap-3 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <ArrowDown className={cn('h-4 w-4', isFetchingNextPage && 'animate-bounce')} />
                   <span>{isFetchingNextPage ? '正在加载' : '加载更多'}</span>

@@ -6,25 +6,24 @@
 
 'use client'
 
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useAtom } from 'jotai'
-import { Pause, Play, Square } from 'lucide-react'
+import { Check, Copy, MoreHorizontal, Share2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { ActivityActionBar } from '@/components/activity/ActivityActionBar'
 import { PaceChart } from '@/components/activity/PaceChart'
 import { SplitsTable } from '@/components/activity/SplitsTable'
 import { WeatherInfo } from '@/components/activity/WeatherInfo'
-import { FloatingInfoCard } from '@/components/map/FloatingInfoCard'
 import { MapErrorBoundary } from '@/components/map/MapErrorBoundary'
-import { AnimatedTabs, AnimatedTabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PlaybackControls } from '@/components/map/PlaybackControls'
 import { useActivityWithSplits, useGpxData } from '@/hooks/use-activities'
 import { useGpxParser } from '@/hooks/use-gpx-parser'
-import { springs } from '@/lib/animation'
+import { pressable, springs } from '@/lib/animation'
 import { generateMockTrackPoints } from '@/lib/map/mock-data'
 import type { TrackPoint } from '@/lib/map/pace-utils'
 import { createKilometerMarkers, createPaceSegments } from '@/lib/map/pace-utils'
@@ -32,7 +31,12 @@ import { calculateSpeed, formatDuration, formatPace, paceToSpeed } from '@/lib/p
 import { useTheme } from '@/lib/theme'
 import { getTrainingColors } from '@/lib/theme/palette'
 import { cn, formatDate, formatTime } from '@/lib/utils'
-import { animationProgressAtom, isPlayingAtom } from '@/stores/map'
+import {
+  animationProgressAtom,
+  isPlayingAtom,
+  playbackSpeedAtom,
+  selectedKilometerAtom,
+} from '@/stores/map'
 import type { Split } from '@/types/activity'
 
 // Lazy load map components - MapLibre GL is ~60KB gzipped
@@ -40,9 +44,7 @@ const RunMap = dynamic(
   () => import('@/components/map/RunMap').then((m) => ({ default: m.RunMap })),
   {
     ssr: false,
-    loading: () => (
-      <div className="bg-secondary-system-background h-[300px] animate-pulse rounded-lg sm:h-[400px]" />
-    ),
+    loading: () => <div className="skeleton-shimmer h-[320px] rounded-2xl sm:h-[420px]" />,
   },
 )
 
@@ -62,8 +64,7 @@ const PlaybackMarker = dynamic(() =>
   import('@/components/map/PlaybackMarker').then((m) => ({ default: m.PlaybackMarker })),
 )
 
-// Lazy load non-default tab components to reduce initial bundle
-// Reason: Recharts (~40KB gz) and other heavy components shouldn't load until user clicks the tab
+// Lazy load heavier panels (charts / art / AI) — still code-split, just always mounted in sections
 const HeartRateChart = dynamic(() =>
   import('@/components/activity/HeartRateChart').then((m) => ({ default: m.HeartRateChart })),
 )
@@ -106,20 +107,63 @@ export default function ActivityDetailPage() {
   const skipMap = debugMode === 'nomap' || debugMode === 'basic'
   const { data: gpxData } = useGpxData(activityId, !!data && !data.activity.isIndoor && !skipMap)
 
-  // Playback state
+  // Playback + shared selection state
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
   const [animationProgress, setAnimationProgress] = useAtom(animationProgressAtom)
+  const [playbackSpeed, setPlaybackSpeed] = useAtom(playbackSpeedAtom)
+  const [selectedKm, setSelectedKm] = useAtom(selectedKilometerAtom)
 
   // Client-side mount state to prevent hydration issues
   const [isMounted, setIsMounted] = useState(false)
+  const [showShareMenu, setShowShareMenu] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [activeSection, setActiveSection] = useState('pace')
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setIsMounted(true))
     return () => cancelAnimationFrame(frame)
   }, [])
 
+  // Reset playback when navigating to another activity
+  useEffect(() => {
+    setIsPlaying(false)
+    setAnimationProgress(0)
+    setSelectedKm(null)
+  }, [activityId, setIsPlaying, setAnimationProgress, setSelectedKm])
+
+  const scrollToSection = useCallback((sectionId: string) => {
+    setActiveSection(sectionId)
+    const el = document.getElementById(`section-${sectionId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
   // Parse GPX data in a Web Worker to avoid blocking the main thread
   const { trackPoints: parsedPoints, heartRateData } = useGpxParser(gpxData)
+
+  // Sticky mini-nav: highlight section in view
+  useEffect(() => {
+    if (!isMounted) return
+    const ids = ['pace', 'heartrate', 'splits', 'art', 'ai', 'more']
+    const nodes = ids
+      .map((id) => document.getElementById(`section-${id}`))
+      .filter((n): n is HTMLElement => !!n)
+    if (nodes.length === 0) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+        const top = visible[0]
+        if (top?.target?.id) {
+          setActiveSection(top.target.id.replace('section-', ''))
+        }
+      },
+      { rootMargin: '-20% 0px -55% 0px', threshold: [0.15, 0.4, 0.7] },
+    )
+    for (const node of nodes) observer.observe(node)
+    return () => observer.disconnect()
+  }, [isMounted, data, heartRateData.length])
 
   // Derive map data from worker-parsed track points
   const { paceSegments, kmMarkers, trackPoints, bounds } = (() => {
@@ -186,8 +230,11 @@ export default function ActivityDetailPage() {
     return
   })()
 
-  // Playback controls
   const handlePlayPause = () => {
+    // Restart from beginning if finished
+    if (!isPlaying && animationProgress >= 100) {
+      setAnimationProgress(0)
+    }
     setIsPlaying(!isPlaying)
   }
 
@@ -196,20 +243,93 @@ export default function ActivityDetailPage() {
     setAnimationProgress(0)
   }
 
+  const handleSeek = useCallback(
+    (next: number) => {
+      // Pause while scrubbing so clip follows the thumb immediately
+      if (isPlaying) setIsPlaying(false)
+      setAnimationProgress(next)
+    },
+    [isPlaying, setIsPlaying, setAnimationProgress],
+  )
+
   const handleAnimationComplete = () => {
     setIsPlaying(false)
     setAnimationProgress(100)
   }
+
+  const handleSelectKilometer = useCallback(
+    (km: number) => {
+      setSelectedKm(km)
+      scrollToSection('splits')
+    },
+    [setSelectedKm, scrollToSection],
+  )
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 1800)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Km currently under the playback head (for chart/table highlight)
+  const playbackKilometer = useMemo(() => {
+    if (!currentPoint || kmMarkers.length === 0) return null
+    let current = 0
+    for (const marker of kmMarkers) {
+      if (currentPoint.distance >= marker.distance) current = marker.kilometer
+      else break
+    }
+    return current > 0 ? current : null
+  }, [currentPoint, kmMarkers])
+
+  const elapsedSeconds = useMemo(() => {
+    if (!currentPoint || !startPoint) return 0
+    return Math.max(0, Math.floor((currentPoint.time.getTime() - startPoint.time.getTime()) / 1000))
+  }, [currentPoint, startPoint])
 
   // Loading state - also show during SSR to prevent hydration mismatch
   if (isLoading || !isMounted) {
     return (
       <div className="bg-system-background min-h-screen">
         <DetailHeader />
-        <div className="relative container mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 lg:px-8">
-          <div className="bg-secondary-system-background mb-8 h-64 animate-pulse rounded-lg sm:h-80" />
-          <div className="bg-secondary-system-background mb-6 h-24 animate-pulse rounded-lg" />
-          <div className="bg-secondary-system-background h-64 animate-pulse rounded-lg" />
+        <div
+          className="relative container mx-auto max-w-6xl px-4 pt-16 pb-8 sm:px-6 sm:pt-20 lg:px-8"
+          role="status"
+          aria-label="活动详情加载中"
+        >
+          <div className="skeleton-shimmer mb-0 h-[300px] rounded-t-2xl sm:h-[400px]" />
+          <div className="bg-tertiary-system-background/92 mb-5 rounded-b-2xl border-t border-[rgb(var(--color-separator))] px-4 py-3">
+            <div className="skeleton-shimmer h-8 w-full rounded-full" />
+          </div>
+          <div className="surface-panel mb-8 px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-2">
+                <div className="skeleton-shimmer h-5 w-40 rounded-md" />
+                <div className="skeleton-shimmer h-3 w-28 rounded-md opacity-70" />
+              </div>
+              <div className="flex flex-wrap gap-5">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={`detail-metric-${index}`} className="space-y-2">
+                    <div className="skeleton-shimmer h-6 w-14 rounded-md" />
+                    <div className="skeleton-shimmer h-2.5 w-10 rounded-md opacity-60" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="mb-5 flex gap-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={`detail-tab-${index}`} className="skeleton-shimmer h-8 w-20 rounded-full" />
+            ))}
+          </div>
+          <div className="surface-panel p-5 sm:p-6">
+            <div className="skeleton-shimmer mb-5 h-3 w-24 rounded-md opacity-70" />
+            <div className="skeleton-shimmer h-56 w-full rounded-xl" />
+          </div>
         </div>
       </div>
     )
@@ -220,7 +340,7 @@ export default function ActivityDetailPage() {
     return (
       <div className="bg-system-background min-h-screen">
         <DetailHeader />
-        <div className="relative container mx-auto max-w-6xl px-4 pt-24 pb-8 sm:px-6 lg:px-8">
+        <div className="relative container mx-auto max-w-6xl px-4 pt-20 pb-8 sm:px-6 lg:px-8">
           <motion.div
             className="premium-surface flex flex-col items-center justify-center py-16"
             initial={{ opacity: 0, scale: 0.98 }}
@@ -252,6 +372,7 @@ export default function ActivityDetailPage() {
       : ''
   const primaryMetricUnit = isCycling ? 'km/h' : ''
   const primaryMetricTitle = isCycling ? '均速' : '配速'
+  // Sport semantic colors for metrics (not brand accent)
   const metricTextClassName = isCycling ? 'text-orange' : 'text-blue'
   const metricSubTextClassName = isCycling ? 'text-orange/60' : 'text-blue/60'
   const bestMetricTitle = isCycling ? '最快速度' : '最快配速'
@@ -268,52 +389,19 @@ export default function ActivityDetailPage() {
 
   return (
     <div className="bg-system-background min-h-screen">
-      <DetailHeader
-        rightSlot={
-          !activity.isIndoor &&
-          !skipMap && (
-            <div className="flex items-center gap-2">
-              <motion.button
-                onClick={handlePlayPause}
-                className="premium-surface hover:bg-secondary-system-background flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-                whileTap={{ scale: 0.98 }}
-                transition={springs.snappy}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="h-4 w-4" />
-                    <span className="hidden sm:inline">暂停</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4" />
-                    <span className="hidden sm:inline">回放</span>
-                  </>
-                )}
-              </motion.button>
-              {animationProgress > 0 && (
-                <motion.button
-                  onClick={handleStopPlayback}
-                  className="premium-surface text-secondary-label hover:text-label hover:bg-secondary-system-background flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={springs.snappy}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Square className="h-3.5 w-3.5" />
-                </motion.button>
-              )}
-            </div>
-          )
-        }
-      />
+      <DetailHeader />
 
-      <div className="relative container mx-auto max-w-6xl px-4 pt-20 pb-6 sm:px-6 sm:pt-24 sm:pb-8 lg:px-8">
-        {/* Map Section - Only show for outdoor activities, skip in debug modes */}
+      <div className="relative container mx-auto max-w-6xl px-4 pt-16 pb-6 sm:px-6 sm:pt-20 sm:pb-8 lg:px-8">
         {!activity.isIndoor && !skipMap && (
-          <section className="mb-0">
-            <div className="relative overflow-hidden rounded-lg shadow-[0_24px_70px_rgba(24,33,47,0.16)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.42)]">
-              <div className="h-[300px] sm:h-[400px]">
+          <motion.section
+            className="mb-5"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={springs.smooth}
+          >
+            {/* Map + controls share one card so the bar never collides with the stats sheet */}
+            <div className="overflow-hidden rounded-2xl ring-1 ring-[rgb(var(--color-separator))]">
+              <div className="relative h-[300px] sm:h-[400px]">
                 <MapErrorBoundary>
                   <RunMap
                     className="h-full w-full"
@@ -321,9 +409,6 @@ export default function ActivityDetailPage() {
                     boundsPadding={48}
                     autoLoad={mapAutoLoad}
                   >
-                    {/* Reason: keyed Fragments force React to unmount/remount instead of
-                        reusing the PaceRouteLayer instance, which would change the
-                        MapLibre Source id and crash with "source id changed". */}
                     {isPlaying || animationProgress > 0 ? (
                       <Fragment key="playback">
                         <PaceRouteLayer
@@ -338,9 +423,10 @@ export default function ActivityDetailPage() {
                           segments={paceSegments}
                           activityId={activityId}
                           isPlaying={isPlaying}
+                          progress={animationProgress}
                           onProgressChange={setAnimationProgress}
                           onAnimationComplete={handleAnimationComplete}
-                          speed={0.2}
+                          speed={playbackSpeed}
                         />
                         <PlaybackMarker
                           current={currentPoint ?? (isPlaying ? startPoint : undefined)}
@@ -348,192 +434,327 @@ export default function ActivityDetailPage() {
                           end={endPoint}
                           accentColor={currentPaceInfo?.color}
                         />
+                        <KilometerMarkers
+                          markers={kmMarkers}
+                          metric={metricMode}
+                          onSelect={handleSelectKilometer}
+                        />
                       </Fragment>
                     ) : (
                       <Fragment key="static">
                         <PaceRouteLayer segments={paceSegments} activityId={activityId} />
-                        <KilometerMarkers markers={kmMarkers} metric={metricMode} />
+                        <KilometerMarkers
+                          markers={kmMarkers}
+                          metric={metricMode}
+                          onSelect={handleSelectKilometer}
+                        />
                       </Fragment>
                     )}
                   </RunMap>
                 </MapErrorBoundary>
-
-                {/* Floating info card during playback */}
-                {(isPlaying || animationProgress > 0) && (currentPoint || startPoint) && (
-                  <FloatingInfoCard
-                    currentPoint={currentPoint ?? startPoint}
-                    startTime={startPoint?.time}
-                    averagePace={activity.averagePace || 360}
-                    currentPace={currentPaceInfo?.pace}
-                    currentPaceColor={currentPaceInfo?.color}
-                    isPlaying={isPlaying}
-                    progress={animationProgress}
-                    metric={metricMode}
-                  />
-                )}
               </div>
+
+              <PlaybackControls
+                isPlaying={isPlaying}
+                progress={animationProgress}
+                speed={playbackSpeed}
+                averagePace={activity.averagePace || 360}
+                currentPace={currentPaceInfo?.pace}
+                currentDistanceMeters={currentPoint?.distance ?? 0}
+                currentElapsedSeconds={elapsedSeconds}
+                metric={metricMode}
+                accentColor={currentPaceInfo?.color}
+                onPlayPause={handlePlayPause}
+                onStop={handleStopPlayback}
+                onSeek={handleSeek}
+                onSpeedChange={setPlaybackSpeed}
+                className="rounded-none border-t border-[rgb(var(--color-separator))] shadow-none"
+              />
             </div>
-          </section>
+          </motion.section>
         )}
 
-        {/* Activity Info Card - Compact one-line stats */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ ...springs.smooth, delay: 0.06 }}
           className={cn(
-            'premium-surface px-5 py-4 sm:px-6 sm:py-5',
-            !activity.isIndoor && !skipMap ? 'relative z-20 mx-3 -mt-14 mb-8 sm:mx-6' : 'mb-8',
+            'px-5 py-4 sm:px-6 sm:py-5',
+            !activity.isIndoor && !skipMap
+              ? 'surface-panel relative z-10 mb-8'
+              : 'premium-surface mb-8',
           )}
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {/* Title and date */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-label truncate text-xl font-semibold sm:text-2xl">
-                <span>{`${typeEmoji} ${activity.title || '跑步活动'}`}</span>
-              </h1>
-              <p className="text-label/50 mt-1 text-sm">
+              <div className="flex items-start gap-2">
+                <h1 className="text-label min-w-0 flex-1 truncate text-lg font-medium tracking-tight sm:text-xl">
+                  <span>{`${typeEmoji} ${activity.title || '跑步活动'}`}</span>
+                </h1>
+                <div className="relative shrink-0">
+                  <motion.button
+                    type="button"
+                    onClick={() => setShowShareMenu((open) => !open)}
+                    className="text-secondary-label hover:bg-system-fill hover:text-label flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                    whileTap={pressable.whileTap}
+                    transition={pressable.transition}
+                    aria-label="分享与更多"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </motion.button>
+                  <AnimatePresence>
+                    {showShareMenu && (
+                      <motion.div
+                        className="premium-surface absolute top-9 right-0 z-30 w-48 overflow-hidden rounded-xl"
+                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                        transition={springs.snappy}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleCopyLink()
+                          }}
+                          className="text-label hover:bg-system-fill flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm"
+                        >
+                          {linkCopied ? (
+                            <Check className="text-green h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                          {linkCopied ? '已复制链接' : '复制链接'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowShareMenu(false)
+                            if (navigator.share) {
+                              void navigator.share({
+                                title: activity.title || '跑步活动',
+                                url: window.location.href,
+                              })
+                            }
+                          }}
+                          className="text-label hover:bg-system-fill flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm"
+                        >
+                          <Share2 className="text-accent h-4 w-4" />
+                          系统分享
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+              <p className="text-tertiary-label mt-1 text-xs sm:text-sm">
                 {formatDate(activity.startTime)} {formatTime(activity.startTime)}
               </p>
             </div>
 
-            {/* Core stats in one row */}
-            <div className="flex flex-wrap items-center gap-4 text-sm sm:gap-6">
-              <div className="flex flex-col items-center">
-                <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+            <div className="flex flex-wrap items-end gap-x-5 gap-y-3 text-sm sm:gap-x-6">
+              <button
+                type="button"
+                onClick={() => scrollToSection('splits')}
+                className="hover:bg-system-fill/60 flex min-w-[3.5rem] flex-col rounded-lg px-1 py-0.5 text-left transition-colors"
+              >
+                <span className="font-data text-label text-lg font-medium tabular-nums sm:text-xl">
                   {(activity.distance / 1000).toFixed(2)}
                 </span>
-                <span className="text-label/50 text-xs">公里</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+                <span className="text-tertiary-label text-[11px]">公里</span>
+              </button>
+              <div className="flex min-w-[3.5rem] flex-col">
+                <span className="font-data text-label text-lg font-medium tabular-nums sm:text-xl">
                   {formatDuration(activity.duration)}
                 </span>
-                <span className="text-label/50 text-xs">时长</span>
+                <span className="text-tertiary-label text-[11px]">时长</span>
               </div>
               {primaryMetricVisible && (
-                <div className="flex flex-col items-center">
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('pace')}
+                  className="hover:bg-system-fill/60 flex min-w-[3.5rem] flex-col rounded-lg px-1 py-0.5 text-left transition-colors"
+                >
                   <span
-                    className={`${metricTextClassName} text-lg font-semibold tabular-nums sm:text-xl`}
+                    className={cn(
+                      'font-data text-lg font-medium tabular-nums sm:text-xl',
+                      metricTextClassName,
+                    )}
                   >
                     {primaryMetricValue}
                     {primaryMetricUnit && (
-                      <span className={`${metricSubTextClassName} ml-1 text-xs`}>
+                      <span className={cn('ml-1 text-xs font-normal', metricSubTextClassName)}>
                         {primaryMetricUnit}
                       </span>
                     )}
                   </span>
-                  <span className={`${metricSubTextClassName} text-xs`}>{primaryMetricTitle}</span>
-                </div>
+                  <span className={cn('text-[11px]', metricSubTextClassName)}>
+                    {primaryMetricTitle}
+                  </span>
+                </button>
               )}
               {activity.elevationGain !== null && activity.elevationGain > 0 && (
-                <div className="flex flex-col items-center">
-                  <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+                <div className="flex min-w-[3.5rem] flex-col">
+                  <span className="font-data text-label text-lg font-medium tabular-nums sm:text-xl">
                     ↗{activity.elevationGain.toFixed(0)}
                   </span>
-                  <span className="text-label/50 text-xs">爬升</span>
+                  <span className="text-tertiary-label text-[11px]">爬升</span>
                 </div>
               )}
               {activity.averageHeartRate && (
-                <div className="flex flex-col items-center">
-                  <span className="text-red text-lg font-semibold tabular-nums sm:text-xl">
-                    ❤{activity.averageHeartRate}
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('heartrate')}
+                  className="hover:bg-system-fill/60 flex min-w-[3.5rem] flex-col rounded-lg px-1 py-0.5 text-left transition-colors"
+                >
+                  <span className="font-data text-red text-lg font-medium tabular-nums sm:text-xl">
+                    {activity.averageHeartRate}
                   </span>
-                  <span className="text-red/60 text-xs">心率</span>
-                </div>
+                  <span className="text-red/60 text-[11px]">心率</span>
+                </button>
               )}
               {activity.weatherData && <WeatherInfo weatherDataJson={activity.weatherData} />}
             </div>
           </div>
         </motion.div>
 
-        {/* Tabbed Content Section - skip in basic debug mode */}
         {debugMode !== 'basic' && (
-          <AnimatedTabs defaultValue="pace" className="w-full">
-            <TabsList className="mb-4 w-full justify-start overflow-x-auto">
-              <TabsTrigger value="pace">{metricLabel}分析</TabsTrigger>
-              {(heartRateData.length > 0 || activity.averageHeartRate) && (
-                <TabsTrigger value="heartrate">心率</TabsTrigger>
-              )}
-              <TabsTrigger value="splits">分段数据</TabsTrigger>
-              <TabsTrigger value="art">艺术</TabsTrigger>
-              <TabsTrigger value="ai">AI 分析</TabsTrigger>
-              {activity.calories && <TabsTrigger value="more">更多数据</TabsTrigger>}
-            </TabsList>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springs.smooth, delay: 0.12 }}
+            className="space-y-8"
+          >
+            {/* Sticky section mini-nav */}
+            <nav
+              className="surface-glass sticky top-12 z-30 -mx-1 mb-2 overflow-x-auto rounded-full px-1.5 py-1.5"
+              aria-label="详情分区"
+            >
+              <div className="flex min-w-max items-center gap-0.5">
+                {(
+                  [
+                    {
+                      id: 'pace',
+                      label: `${metricLabel}分析`,
+                      show: chartSplits.length > 0 || true,
+                    },
+                    {
+                      id: 'heartrate',
+                      label: '心率',
+                      show: heartRateData.length > 0 || !!activity.averageHeartRate,
+                    },
+                    { id: 'splits', label: '分段', show: true },
+                    { id: 'art', label: '艺术', show: true },
+                    { id: 'ai', label: 'AI', show: true },
+                    { id: 'more', label: '更多', show: !!activity.calories || !!activity.bestPace },
+                  ] as const
+                )
+                  .filter((item) => item.show)
+                  .map((item) => {
+                    const active = activeSection === item.id
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => scrollToSection(item.id)}
+                        className={cn(
+                          'rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+                          active
+                            ? 'bg-tertiary-system-background text-label shadow-[0_0_0_1px_rgb(var(--color-separator))]'
+                            : 'text-tertiary-label hover:text-secondary-label',
+                        )}
+                        aria-current={active ? 'true' : undefined}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  })}
+              </div>
+            </nav>
 
-            {/* Pace Analysis Tab */}
-            <AnimatedTabsContent value="pace">
-              {chartSplits.length > 0 ? (
-                <div className="space-y-6">
-                  <div className="premium-surface p-6">
-                    <h3 className="text-label/80 mb-4 text-sm font-medium">每公里{metricLabel}</h3>
-                    <PaceChart
-                      splits={chartSplits}
-                      averagePace={activity.averagePace || 360}
-                      metric={metricMode}
-                    />
-                  </div>
-                  <PaceDistribution
+            {/* Pace / speed */}
+            <section id="section-pace" className="scroll-mt-28 space-y-5">
+              <div className="surface-panel p-5 sm:p-6">
+                <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
+                  每公里{metricLabel}
+                </h2>
+                {chartSplits.length > 0 ? (
+                  <PaceChart
                     splits={chartSplits}
                     averagePace={activity.averagePace || 360}
                     metric={metricMode}
+                    activeKilometer={playbackKilometer}
+                    onSelectKilometer={handleSelectKilometer}
                   />
-                </div>
-              ) : (
-                <div className="premium-surface text-secondary-label p-8 text-center">
-                  {noMetricDataText}
-                </div>
+                ) : (
+                  <p className="text-secondary-label py-10 text-center text-sm">
+                    {noMetricDataText}
+                  </p>
+                )}
+              </div>
+              {chartSplits.length > 0 && (
+                <PaceDistribution
+                  splits={chartSplits}
+                  averagePace={activity.averagePace || 360}
+                  metric={metricMode}
+                />
               )}
-            </AnimatedTabsContent>
+            </section>
 
-            {/* Heart Rate Tab */}
+            {/* Heart rate */}
             {(heartRateData.length > 0 || activity.averageHeartRate) && (
-              <AnimatedTabsContent value="heartrate">
-                <div className="space-y-6">
-                  {/* Heart Rate Chart */}
-                  {heartRateData.length > 0 && (
-                    <div className="premium-surface p-6">
-                      <h3 className="text-label/80 mb-4 text-sm font-medium">心率变化</h3>
-                      <HeartRateChart
-                        data={heartRateData}
-                        averageHeartRate={activity.averageHeartRate ?? undefined}
-                        maxHeartRate={activity.maxHeartRate ?? undefined}
-                      />
-                    </div>
-                  )}
-
-                  {/* Heart Rate Zones */}
-                  {activity.averageHeartRate && activity.maxHeartRate && (
-                    <HeartRateZones
-                      averageHeartRate={activity.averageHeartRate}
-                      maxHeartRate={activity.maxHeartRate}
+              <section id="section-heartrate" className="scroll-mt-28 space-y-5">
+                {heartRateData.length > 0 && (
+                  <div className="surface-panel p-5 sm:p-6">
+                    <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
+                      心率变化
+                    </h2>
+                    <HeartRateChart
+                      data={heartRateData}
+                      averageHeartRate={activity.averageHeartRate ?? undefined}
+                      maxHeartRate={activity.maxHeartRate ?? undefined}
                     />
-                  )}
-                </div>
-              </AnimatedTabsContent>
+                  </div>
+                )}
+                {activity.averageHeartRate && activity.maxHeartRate && (
+                  <HeartRateZones
+                    averageHeartRate={activity.averageHeartRate}
+                    maxHeartRate={activity.maxHeartRate}
+                  />
+                )}
+              </section>
             )}
 
-            {/* Splits Table Tab */}
-            <AnimatedTabsContent value="splits">
-              {chartSplits.length > 0 ? (
-                <div className="premium-surface p-6">
-                  <h3 className="text-label/80 mb-4 text-sm font-medium">分段数据</h3>
-                  <SplitsTable splits={chartSplits} metric={metricMode} />
-                </div>
-              ) : (
-                <div className="premium-surface text-secondary-label p-8 text-center">
-                  暂无分段数据
-                </div>
-              )}
-            </AnimatedTabsContent>
+            {/* Splits */}
+            <section id="section-splits" className="scroll-mt-28">
+              <div className="surface-panel p-5 sm:p-6">
+                <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
+                  分段数据
+                  {selectedKm != null && (
+                    <span className="text-accent ml-2 font-normal normal-case">
+                      · 第 {selectedKm} 公里
+                    </span>
+                  )}
+                </h2>
+                {chartSplits.length > 0 ? (
+                  <SplitsTable
+                    splits={chartSplits}
+                    metric={metricMode}
+                    activeKilometer={playbackKilometer}
+                    onSelectKilometer={handleSelectKilometer}
+                  />
+                ) : (
+                  <p className="text-secondary-label py-10 text-center text-sm">暂无分段数据</p>
+                )}
+              </div>
+            </section>
 
-            {/* AI Insight Tab */}
-            <AnimatedTabsContent value="ai">
-              <AIInsight activityId={activityId} />
-            </AnimatedTabsContent>
-
-            {/* Art Gallery Tab */}
-            <AnimatedTabsContent value="art">
+            {/* Art */}
+            <section id="section-art" className="scroll-mt-28">
+              <div className="mb-3">
+                <h2 className="text-secondary-label text-xs font-medium tracking-wide uppercase">
+                  艺术
+                </h2>
+              </div>
               <ArtGallery
                 splits={chartSplits}
                 trackPoints={trackPoints}
@@ -542,49 +763,59 @@ export default function ActivityDetailPage() {
                 heartRateData={heartRateData}
                 activity={activity}
               />
-            </AnimatedTabsContent>
+            </section>
 
-            {/* More Data Tab - Calories and other stats */}
-            {activity.calories && (
-              <AnimatedTabsContent value="more">
-                <div className="premium-surface p-6">
-                  <h3 className="text-label/80 mb-4 text-sm font-medium">其他数据</h3>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* AI */}
+            <section id="section-ai" className="scroll-mt-28">
+              <div className="mb-3">
+                <h2 className="text-secondary-label text-xs font-medium tracking-wide uppercase">
+                  AI 分析
+                </h2>
+              </div>
+              <AIInsight activityId={activityId} />
+            </section>
+
+            {/* More */}
+            {(activity.calories || activity.bestPace) && (
+              <section id="section-more" className="scroll-mt-28">
+                <div className="surface-panel p-5 sm:p-6">
+                  <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
+                    其他数据
+                  </h2>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {activity.calories && (
-                      <div className="bg-secondary-system-background rounded-lg p-4">
-                        <div className="text-label/50 text-xs">卡路里</div>
-                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                      <div className="bg-secondary-system-background/80 rounded-xl p-4">
+                        <div className="text-tertiary-label text-[11px]">卡路里</div>
+                        <div className="font-data text-label mt-1.5 text-2xl font-medium tabular-nums">
                           {activity.calories}
-                          <span className="text-label/50 ml-1 text-sm">kcal</span>
+                          <span className="text-tertiary-label ml-1 text-sm font-normal">kcal</span>
                         </div>
                       </div>
                     )}
                     {activity.bestPace && (
-                      <div className="bg-secondary-system-background rounded-lg p-4">
-                        <div className="text-label/50 text-xs">{bestMetricTitle}</div>
-                        <div className="text-label mt-1 text-2xl font-semibold tabular-nums">
+                      <div className="bg-secondary-system-background/80 rounded-xl p-4">
+                        <div className="text-tertiary-label text-[11px]">{bestMetricTitle}</div>
+                        <div className="font-data text-label mt-1.5 text-2xl font-medium tabular-nums">
                           {isCycling
                             ? paceToSpeed(activity.bestPace).toFixed(1)
                             : formatPace(activity.bestPace)}
-                          <span className="text-label/50 ml-1 text-sm">{bestMetricUnit}</span>
+                          <span className="text-tertiary-label ml-1 text-sm font-normal">
+                            {bestMetricUnit}
+                          </span>
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
-              </AnimatedTabsContent>
+              </section>
             )}
-          </AnimatedTabs>
+          </motion.div>
         )}
 
-        {/* Bottom Action Bar */}
         <ActivityActionBar
           activityId={activityId}
           activityTitle={activity.title || '跑步活动'}
-          onExport={(format) => {
-            // TODO: Implement export functionality
-            console.info('Export as:', format)
-          }}
+          mobileOnly
         />
       </div>
     </div>
@@ -592,24 +823,33 @@ export default function ActivityDetailPage() {
 }
 
 function DetailHeader({ rightSlot }: { rightSlot?: React.ReactNode }) {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <header className="bg-system-background/90 fixed inset-x-0 top-0 z-40 shadow-[0_8px_30px_rgba(24,33,47,0.045)] backdrop-blur-xl dark:shadow-[0_8px_30px_rgba(0,0,0,0.22)]">
-      <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="group flex items-center gap-3">
+    <header className={cn('surface-header fixed inset-x-0 top-0 z-40', scrolled && 'is-scrolled')}>
+      <div className="container mx-auto flex h-12 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="group flex items-center gap-2">
           <Image
             src="/logo-mark.png?v=1"
             alt="RunPaceFlow"
-            width={40}
-            height={40}
+            width={28}
+            height={28}
             priority
             unoptimized
-            className="h-10 w-10 shrink-0 bg-transparent object-contain dark:invert"
+            className="h-7 w-7 shrink-0 bg-transparent object-contain opacity-90 dark:invert"
           />
-          <span className="font-display text-label text-base font-semibold transition-opacity group-hover:opacity-80">
+          <span className="font-display text-label text-sm font-medium tracking-tight transition-opacity group-hover:opacity-80">
             RunPaceFlow
           </span>
         </Link>
-        <div className="flex min-h-10 items-center">{rightSlot}</div>
+        <div className="flex min-h-9 items-center">{rightSlot}</div>
       </div>
     </header>
   )

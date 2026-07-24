@@ -27,7 +27,7 @@ export interface RippleContainerProps {
 export function RippleContainer({
   children,
   className = '',
-  color = 'rgba(0, 0, 0, 0.1)',
+  color = 'rgb(var(--color-accent) / 0.12)',
   duration = 0.6,
   disabled = false,
 }: RippleContainerProps) {

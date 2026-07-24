@@ -62,7 +62,7 @@ export function FloatingInfoCard({
   return (
     <div className="pointer-events-none absolute top-4 left-4 z-10">
       <div
-        className="border-separator bg-tertiary-system-background/92 w-64 max-w-[calc(100vw-2rem)] rounded-lg border px-4 py-3 shadow-lg backdrop-blur-xl"
+        className="surface-glass border-separator w-64 max-w-[calc(100vw-2rem)] rounded-lg border px-4 py-3"
         style={{ '--accent': accent } as CSSProperties}
       >
         <div className="mb-2 flex items-center justify-between gap-3">

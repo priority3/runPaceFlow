@@ -95,9 +95,11 @@ export function HeartRateZones({ averageHeartRate, maxHeartRate, className }: He
   // Need both values to calculate zones
   if (!averageHeartRate || !maxHeartRate) {
     return (
-      <div className={cn('premium-surface p-6', className)}>
-        <h3 className="text-label/80 mb-4 text-sm font-medium">心率区间</h3>
-        <p className="text-label/50 text-center text-sm">暂无心率数据</p>
+      <div className={cn('surface-panel p-5 sm:p-6', className)}>
+        <h3 className="text-secondary-label mb-4 text-xs font-medium tracking-wide uppercase">
+          心率区间
+        </h3>
+        <p className="text-tertiary-label text-center text-sm">暂无心率数据</p>
       </div>
     )
   }
@@ -106,47 +108,49 @@ export function HeartRateZones({ averageHeartRate, maxHeartRate, className }: He
   const avgPercentage = Math.round((averageHeartRate / maxHeartRate) * 100)
 
   return (
-    <div className={cn('premium-surface p-6', className)}>
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-label/80 text-sm font-medium">心率区间</h3>
-        <span className="text-label/50 text-xs">平均 {avgPercentage}% 最大心率</span>
+    <div className={cn('surface-panel p-5 sm:p-6', className)}>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h3 className="text-secondary-label text-xs font-medium tracking-wide uppercase">
+          心率区间
+        </h3>
+        <span className="text-tertiary-label text-[11px] tabular-nums">
+          平均 {avgPercentage}% 最大心率
+        </span>
       </div>
 
-      {/* Zone bars */}
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {distribution.map(({ zone, percentage }) => (
-          <div key={zone.name} className="group">
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-label/70 font-medium">{zone.name}</span>
-              <span className="text-label/50">
+          <div key={zone.name}>
+            <div className="mb-1.5 flex items-center justify-between text-[12px]">
+              <span className="text-secondary-label font-medium">{zone.name}</span>
+              <span className="text-tertiary-label tabular-nums">
                 {zone.min}-{zone.max}% · {percentage}%
               </span>
             </div>
-            <div className="bg-tertiary-system-fill h-2 overflow-hidden rounded-full">
+            <div className="bg-quaternary-system-fill h-1.5 overflow-hidden rounded-full">
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${percentage}%`, backgroundColor: zone.color }}
+                style={{ width: `${percentage}%`, backgroundColor: zone.color, opacity: 0.72 }}
               />
             </div>
-            <p className="text-label/40 mt-0.5 text-xs">{zone.description}</p>
+            <p className="text-quaternary-label mt-1 text-[11px]">{zone.description}</p>
           </div>
         ))}
       </div>
 
-      {/* Summary stats */}
-      <div className="bg-secondary-system-background mt-4 grid grid-cols-2 gap-4 rounded-lg px-4 py-3">
+      <div className="bg-secondary-system-background/70 mt-5 grid grid-cols-2 gap-4 rounded-xl px-4 py-3">
         <div>
-          <span className="text-label/50 text-xs">平均心率</span>
-          <p className="text-label text-lg font-semibold tabular-nums">
+          <span className="text-tertiary-label text-[11px]">平均心率</span>
+          <p className="font-data text-label mt-0.5 text-lg font-medium tabular-nums">
             {averageHeartRate}
-            <span className="text-label/50 ml-1 text-sm">bpm</span>
+            <span className="text-tertiary-label ml-1 text-sm font-normal">bpm</span>
           </p>
         </div>
         <div>
-          <span className="text-label/50 text-xs">最大心率</span>
-          <p className="text-label text-lg font-semibold tabular-nums">
+          <span className="text-tertiary-label text-[11px]">最大心率</span>
+          <p className="font-data text-label mt-0.5 text-lg font-medium tabular-nums">
             {maxHeartRate}
-            <span className="text-label/50 ml-1 text-sm">bpm</span>
+            <span className="text-tertiary-label ml-1 text-sm font-normal">bpm</span>
           </p>
         </div>
       </div>

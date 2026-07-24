@@ -1,7 +1,5 @@
 /**
- * Tabs Component
- *
- * Glassmorphic tabs with smooth sliding indicator animation
+ * Tabs — glass track + spring sliding indicator (Shiro-style micro motion).
  */
 
 'use client'
@@ -10,13 +8,11 @@ import * as TabsPrimitive from '@radix-ui/react-tabs'
 import { motion } from 'framer-motion'
 import * as React from 'react'
 
+import { pressable, springs } from '@/lib/animation'
 import { cn } from '@/lib/utils'
 
 const Tabs = TabsPrimitive.Root
 
-/**
- * Context for sharing active tab state with indicator
- */
 const TabsContext = React.createContext<{
   activeTab: string | undefined
   setActiveTab: (value: string) => void
@@ -25,9 +21,6 @@ const TabsContext = React.createContext<{
   setActiveTab: () => {},
 })
 
-/**
- * Enhanced Tabs root with state management for indicator
- */
 const AnimatedTabs = ({
   ref,
   defaultValue,
@@ -48,7 +41,6 @@ const AnimatedTabs = ({
     [onValueChange],
   )
 
-  // Sync with controlled value
   React.useEffect(() => {
     if (value !== undefined) {
       setActiveTab(value)
@@ -70,9 +62,6 @@ const AnimatedTabs = ({
 }
 AnimatedTabs.displayName = 'AnimatedTabs'
 
-/**
- * TabsList with sliding indicator
- */
 const TabsList = ({
   ref,
   className,
@@ -85,18 +74,15 @@ const TabsList = ({
   const [indicatorStyle, setIndicatorStyle] = React.useState({ left: 0, width: 0 })
   const listRef = React.useRef<HTMLDivElement>(null)
 
-  // Update indicator position when active tab changes
   React.useEffect(() => {
     if (!listRef.current) return
 
-    // Small delay to ensure DOM is updated
     const timer = setTimeout(() => {
       const activeElement = listRef.current?.querySelector(`[data-state="active"]`) as HTMLElement
 
       if (activeElement && listRef.current) {
         const listRect = listRef.current.getBoundingClientRect()
         const activeRect = activeElement.getBoundingClientRect()
-        // Account for scroll position when calculating left offset
         const { scrollLeft } = listRef.current
 
         setIndicatorStyle({
@@ -109,7 +95,6 @@ const TabsList = ({
     return () => clearTimeout(timer)
   }, [activeTab])
 
-  // Also update indicator when scrolling
   React.useEffect(() => {
     const list = listRef.current
     if (!list) return
@@ -135,32 +120,26 @@ const TabsList = ({
   return (
     <TabsPrimitive.List
       ref={(node) => {
-        // Handle both refs
         if (typeof ref === 'function') ref(node)
         else if (ref && typeof ref === 'object')
           (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
         listRef.current = node
       }}
       className={cn(
-        'bg-secondary-system-background relative inline-flex items-center gap-1 rounded-lg p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]',
+        'bg-secondary-system-background/70 relative inline-flex items-center gap-0.5 rounded-full p-1',
         className,
       )}
       {...props}
     >
-      {/* Sliding indicator */}
       {indicatorStyle.width > 0 && (
         <motion.div
-          className="bg-tertiary-system-background absolute top-1 bottom-1 rounded-md shadow-[0_4px_14px_rgba(24,33,47,0.1)] dark:shadow-[0_6px_18px_rgba(0,0,0,0.32)]"
+          className="bg-tertiary-system-background absolute top-1 bottom-1 rounded-full shadow-[0_0_0_1px_rgb(var(--color-separator))]"
           initial={false}
           animate={{
             left: indicatorStyle.left,
             width: indicatorStyle.width,
           }}
-          transition={{
-            type: 'spring',
-            stiffness: 400,
-            damping: 30,
-          }}
+          transition={springs.snappy}
         />
       )}
       {children}
@@ -169,9 +148,6 @@ const TabsList = ({
 }
 TabsList.displayName = TabsPrimitive.List.displayName
 
-/**
- * TabsTrigger with hover animation
- */
 const TabsTrigger = ({
   ref,
   className,
@@ -183,9 +159,9 @@ const TabsTrigger = ({
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'relative z-10 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-      'text-label/60 hover:text-label/80',
-      'focus-visible:ring-blue/50 focus-visible:ring-2 focus-visible:outline-none',
+      'relative z-10 inline-flex items-center justify-center rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+      'text-tertiary-label hover:text-secondary-label',
+      'focus-visible:ring-accent/50 focus-visible:ring-2 focus-visible:outline-none',
       'disabled:pointer-events-none disabled:opacity-50',
       'data-[state=active]:text-label',
       className,
@@ -194,9 +170,9 @@ const TabsTrigger = ({
   >
     <motion.span
       initial={false}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      whileHover={pressable.whileHover}
+      whileTap={pressable.whileTap}
+      transition={pressable.transition}
     >
       {children}
     </motion.span>
@@ -204,9 +180,6 @@ const TabsTrigger = ({
 )
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
-/**
- * Basic TabsContent
- */
 const TabsContent = ({
   ref,
   className,
@@ -217,7 +190,7 @@ const TabsContent = ({
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'focus-visible:ring-blue/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:ring-accent/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
       className,
     )}
     {...props}
@@ -225,10 +198,6 @@ const TabsContent = ({
 )
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
-/**
- * Animated TabsContent with fade transition
- * Wraps content in motion.div for entry animation
- */
 const AnimatedTabsContent = ({
   ref,
   className,
@@ -240,19 +209,15 @@ const AnimatedTabsContent = ({
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'focus-visible:ring-blue/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:ring-accent/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
       className,
     )}
     {...props}
   >
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{
-        type: 'spring',
-        stiffness: 350,
-        damping: 30,
-      }}
+      transition={springs.smooth}
     >
       {children}
     </motion.div>

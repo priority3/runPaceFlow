@@ -1,12 +1,15 @@
 /**
- * SplitsTable Component
- *
- * Glassmorphic design with seamless depth transitions
+ * SplitsTable — km rows with shared selection + playback current row.
  */
 
 'use client'
 
+import { useAtom } from 'jotai'
+import { useEffect, useRef } from 'react'
+
 import { calculateSpeed, formatDuration, formatPace } from '@/lib/pace/calculator'
+import { cn } from '@/lib/utils'
+import { selectedKilometerAtom } from '@/stores/map'
 
 import type { Split } from './PaceChart'
 
@@ -16,12 +19,29 @@ export interface SplitsTableProps {
   splits: Split[]
   className?: string
   metric?: MetricMode
+  /** Km under playback head */
+  activeKilometer?: number | null
+  onSelectKilometer?: (kilometer: number) => void
 }
 
-/**
- * Split data table with glassmorphic styling
- */
-export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableProps) {
+export function SplitsTable({
+  splits,
+  className,
+  metric = 'pace',
+  activeKilometer = null,
+  onSelectKilometer,
+}: SplitsTableProps) {
+  const [selectedKm, setSelectedKm] = useAtom(selectedKilometerAtom)
+  const rowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map())
+
+  // Reason: only auto-scroll on explicit user selection.
+  // Following playback head (activeKilometer) would hijack the page viewport every km.
+  useEffect(() => {
+    if (selectedKm == null) return
+    const row = rowRefs.current.get(selectedKm)
+    row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [selectedKm])
+
   if (!splits || splits.length === 0) {
     return (
       <div className="bg-secondary-system-background flex min-h-[200px] items-center justify-center rounded-lg">
@@ -30,10 +50,8 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
     )
   }
 
-  // Find fastest split
   const fastestSplit = splits.reduce((min, split) => (split.pace < min.pace ? split : min))
 
-  // Calculate cumulative data
   const tableData = splits.reduce<
     Array<
       Split & {
@@ -57,7 +75,6 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
     return acc
   }, [])
 
-  // Calculate summary data
   const totalDistance = splits.reduce((sum, s) => sum + s.distance, 0)
   const totalDuration = splits.reduce((sum, s) => sum + s.duration, 0)
   const avgPace = splits.reduce((sum, s) => sum + s.pace, 0) / splits.length
@@ -71,7 +88,6 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
       ? `${calculateSpeed(split.distance, split.duration).toFixed(1)} km/h`
       : `${formatPace(split.pace)}/km`
 
-  // Shared column widths for alignment between header table and footer table
   const colGroup = (
     <colgroup>
       <col className="w-[30%] sm:w-[20%]" />
@@ -84,93 +100,114 @@ export function SplitsTable({ splits, className, metric = 'pace' }: SplitsTableP
 
   return (
     <div className={className}>
-      <div className="bg-tertiary-system-background overflow-hidden rounded-lg">
-        {/* Scrollable table container */}
-        <div className="max-h-[400px] overflow-y-auto sm:max-h-[500px]">
+      <div className="overflow-hidden rounded-xl ring-1 ring-[rgb(var(--color-separator))]">
+        <div className="scrollbar-subtle max-h-[400px] overflow-y-auto sm:max-h-[500px]">
           <table className="w-full table-fixed text-sm">
             {colGroup}
-            {/* Sticky header */}
             <thead className="sticky top-0 z-10">
-              <tr className="bg-secondary-system-background">
-                <th className="text-label/60 px-4 py-3 text-left text-xs font-medium">公里</th>
-                <th className="text-label/60 px-4 py-3 text-right text-xs font-medium">
+              <tr className="bg-secondary-system-background/90 backdrop-blur-sm">
+                <th className="text-tertiary-label px-4 py-2.5 text-left text-[11px] font-medium tracking-wide uppercase">
+                  公里
+                </th>
+                <th className="text-tertiary-label px-4 py-2.5 text-right text-[11px] font-medium tracking-wide uppercase">
                   {metricLabel}
                 </th>
-                <th className="text-label/60 px-4 py-3 text-right text-xs font-medium">时长</th>
-                <th className="text-label/60 hidden px-4 py-3 text-right text-xs font-medium sm:table-cell">
+                <th className="text-tertiary-label px-4 py-2.5 text-right text-[11px] font-medium tracking-wide uppercase">
+                  时长
+                </th>
+                <th className="text-tertiary-label hidden px-4 py-2.5 text-right text-[11px] font-medium tracking-wide uppercase sm:table-cell">
                   累计距离
                 </th>
-                <th className="text-label/60 hidden px-4 py-3 text-right text-xs font-medium sm:table-cell">
+                <th className="text-tertiary-label hidden px-4 py-2.5 text-right text-[11px] font-medium tracking-wide uppercase sm:table-cell">
                   累计时间
                 </th>
               </tr>
             </thead>
             <tbody>
-              {tableData.map((data, index) => (
-                <tr
-                  key={data.kilometer}
-                  className={`hover:bg-secondary-system-background transition-colors ${
-                    data.isFastest
-                      ? 'bg-blue/10'
-                      : index % 2 === 0
-                        ? 'bg-secondary-system-background/45'
-                        : 'bg-transparent'
-                  }`}
-                >
-                  {/* Kilometer */}
-                  <td className="text-label/80 px-4 py-3 font-medium whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <span>第 {data.kilometer} km</span>
-                      {data.isFastest && (
-                        <span className="bg-tertiary-system-fill rounded-full px-2 py-0.5 text-xs">
-                          最快
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* Pace */}
-                  <td className="text-label/80 px-4 py-3 text-right font-mono whitespace-nowrap">
-                    {formatSplitMetric(data)}
-                  </td>
-
-                  {/* Duration */}
-                  <td className="text-label/60 px-4 py-3 text-right font-mono whitespace-nowrap">
-                    {formatDuration(data.duration)}
-                  </td>
-
-                  {/* Cumulative distance (desktop) */}
-                  <td className="text-label/50 hidden px-4 py-3 text-right font-mono whitespace-nowrap sm:table-cell">
-                    {(data.cumulativeDistance / 1000).toFixed(2)} km
-                  </td>
-
-                  {/* Cumulative time (desktop) */}
-                  <td className="text-label/50 hidden px-4 py-3 text-right font-mono whitespace-nowrap sm:table-cell">
-                    {formatDuration(data.cumulativeTime)}
-                  </td>
-                </tr>
-              ))}
+              {tableData.map((data, index) => {
+                const selected = selectedKm === data.kilometer
+                const active = activeKilometer === data.kilometer
+                return (
+                  <tr
+                    key={data.kilometer}
+                    ref={(node) => {
+                      if (node) rowRefs.current.set(data.kilometer, node)
+                      else rowRefs.current.delete(data.kilometer)
+                    }}
+                    onClick={() => {
+                      const next = selected ? null : data.kilometer
+                      setSelectedKm(next)
+                      if (next !== null) onSelectKilometer?.(next)
+                    }}
+                    className={cn(
+                      'border-separator/60 cursor-pointer border-t transition-colors',
+                      selected
+                        ? 'bg-accent/12'
+                        : active
+                          ? 'bg-accent/8'
+                          : data.isFastest
+                            ? 'bg-accent/6'
+                            : index % 2 === 0
+                              ? 'bg-secondary-system-background/30'
+                              : 'bg-transparent',
+                      'hover:bg-secondary-system-background/80',
+                    )}
+                  >
+                    <td className="text-secondary-label px-4 py-2.5 font-medium whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'inline-flex h-1.5 w-1.5 rounded-full',
+                            selected || active ? 'bg-accent' : 'bg-transparent',
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span className="tabular-nums">{data.kilometer}</span>
+                        {data.isFastest && (
+                          <span className="bg-accent/12 text-accent rounded-full px-1.5 py-0.5 text-[10px]">
+                            最快
+                          </span>
+                        )}
+                        {active && !selected && (
+                          <span className="text-tertiary-label text-[10px]">回放</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="font-data text-label px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums">
+                      {formatSplitMetric(data)}
+                    </td>
+                    <td className="font-data text-secondary-label px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums">
+                      {formatDuration(data.duration)}
+                    </td>
+                    <td className="font-data text-tertiary-label hidden px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums sm:table-cell">
+                      {(data.cumulativeDistance / 1000).toFixed(2)} km
+                    </td>
+                    <td className="font-data text-tertiary-label hidden px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums sm:table-cell">
+                      {formatDuration(data.cumulativeTime)}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
 
-        {/* Sticky summary row - always visible outside scroll container */}
-        <div className="bg-secondary-system-background shadow-[0_-8px_24px_rgba(24,33,47,0.05)]">
+        <div className="bg-secondary-system-background/80 border-separator border-t">
           <table className="w-full text-sm">
             {colGroup}
             <tfoot>
               <tr className="font-medium">
-                <td className="px-4 py-3">总计</td>
-                <td className="text-label/80 px-4 py-3 text-right font-mono whitespace-nowrap">
+                <td className="text-secondary-label px-4 py-2.5 text-[12px]">总计</td>
+                <td className="font-data text-label px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums">
                   {summaryMetric}
                 </td>
-                <td className="text-label/80 px-4 py-3 text-right font-mono whitespace-nowrap">
+                <td className="font-data text-label px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums">
                   {formatDuration(totalDuration)}
                 </td>
-                <td className="text-label/60 hidden px-4 py-3 text-right font-mono whitespace-nowrap sm:table-cell">
+                <td className="font-data text-secondary-label hidden px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums sm:table-cell">
                   {(totalDistance / 1000).toFixed(2)} km
                 </td>
-                <td className="text-label/60 hidden px-4 py-3 text-right font-mono whitespace-nowrap sm:table-cell">
+                <td className="font-data text-secondary-label hidden px-4 py-2.5 text-right text-[13px] whitespace-nowrap tabular-nums sm:table-cell">
                   {formatDuration(totalDuration)}
                 </td>
               </tr>

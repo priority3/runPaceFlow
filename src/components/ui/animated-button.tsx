@@ -1,7 +1,5 @@
 /**
- * Animated Button Component
- *
- * Button with spring-based hover and tap animations
+ * Animated Button — spring press feedback with brand accent default.
  */
 
 'use client'
@@ -10,6 +8,7 @@ import type { HTMLMotionProps } from 'framer-motion'
 import { motion } from 'framer-motion'
 import * as React from 'react'
 
+import { pressable } from '@/lib/animation'
 import { cn } from '@/lib/utils'
 
 export interface AnimatedButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
@@ -18,7 +17,7 @@ export interface AnimatedButtonProps extends Omit<HTMLMotionProps<'button'>, 're
 }
 
 const variants = {
-  default: 'bg-blue text-white hover:bg-blue/90 shadow-sm',
+  default: 'bg-accent text-accent-content hover:bg-accent/90 shadow-sm',
   ghost: 'bg-transparent hover:bg-secondary-system-background',
   outline: 'premium-surface bg-tertiary-system-background hover:bg-secondary-system-background',
 }
@@ -43,19 +42,15 @@ export const AnimatedButton = ({
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
-        'focus-visible:ring-blue/50 focus-visible:ring-2 focus-visible:outline-none',
+        'focus-visible:ring-accent/50 focus-visible:ring-2 focus-visible:outline-none',
         'disabled:pointer-events-none disabled:opacity-50',
         variants[variant],
         sizes[size],
         className,
       )}
-      whileHover={disabled ? {} : { scale: 1.02 }}
-      whileTap={disabled ? {} : { scale: 0.98 }}
-      transition={{
-        type: 'spring',
-        stiffness: 400,
-        damping: 25,
-      }}
+      whileHover={disabled ? undefined : pressable.whileHover}
+      whileTap={disabled ? undefined : pressable.whileTap}
+      transition={pressable.transition}
       disabled={disabled}
       {...props}
     >

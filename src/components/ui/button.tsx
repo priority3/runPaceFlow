@@ -5,6 +5,7 @@ import type { VariantProps } from 'class-variance-authority'
 import { motion } from 'framer-motion'
 import * as React from 'react'
 
+import { pressable } from '@/lib/animation'
 import { cn } from '@/lib/utils'
 
 import { buttonVariants } from './button-variants'
@@ -38,13 +39,9 @@ const Button = ({
       <motion.button
         ref={ref}
         className={cn(buttonVariants({ variant, size, className }))}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{
-          type: 'spring',
-          stiffness: 400,
-          damping: 25,
-        }}
+        whileHover={pressable.whileHover}
+        whileTap={pressable.whileTap}
+        transition={pressable.transition}
         {...(props as any)}
       />
     )

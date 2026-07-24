@@ -52,11 +52,11 @@ export function WeatherInfo({ weatherDataJson }: WeatherInfoProps) {
   const emoji = getWeatherEmoji(weather.weatherCode)
 
   return (
-    <div className="flex flex-col items-center">
-      <span className="text-label text-lg font-semibold tabular-nums sm:text-xl">
+    <div className="flex min-w-[3.5rem] flex-col">
+      <span className="font-data text-label text-lg font-medium tabular-nums sm:text-xl">
         {emoji} {weather.temperature}°
       </span>
-      <span className="text-label/50 text-xs">{weather.description}</span>
+      <span className="text-tertiary-label text-[11px]">{weather.description}</span>
     </div>
   )
 }

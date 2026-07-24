@@ -112,10 +112,11 @@ export function getPaceColor(
   const diff = pace - averagePace
   const colors = getPaceColors(mode)
 
-  if (diff < -30) return colors.veryFast
-  if (diff < 0) return colors.fast
-  if (diff < 10) return colors.average
-  if (diff < 30) return colors.slow
+  // Align thresholds with PaceChart so map + bars share one scale.
+  if (diff < -20) return colors.veryFast
+  if (diff < -5) return colors.fast
+  if (diff < 8) return colors.average
+  if (diff < 20) return colors.slow
   return colors.verySlow
 }
 

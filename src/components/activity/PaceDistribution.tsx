@@ -119,9 +119,11 @@ export function PaceDistribution({
 
   if (splits.length === 0) {
     return (
-      <div className={cn('premium-surface p-6', className)}>
-        <h3 className="text-label/80 mb-4 text-sm font-medium">{metricLabel}分布</h3>
-        <p className="text-label/50 text-center text-sm">暂无{metricLabel}数据</p>
+      <div className={cn('surface-panel p-5 sm:p-6', className)}>
+        <h3 className="text-secondary-label mb-4 text-xs font-medium tracking-wide uppercase">
+          {metricLabel}分布
+        </h3>
+        <p className="text-tertiary-label text-center text-sm">暂无{metricLabel}数据</p>
       </div>
     )
   }
@@ -129,46 +131,47 @@ export function PaceDistribution({
   const maxPercentage = Math.max(...distribution.map((z) => z.percentage))
 
   return (
-    <div className={cn('premium-surface p-6', className)}>
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-label/80 text-sm font-medium">{metricLabel}分布</h3>
-        <span className="text-label/50 text-xs">
+    <div className={cn('surface-panel p-5 sm:p-6', className)}>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h3 className="text-secondary-label text-xs font-medium tracking-wide uppercase">
+          {metricLabel}分布
+        </h3>
+        <span className="text-tertiary-label text-[11px] tabular-nums">
           平均 {averageMetric} · {splits.length} 公里
         </span>
       </div>
 
-      {/* Distribution bars */}
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {distribution.map((zone) => (
-          <div key={zone.label} className="group">
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-label/70 font-medium">{zone.label}</span>
-              <span className="text-label/50">
-                {zone.count} 公里 · {zone.percentage.toFixed(0)}%
+          <div key={zone.label}>
+            <div className="mb-1.5 flex items-center justify-between text-[12px]">
+              <span className="text-secondary-label font-medium">{zone.label}</span>
+              <span className="text-tertiary-label tabular-nums">
+                {zone.count} · {zone.percentage.toFixed(0)}%
               </span>
             </div>
-            <div className="bg-tertiary-system-fill h-4 overflow-hidden rounded-full">
+            <div className="bg-quaternary-system-fill h-1.5 overflow-hidden rounded-full">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${maxPercentage > 0 ? (zone.percentage / maxPercentage) * 100 : 0}%`,
                   backgroundColor: zone.color,
+                  opacity: 0.72,
                 }}
               />
             </div>
-            <div className="text-label/40 mt-0.5 flex justify-between text-xs">
+            <div className="text-quaternary-label mt-1 flex justify-between text-[11px]">
               <span>{formatZoneRange(zone, metric)}</span>
-              <span>{(zone.totalDistance / 1000).toFixed(2)} km</span>
+              <span className="tabular-nums">{(zone.totalDistance / 1000).toFixed(2)} km</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Summary */}
-      <div className="bg-secondary-system-background mt-4 rounded-lg px-4 py-3">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-label/50">{metricLabel}范围</span>
-          <span className="text-label/70">
+      <div className="bg-secondary-system-background/70 mt-5 rounded-xl px-4 py-3">
+        <div className="flex items-center justify-between text-[12px]">
+          <span className="text-tertiary-label">{metricLabel}范围</span>
+          <span className="font-data text-secondary-label tabular-nums">
             {isSpeedMode
               ? `${Math.min(...splits.map((s) => paceToSpeed(s.pace))).toFixed(1)} - ${Math.max(
                   ...splits.map((s) => paceToSpeed(s.pace)),
