@@ -11,7 +11,8 @@ services:
       - PORT=3030
       - NODE_ENV=production
       - RUNPACEFLOW_FRONTEND_URL=http://frontend:3000
-      - CONFIG_EXPORT_TOKEN=${RUNPACEFLOW_CONFIG_EXPORT_TOKEN:-local-export-token}
+      - MAIN_SITE_API_TOKEN=${MAIN_SITE_API_TOKEN:?set MAIN_SITE_API_TOKEN}
+      - ACTIVITIES_DATABASE_URL=file:/app/data/shared.db
     volumes:
       - admin_data:/app/data
     healthcheck:
@@ -33,6 +34,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - RUNPACEFLOW_ADMIN_URL=http://admin:3030
+      - RUNPACEFLOW_ADMIN_API_TOKEN=${MAIN_SITE_API_TOKEN:?set MAIN_SITE_API_TOKEN}
       - NEXT_PUBLIC_ADMIN_URL=https://admin.razet.me
     depends_on:
       admin:

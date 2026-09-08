@@ -1,150 +1,32 @@
 # Docker 部署指南
 
-## 快速开始
+主站容器不连接 SQLite 或 Turso，只需要能访问 Admin 的 HTTP 地址。
 
-### 1. 构建并启动
-
-```bash
-# 构建并启动容器
-docker compose up -d --build
-
-# 查看日志
-docker compose logs -f
-```
-
-访问 http://localhost:3000
-
-### 2. 停止服务
-
-```bash
-docker compose down
-```
-
-## 配置
-
-### 环境变量
-
-编辑 `docker-compose.yml` 中的 environment 部分：
-
-```yaml
-environment:
-  - NEXT_PUBLIC_MAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
-  - NIKE_ACCESS_TOKEN=your_token
-  - STRAVA_CLIENT_ID=your_id
-  - STRAVA_CLIENT_SECRET=your_secret
-  - STRAVA_REFRESH_TOKEN=your_token
-```
-
-或者使用 `.env` 文件：
-
-```bash
-# 创建 .env 文件
-cp .env.example .env.production
-
-# 修改 docker-compose.yml 添加 env_file
-env_file:
-  - .env.production
-```
-
-### 数据持久化
-
-SQLite 数据库存储在 Docker volume 中：
-
-```bash
-# 查看 volume
-docker volume ls
-
-# 备份数据库
-docker cp runpaceflow:/app/data/local.db ./backup.db
-
-# 恢复数据库
-docker cp ./backup.db runpaceflow:/app/data/local.db
-```
-
-## 生产部署
-
-### 使用自定义端口
-
-```yaml
-ports:
-  - '8080:3000' # 外部端口:内部端口
-```
-
-### 使用反向代理 (Nginx)
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-### 使用 Traefik (推荐)
+## 主站环境变量
 
 ```yaml
 services:
   runpaceflow:
-    # ... 其他配置
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.runpaceflow.rule=Host(`your-domain.com`)'
-      - 'traefik.http.routers.runpaceflow.tls.certresolver=letsencrypt'
+    environment:
+      - RUNPACEFLOW_ADMIN_URL=http://127.0.0.1:3030
+      - RUNPACEFLOW_ADMIN_API_TOKEN=${MAIN_SITE_API_TOKEN}
+      - NEXT_PUBLIC_MAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
 ```
 
-## 常用命令
+`MAIN_SITE_API_TOKEN` 必须与 Admin 容器中的值一致。主站不要挂载 `shared.db`，也不要配置 `DATABASE_URL` 或 `DATABASE_AUTH_TOKEN`。
+
+## 启动顺序
+
+1. 启动 Admin，并将 `ACTIVITIES_DATABASE_URL` 指向持久化卷中的 `shared.db`。
+2. 确认 Admin `/api/main-site/query` 携带正确 Token 返回活动数据。
+3. 启动主站容器并访问 `/api/trpc/activities.list`。
+
+## 常用检查
 
 ```bash
-# 重新构建
-docker compose build --no-cache
-
-# 查看容器状态
 docker compose ps
-
-# 进入容器
-docker compose exec runpaceflow sh
-
-# 查看资源使用
-docker stats runpaceflow
-
-# 清理未使用的镜像
-docker image prune -f
+docker compose logs -f runpaceflow-admin
+docker compose logs -f runpaceflow
 ```
 
-## 故障排除
-
-### 构建失败
-
-```bash
-# 清理 Docker 缓存
-docker builder prune -f
-
-# 查看详细构建日志
-docker compose build --progress=plain
-```
-
-### 容器无法启动
-
-```bash
-# 查看日志
-docker compose logs runpaceflow
-
-# 检查健康状态
-docker inspect runpaceflow --format='{{.State.Health.Status}}'
-```
-
-### 数据库问题
-
-```bash
-# 进入容器检查数据库
-docker compose exec runpaceflow sh
-ls -la /app/data/
-```
+主站空状态时，优先检查 Admin 容器的 `shared.db` 挂载路径和活动行数。Turso 镜像异常不会阻塞 shared.db 的主站读取，但会在 Admin 镜像日志中记录失败。
