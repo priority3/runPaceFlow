@@ -13,7 +13,7 @@ https://github.com/superleeyom/blog/issues/54
 - 📊 **配速分析**: 每公里配速图表、最快配速标记、配速区间分析
 - 🤖 **AI 智能建议**: 基于训练数据的个性化建议、受伤风险预警
 - 🎨 **现代化 UI**: 基于 shadcn/ui 的精美界面、深色模式支持
-- 🔒 **只读展示边界**: 前台只读取已入库活动和 admin 导出的运行时配置
+- 🔒 **只读展示边界**: 前台通过 Admin 主站只读 API 读取已入库活动和公开运行时配置
 - 📱 **响应式设计**: 完美适配移动端和桌面端
 
 ---
@@ -49,8 +49,8 @@ https://github.com/superleeyom/blog/issues/54
 
 ### 数据库
 
-- **Turso (libSQL)** - 分布式 SQLite
-- **SQLite** - 本地开发数据库
+- **Admin shared.db (SQLite/libSQL)** - 活动、分段和缓存洞察的唯一在线读取源
+- **Turso** - 由 Admin 单向镜像/备份，主站不直接连接
 
 ### AI 功能
 
@@ -60,15 +60,14 @@ https://github.com/superleeyom/blog/issues/54
 
 ### 数据接入边界
 
-- **RunPaceFlow Admin** - 统一管理数据接入、平台凭据和 PR Agent 工作流
-- **Runtime settings export** - 前台通过 admin 导出的配置读取数据库和目标设置
-- **libSQL / SQLite** - 前台只读活动库并渲染展示体验
+- **RunPaceFlow Admin** - 统一管理数据接入、平台凭据、AI 生成、PR Agent 工作流和 shared.db
+- **主站只读 API** - 前台服务端通过带 Token 的 Admin API 获取活动、路线、统计和缓存洞察
+- **Turso 镜像** - 仅由 Admin 负责，主站不接收数据库地址或凭据
 
 ### 开发工具
 
 - **Biome** - 代码格式化和检查
 - **Lefthook** - Git hooks 管理
-- **Drizzle Kit** - 数据库迁移
 - **Bun / pnpm** - 包管理器
 
 ### 部署
@@ -96,7 +95,7 @@ runPaceFlow/
 │   │   ├── api/                      # API Routes
 │   │   │   ├── trpc/[trpc]/         # tRPC 端点
 │   │   │   ├── runtime-config/      # 运行时配置端点
-│   │   │   └── ai/                  # AI 建议端点
+│   │   │   └── insights/stream/     # 历史端点（410，AI 由 Admin 生成）
 │   │   └── layout.tsx
 │   │
 │   ├── components/                   # React 组件
@@ -126,21 +125,10 @@ runPaceFlow/
 │   │   ├── gpx-parser.ts            # GPX 解析
 │   │   └── map-utils.ts             # 地图工具
 │   │
-│   ├── server/                      # 服务端代码
-│   │   ├── db/                      # 数据库
-│   │   │   ├── schema.ts            # 数据库模型
-│   │   │   ├── migrations/          # 数据库迁移
-│   │   │   └── index.ts
-│   │   ├── api/                     # API 逻辑
-│   │   │   ├── routers/             # tRPC 路由
-│   │   │   │   ├── activity.ts
-│   │   │   │   ├── stats.ts
-│   │   │   │   └── ai.ts
-│   │   │   └── root.ts
-│   │   └── services/                # 业务逻辑
-│   │       ├── activity-service.ts
-│   │       ├── runtime-config.ts
-│   │       └── ai-service.ts
+│   ├── lib/                         # 服务端工具和边界
+│   │   ├── admin-api.ts             # 调用 Admin 主站只读 API
+│   │   ├── runtime-config/          # 公开运行时配置
+│   │   └── trpc/                    # 保持前端 contract 的 tRPC 路由
 │   │
 │   ├── stores/                      # Zustand 状态管理
 │   │   ├── map-store.ts            # 地图状态
@@ -161,7 +149,7 @@ runPaceFlow/
 │       └── globals.css
 │
 ├── scripts/                         # 本地诊断脚本
-│   ├── check-turso.ts
+│   ├── check-admin-data.ts          # 通过 Admin API 检查活动数据
 │   └── debug-map.ts
 │
 ├── public/                          # 静态资源
@@ -172,7 +160,7 @@ runPaceFlow/
 │   └── workflows/
 │       └── deploy.yml              # 部署流程
 │
-├── drizzle/                        # 数据库相关
+├── drizzle/                        # 历史 schema 工具文件
 │   └── migrations/
 │
 ├── messages/                        # 国际化文件
@@ -184,13 +172,16 @@ runPaceFlow/
 ├── next.config.js                  # Next.js 配置
 ├── tailwind.config.ts              # Tailwind 配置
 ├── tsconfig.json                   # TypeScript 配置
-├── drizzle.config.ts              # Drizzle 配置
 └── package.json
 ```
 
 ---
 
 ## 🗄️ 数据库设计
+
+活动表、分段表和缓存洞察表由 RunPaceFlow Admin 维护在挂载的 `shared.db` 中。
+主站保留 schema 类型用于 tRPC 响应的编译期契约，但运行时不创建数据库连接、不执行迁移，
+也不读取 Turso 地址或凭据。
 
 ### 核心表结构
 
@@ -419,10 +410,10 @@ interface PaceChartData {
 
 ```typescript
 // RunPaceFlow
-- 读取共享活动库
+- 通过 Admin 主站只读 API 读取 shared.db
 - 展示活动列表、统计、地图路线和详情页
-- 从 admin 拉取运行时配置和目标设置
-- 生成或读取 AI 运动洞察
+- 从 Admin 白名单接口拉取公开运行时配置
+- 读取 Admin 已缓存的 AI 运动洞察
 ```
 
 #### Admin 职责
@@ -430,9 +421,11 @@ interface PaceChartData {
 ```typescript
 // RunPaceFlow Admin
 - 管理第三方平台凭据
-- 执行活动数据接入和回填
+- 执行活动数据接入和回填，并写入 shared.db
+- 将 shared.db 单向镜像到 Turso 作为备份
+- 为主站提供固定 operation allowlist 的只读 API
 - 管理 PR Agent 工作流
-- 导出前台运行所需配置
+- 提供前台所需的公开运行时配置
 ```
 
 ---
@@ -525,8 +518,18 @@ trpc.insights.getForActivity // 获取缓存 AI 洞察
 ```
 GET  /api/runtime-config            // 获取公开运行时配置
 GET  /api/runtime-config/stream     // 运行时配置 SSE 更新
-GET  /api/insights/stream           // AI 洞察流式生成
+GET  /api/insights/stream           // 已停用，AI 由 Admin 生成并缓存（410）
 ```
+
+主站服务端调用 Admin：
+
+```
+POST /api/main-site/query           // Bearer MAIN_SITE_API_TOKEN
+GET  /api/main-site/config          // Bearer MAIN_SITE_API_TOKEN
+```
+
+`/api/main-site/query` 只接受活动读取、统计、路线和缓存洞察的固定
+operation；Admin 直接读取挂载的 `shared.db`，请求路径不会连接 Turso，也不会返回数据库配置。
 
 ---
 
@@ -585,22 +588,14 @@ GET  /api/insights/stream           // AI 洞察流式生成
 ```bash
 # .env.example
 
-# Database
-DATABASE_PROVIDER="turso"           # sqlite | turso
-DATABASE_URL="file:./db.sqlite"
-TURSO_DATABASE_URL=""
-TURSO_DATABASE_TOKEN=""
+# Admin read API (the main site has no database credentials)
+RUNPACEFLOW_ADMIN_URL="http://localhost:3030"
+RUNPACEFLOW_ADMIN_API_TOKEN=""
 
 # Mapbox
 NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=""
 
-# AI Services
-OPENAI_API_KEY=""                   # 或 ANTHROPIC_API_KEY
-AI_MODEL="gpt-4o-mini"              # 或 claude-3-5-sonnet
-
-# Admin runtime config
-RUNPACEFLOW_ADMIN_URL="http://localhost:3030"
-CONFIG_EXPORT_TOKEN=""
+# AI provider credentials and model settings are configured in Admin only.
 
 # Analytics
 NEXT_PUBLIC_UMAMI_ANALYTICS_ID=""
