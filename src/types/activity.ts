@@ -6,7 +6,8 @@
 
 import type { activities, splits } from '@/lib/db/schema'
 
-// Infer types from Drizzle schema
+// The schema is a compile-time response contract only; the main site does not
+// create a Drizzle client or connect to a database at runtime.
 export type Activity = typeof activities.$inferSelect
 export type NewActivity = typeof activities.$inferInsert
 

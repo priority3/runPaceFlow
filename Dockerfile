@@ -40,11 +40,6 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/drizzle ./drizzle
-
-# Create data directory for SQLite database
-RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
-
 # Switch to non-root user
 USER nextjs
 
@@ -53,8 +48,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-
-# Default database path (can be overridden)
-ENV DATABASE_URL="file:/app/data/local.db"
 
 CMD ["bun", "server.js"]

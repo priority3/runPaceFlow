@@ -8,18 +8,8 @@
 import { initTRPC } from '@trpc/server'
 import superjson from 'superjson'
 
-import { getDb } from '@/lib/db'
-
-/**
- * Create the tRPC context
- * This is where we add things that should be available to all procedures
- * like the database instance
- */
-export const createTRPCContext = async () => {
-  return {
-    db: await getDb(),
-  }
-}
+/** Admin owns the database connection; the main site tRPC context is intentionally empty. */
+export const createTRPCContext = async () => ({})
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>
 

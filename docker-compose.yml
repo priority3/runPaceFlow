@@ -8,19 +8,12 @@ services:
     network_mode: host
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/data/local.db
       - RUNPACEFLOW_ADMIN_URL=http://127.0.0.1:3030
-      - RUNPACEFLOW_CONFIG_EXPORT_TOKEN=local-export-token
+      - RUNPACEFLOW_ADMIN_API_TOKEN=${RUNPACEFLOW_ADMIN_API_TOKEN:?set RUNPACEFLOW_ADMIN_API_TOKEN}
       - NEXT_PUBLIC_MAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
-    volumes:
-      - runpaceflow_data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3000']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-
-volumes:
-  runpaceflow_data:
-    driver: local

@@ -1,76 +1,59 @@
 # 部署指南
 
-## 部署架构
+## 架构
 
-本项目使用以下架构：
+- RunPaceFlow Admin 负责运动数据同步、第三方凭据、AI 洞察生成和 `shared.db`。
+- RunPaceFlow 主站是只读展示端，通过 `RUNPACEFLOW_ADMIN_URL` 调用 Admin 的主站 API。
+- Turso 只在 Admin 侧作为 `shared.db` 的镜像/备份目标，主站不持有 Turso 地址或 Token。
 
-- **数据存储**：SQLite 数据库文件存储在 Git 仓库中
-- **自动同步**：GitHub Actions 每天自动同步运动数据
-- **部署平台**：Vercel 自动部署
+## 主站配置
 
-## 已完成的配置
+在 Vercel 或其他主站部署平台配置：
 
-✅ 数据库文件 (`data/activities.db`) 已添加到 Git 仓库
-✅ 数据库路径已配置为支持 Vercel 环境
-✅ GitHub Actions 工作流已创建（`.github/workflows/sync.yml`）
+```bash
+RUNPACEFLOW_ADMIN_URL=https://admin.example.com
+RUNPACEFLOW_ADMIN_API_TOKEN=<与 Admin MAIN_SITE_API_TOKEN 相同的随机值>
+```
 
-## 设置 GitHub Secrets（用于自动同步）
+不要在主站配置 `DATABASE_URL`、`DATABASE_AUTH_TOKEN`、`ACTIVITIES_DATABASE_URL` 或同步/AI 凭据。
 
-访问：https://github.com/priority3/runPaceFlow/settings/secrets/actions
+## Admin 配置
 
-添加以下 Secrets：
+在 Admin 部署环境配置：
 
-### 必需：GitHub Personal Access Token (PAT)
+```bash
+MAIN_SITE_API_TOKEN=<与主站 RUNPACEFLOW_ADMIN_API_TOKEN 相同的随机值>
+ACTIVITIES_DATABASE_URL=file:/app/shared/shared.db
+DATABASE_URL=libsql://<turso 数据库>.turso.io
+DATABASE_AUTH_TOKEN=<turso 镜像 Token>
+```
 
-- `PAT`：用于 GitHub Actions 推送权限
-  1. 访问 https://github.com/settings/tokens/new
-  2. 生成新的 Personal Access Token (classic)
-  3. 勾选 `repo` 权限（完整的仓库访问权限）
-  4. 生成 token 并复制
-  5. 添加为仓库 Secret，名称为 `PAT`
+`ACTIVITIES_DATABASE_URL` 必须指向与同步任务和 pr-agent 共享的 `shared.db`。`DATABASE_URL` 和 `DATABASE_AUTH_TOKEN` 只供 Admin 的镜像任务使用。
 
-### Nike Run Club
+## 本地启动
 
-- `NIKE_ACCESS_TOKEN`：从浏览器 Network 标签获取
-  1. 登录 Nike Run Club 网站
-  2. 打开开发者工具 → Network 标签
-  3. 找到包含 `Bearer` token 的请求
-  4. 复制完整的 token
+先启动 Admin，再启动主站：
 
-### Strava（可选）
+```bash
+# runPaceFlow-admin
+MAIN_SITE_API_TOKEN=local-main-site-token bun run dev
 
-- `STRAVA_CLIENT_ID`：从 [Strava API 设置](https://www.strava.com/settings/api) 获取
-- `STRAVA_CLIENT_SECRET`：同上
-- `STRAVA_REFRESH_TOKEN`：通过 OAuth 授权获取
+# runPaceFlow
+RUNPACEFLOW_ADMIN_URL=http://127.0.0.1:3030 \
+RUNPACEFLOW_ADMIN_API_TOKEN=local-main-site-token \
+bun run dev
+```
 
-## 工作原理
+如果主站显示空状态，先检查 Admin 的 `data/shared.db` 是否真的包含 `activities` 记录；空数据库是数据状态问题，不是主站到 Turso 的连接问题。
 
-1. **初始部署**：
-   - Vercel 从 GitHub 拉取代码（包括数据库文件）
-   - 应用使用 Git 仓库中的 SQLite 数据库
+## 验证
 
-2. **每日更新**：
-   - GitHub Actions 每天运行同步脚本
-   - 从 Nike/Strava API 获取新数据
-   - 更新数据库并提交到 Git
-   - Vercel 自动重新部署
+```bash
+curl -fsSL -X POST \
+  -H "Authorization: Bearer $MAIN_SITE_API_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"activities.list","input":{"limit":1}}' \
+  https://admin.example.com/api/main-site/query
+```
 
-## 手动触发同步
-
-如需手动同步数据：
-
-1. 访问 GitHub Actions 页面
-2. 选择 "Sync Activities" 工作流
-3. 点击 "Run workflow"
-
-## 验证部署
-
-部署成功后，访问 https://run-pace-flow.vercel.app 查看你的运动数据。
-
-## 故障排除
-
-如果数据未显示：
-
-1. 检查 Vercel 部署日志
-2. 确认 `data/activities.db` 文件存在
-3. 验证 GitHub Actions 运行状态
+错误 Token 应返回 401；成功响应应为 `{ "data": ... }`。主站的 `/api/trpc/activities.list`、详情和洞察请求随后都会通过同一 Admin API。

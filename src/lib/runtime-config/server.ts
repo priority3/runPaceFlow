@@ -1,3 +1,5 @@
+import { fetchAdminPublicConfig } from '@/lib/admin-api'
+
 import { DEFAULT_PUBLIC_RUNTIME_CONFIG, normalizePublicRuntimeConfig } from './types'
 
 const CACHE_TTL_MS = 1000
@@ -9,83 +11,19 @@ let settingsCache:
     }
   | undefined
 
-function getAdminBaseUrl() {
-  const configured = process.env.RUNPACEFLOW_ADMIN_URL || process.env.CONFIG_ADMIN_URL
-  if (configured) return configured.replace(/\/$/, '')
-  if (process.env.NODE_ENV !== 'production') return 'http://localhost:3030'
-  return ''
-}
-
-function getExportToken() {
-  return process.env.RUNPACEFLOW_CONFIG_EXPORT_TOKEN || process.env.CONFIG_EXPORT_TOKEN || ''
-}
-
-function parseEnvText(text: string) {
-  const entries: Record<string, string> = {}
-
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim()
-    if (!line || line.startsWith('#')) continue
-
-    const match = line.match(/^([A-Z_]\w*)=(.*)$/i)
-    if (!match) continue
-
-    let value = match[2].trim()
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1)
-    }
-
-    entries[match[1]] = value
-  }
-
-  return entries
-}
-
 function readProcessSettings() {
+  const blockedKeys = new Set([
+    'DATABASE_URL',
+    'DATABASE_AUTH_TOKEN',
+    'ACTIVITIES_DATABASE_URL',
+    'ACTIVITIES_DATABASE_AUTH_TOKEN',
+  ])
   return Object.fromEntries(
     Object.entries(process.env).filter(
-      (entry): entry is [string, string] => typeof entry[1] === 'string',
+      (entry): entry is [string, string] =>
+        typeof entry[1] === 'string' && !blockedKeys.has(entry[0]),
     ),
   )
-}
-
-function mergeRuntimeSettings(
-  processSettings: Record<string, string>,
-  remoteSettings: Record<string, string> | null,
-) {
-  if (!remoteSettings) return processSettings
-
-  const definedRemoteSettings = Object.fromEntries(
-    Object.entries(remoteSettings).filter(([, value]) => value.trim() !== ''),
-  )
-
-  return {
-    ...processSettings,
-    ...definedRemoteSettings,
-  }
-}
-
-async function fetchAdminSettings() {
-  const adminBaseUrl = getAdminBaseUrl()
-  const token = getExportToken()
-
-  if (!adminBaseUrl || !token) return null
-
-  const response = await fetch(`${adminBaseUrl}/api/settings/export?includeEmpty=1`, {
-    cache: 'no-store',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Config admin export failed: ${response.status}`)
-  }
-
-  return parseEnvText(await response.text())
 }
 
 export async function getRuntimeSettings({ force = false } = {}) {
@@ -94,14 +32,9 @@ export async function getRuntimeSettings({ force = false } = {}) {
     return settingsCache.settings
   }
 
-  let remoteSettings: Record<string, string> | null = null
-  try {
-    remoteSettings = await fetchAdminSettings()
-  } catch (error) {
-    console.warn('[runtime-config] Falling back to process.env:', (error as Error).message)
-  }
-
-  const settings = mergeRuntimeSettings(readProcessSettings(), remoteSettings)
+  // Secret runtime settings stay in their owning service. The main site only
+  // fetches the explicit public config allowlist below.
+  const settings = readProcessSettings()
 
   settingsCache = {
     fetchedAt: now,
@@ -117,6 +50,23 @@ export async function getRuntimeSetting(key: string) {
 }
 
 export async function getPublicRuntimeConfig({ force = false } = {}) {
+  try {
+    const remoteConfig = await fetchAdminPublicConfig()
+    if (remoteConfig) {
+      return {
+        ...remoteConfig,
+        // The public admin URL is owned by the main-site deployment because
+        // the browser sends analytics beacons back to this endpoint.
+        adminUrl: remoteConfig.adminUrl || process.env.NEXT_PUBLIC_ADMIN_URL || '',
+      }
+    }
+  } catch (error) {
+    console.warn(
+      '[runtime-config] Falling back to local public defaults:',
+      (error as Error).message,
+    )
+  }
+
   const settings = await getRuntimeSettings({ force })
   return normalizePublicRuntimeConfig(settings, new Date().toISOString())
 }
