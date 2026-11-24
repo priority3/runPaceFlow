@@ -129,7 +129,7 @@ export function HeartRateZones({ averageHeartRate, maxHeartRate, className }: He
             </div>
             <div className="bg-quaternary-system-fill h-1.5 overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className="h-full rounded-[2px] transition-[width] duration-500"
                 style={{ width: `${percentage}%`, backgroundColor: zone.color, opacity: 0.72 }}
               />
             </div>

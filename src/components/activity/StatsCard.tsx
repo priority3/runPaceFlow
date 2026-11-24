@@ -161,7 +161,8 @@ export function StatsCard({
   icon,
   currentValue,
   previousValue,
-  higherIsBetter = true,
+  // 保留 API 兼容；趋势箭头由数值方向决定，不再用它配颜色
+  higherIsBetter: _higherIsBetter = true,
   goal,
   goalDisplayValue,
   goalUnit,
@@ -174,10 +175,6 @@ export function StatsCard({
       ? calculateTrend(currentValue, previousValue)
       : null
 
-  // Determine if trend is positive (good) based on higherIsBetter
-  const isTrendPositive = trend !== null && (higherIsBetter ? trend > 0 : trend < 0)
-  const isTrendNegative = trend !== null && (higherIsBetter ? trend < 0 : trend > 0)
-
   // Calculate goal progress
   const goalProgress = goal && currentValue ? Math.min((currentValue / goal) * 100, 100) : null
 
@@ -187,14 +184,8 @@ export function StatsCard({
   const decimals =
     typeof value === 'string' && value.includes('.') ? value.split('.')[1]?.length || 0 : 0
 
-  // Determine sparkline color based on trend
-  const effectiveSparklineColor =
-    sparklineColor ||
-    (isTrendPositive
-      ? 'rgb(var(--color-green))'
-      : isTrendNegative
-        ? 'rgb(var(--color-red))'
-        : 'rgb(var(--color-blue))')
+  // 图表一条墨色线：趋势靠数字与箭头读，不靠彩色图例
+  const effectiveSparklineColor = sparklineColor || 'rgb(var(--color-label))'
 
   return (
     <motion.div
@@ -202,7 +193,7 @@ export function StatsCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className={cn(
-        'group relative rounded-2xl p-5 sm:p-6',
+        'group relative rounded-lg p-5 sm:p-6',
         'border-0 bg-transparent',
         'transition-colors duration-150',
         'hover:bg-transparent dark:hover:bg-transparent',
@@ -218,7 +209,7 @@ export function StatsCard({
       {/* Value with trend and sparkline */}
       <div className="flex items-end justify-between gap-2">
         <div className="flex items-baseline gap-2">
-          <span className="text-label text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+          <span className="text-label pr-kpi tabular-nums">
             {isNumeric ? <AnimatedNumber value={numericValue} decimals={decimals} /> : value}
           </span>
           {unit && <span className="text-label/50 text-sm font-medium sm:text-base">{unit}</span>}
@@ -235,14 +226,8 @@ export function StatsCard({
       {/* Trend indicator */}
       {trend !== null && (
         <div className="mt-2 flex items-center gap-1">
-          <div
-            className={cn(
-              'flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium',
-              isTrendPositive && 'bg-green/10 text-green',
-              isTrendNegative && 'bg-red/10 text-red',
-              !isTrendPositive && !isTrendNegative && 'bg-gray/10 text-label/50',
-            )}
-          >
+          {/* 涨跌靠箭头形状区分，不靠颜色；警示色只留给真正的错误 */}
+          <div className="pr-tag">
             {trend > 0 ? (
               <TrendingUp className="h-3 w-3" />
             ) : trend < 0 ? (
@@ -264,10 +249,10 @@ export function StatsCard({
               {goalUnit}
             </span>
           </div>
-          <div className="bg-tertiary-system-fill h-1.5 overflow-hidden rounded-full">
+          <div className="bg-tertiary-system-fill h-1 overflow-hidden rounded-[2px]">
             <motion.div
               key={`progress-${title}-${goalProgress}`}
-              className={cn('h-full rounded-full', goalProgress >= 100 ? 'bg-green' : 'bg-blue')}
+              className="pr-ink-fill h-full rounded-[2px]"
               initial={{ width: '0%' }}
               animate={{ width: `${goalProgress}%` }}
               transition={{ duration: 0.8, ease: 'easeOut' }}

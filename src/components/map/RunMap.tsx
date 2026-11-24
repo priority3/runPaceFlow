@@ -339,7 +339,7 @@ export function RunMap({
     return (
       <div ref={containerRef} className={cn('relative', className)}>
         <div className="border-separator bg-secondary-system-background flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border">
-          <div className="bg-orange/10 flex h-12 w-12 items-center justify-center rounded-full">
+          <div className="bg-system-fill flex h-12 w-12 items-center justify-center rounded-lg">
             <MapPin className="text-orange h-6 w-6" />
           </div>
           <div className="text-center">
@@ -415,7 +415,7 @@ export function RunMap({
           {/* Center loading indicator */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
             <motion.div
-              className="bg-blue/10 flex h-12 w-12 items-center justify-center rounded-full"
+              className="bg-system-fill flex h-12 w-12 items-center justify-center rounded-lg"
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
@@ -531,7 +531,7 @@ export function RunMap({
               >
                 {/* Close hint */}
                 <motion.div
-                  className="border-separator bg-tertiary-system-background/92 text-secondary-label absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-full border px-4 py-2 text-sm shadow-sm backdrop-blur-xl"
+                  className="border-separator bg-tertiary-system-background/92 text-secondary-label absolute top-4 left-1/2 z-30 -translate-x-1/2 rounded-lg border px-4 py-2 text-[13px] backdrop-blur-xl"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}

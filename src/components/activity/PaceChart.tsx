@@ -72,11 +72,7 @@ const CustomTooltip = ({ active, payload, fastestKm, averagePace, metric }: any)
       <div className="surface-glass rounded-xl px-3.5 py-2.5">
         <p className="text-secondary-label mb-1 text-xs font-medium">
           第 {data.kilometer} 公里
-          {isFastest && (
-            <span className="bg-accent/15 text-accent ml-2 rounded-full px-2 py-0.5 text-[10px]">
-              最快
-            </span>
-          )}
+          {isFastest && <span className="pr-tag ml-2">最快</span>}
         </p>
         <p className="font-data text-label text-base font-medium tabular-nums">
           {data.metricFormatted}

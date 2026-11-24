@@ -9,7 +9,7 @@
 
 import * as Popover from '@radix-ui/react-popover'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Flame, Trophy, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -216,10 +216,10 @@ function DayCell({
         <button
           type="button"
           className={cn(
-            'h-3 w-3 rounded-sm transition-all duration-150',
+            'h-3 w-3 rounded-sm transition-colors duration-150',
             getIntensityColor(day.distance),
-            isToday && 'ring-blue ring-1 ring-offset-1',
-            hasActivities && 'hover:ring-blue/50 cursor-pointer hover:scale-125 hover:ring-2',
+            isToday && 'ring-1 ring-[var(--pr-text-2)] ring-offset-1',
+            hasActivities && 'cursor-pointer hover:ring-2 hover:ring-[var(--pr-text-2)]',
             !hasActivities && 'cursor-default',
           )}
           disabled={!hasActivities}
@@ -236,7 +236,7 @@ function DayCell({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="border-separator bg-tertiary-system-background w-64 rounded-lg border p-4 shadow-xl"
+                className="premium-surface w-64 p-4"
               >
                 {/* Header */}
                 <div className="mb-3 flex items-center justify-between">
@@ -250,7 +250,7 @@ function DayCell({
                   <Popover.Close asChild>
                     <button
                       type="button"
-                      className="text-label/40 hover:text-label rounded-full p-1 transition-colors"
+                      className="pr-meta hover:text-label rounded-md p-1 transition-colors"
                       aria-label="关闭"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -328,32 +328,15 @@ export function ActivityHeatmap({ activities, className }: ActivityHeatmapProps)
     <div className={cn('rounded-lg bg-transparent p-4 sm:p-5', className)}>
       {/* Header with streak badges */}
       <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Streak badges */}
-        <div className="flex items-center gap-2">
-          {streaks.current > 0 && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="bg-orange/10 flex items-center gap-1 rounded-full px-2 py-0.5"
-            >
-              <Flame className="text-orange h-3 w-3" />
-              <span className="text-orange text-xs font-medium">{streaks.current}天连续</span>
-            </motion.div>
-          )}
+        {/* 连续天数只是元信息，不做勋章、彩色胶囊和弹跳入场 */}
+        <div className="pr-meta flex items-center gap-3">
+          {streaks.current > 0 && <span>当前连续 {streaks.current} 天</span>}
           {streaks.longest > 0 && streaks.longest > streaks.current && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1 }}
-              className="bg-yellow/10 flex items-center gap-1 rounded-full px-2 py-0.5"
-            >
-              <Trophy className="text-yellow h-3 w-3" />
-              <span className="text-yellow text-xs font-medium">最长{streaks.longest}天</span>
-            </motion.div>
+            <span>最长 {streaks.longest} 天</span>
           )}
         </div>
 
-        <span className="text-label/50 text-xs">
+        <span className="pr-meta">
           近12周 · {totalActivities} 次 · {(totalDistance / 1000).toFixed(1)} km
         </span>
       </div>

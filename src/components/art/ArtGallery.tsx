@@ -133,7 +133,7 @@ export function ArtGallery({
               key={type.value}
               onClick={() => !isDisabled && setSelectedType(type.value)}
               disabled={isDisabled}
-              className={`relative flex flex-col items-center gap-2 rounded-lg p-4 text-center transition-all ${
+              className={`relative flex flex-col items-center gap-2 rounded-lg p-4 text-center transition-colors ${
                 isSelected
                   ? 'bg-blue/10 text-blue shadow-[inset_0_0_0_1px_rgba(36,87,197,0.28),0_12px_30px_rgba(36,87,197,0.1)]'
                   : isDisabled

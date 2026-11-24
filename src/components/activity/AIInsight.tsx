@@ -25,64 +25,45 @@ interface AIInsightProps {
 
 // ─── Markdown Components ────────────────────────────────────────────────────
 
+/** pr-ui 阅读形态：正文 14/1.78，标题 14，表格去竖线、表头 11px、数字等宽 */
 const markdownComponents: Components = {
-  h1: ({ children }) => (
-    <h1 className="text-label mt-6 mb-3 flex items-center gap-2 text-lg font-semibold first:mt-0">
-      {children}
-    </h1>
-  ),
-  h2: ({ children }) => (
-    <h2 className="text-label mt-5 mb-2 flex items-center gap-2 text-base font-semibold first:mt-0">
-      {children}
-    </h2>
-  ),
-  h3: ({ children }) => (
-    <h3 className="text-label/90 mt-4 mb-2 text-sm font-medium first:mt-0">{children}</h3>
-  ),
-  p: ({ children }) => <p className="text-label/80 my-2 leading-relaxed">{children}</p>,
-  strong: ({ children }) => <strong className="text-label font-semibold">{children}</strong>,
-  ul: ({ children }) => <ul className="text-label/80 my-2 ml-4 list-disc space-y-1">{children}</ul>,
-  ol: ({ children }) => (
-    <ol className="text-label/80 my-2 ml-4 list-decimal space-y-1">{children}</ol>
-  ),
-  li: ({ children }) => <li className="text-label/80 pl-1">{children}</li>,
+  h1: ({ children }) => <h1 className="pr-title text-label mt-6 mb-3 first:mt-0">{children}</h1>,
+  h2: ({ children }) => <h2 className="pr-title text-label mt-5 mb-2 first:mt-0">{children}</h2>,
+  h3: ({ children }) => <h3 className="pr-title text-label mt-4 mb-2 first:mt-0">{children}</h3>,
+  p: ({ children }) => <p className="pr-body my-2">{children}</p>,
+  strong: ({ children }) => <strong className="text-label font-medium">{children}</strong>,
+  ul: ({ children }) => <ul className="pr-body my-2 ml-4 list-disc space-y-1">{children}</ul>,
+  ol: ({ children }) => <ol className="pr-body my-2 ml-4 list-decimal space-y-1">{children}</ol>,
+  li: ({ children }) => <li className="pl-1">{children}</li>,
   table: ({ children }) => (
-    <div className="border-separator bg-secondary-system-background my-3 overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">{children}</table>
+    <div className="my-3 overflow-x-auto">
+      <table className="pr-table">{children}</table>
     </div>
   ),
-  thead: ({ children }) => (
-    <thead className="border-separator bg-tertiary-system-background border-b">{children}</thead>
-  ),
-  tbody: ({ children }) => <tbody className="divide-separator divide-y">{children}</tbody>,
-  tr: ({ children }) => (
-    <tr className="hover:bg-tertiary-system-background transition-colors">{children}</tr>
-  ),
-  th: ({ children }) => (
-    <th className="text-label/70 px-3 py-2 text-left text-xs font-medium uppercase">{children}</th>
-  ),
-  td: ({ children }) => <td className="text-label/80 px-3 py-2 whitespace-nowrap">{children}</td>,
+  thead: ({ children }) => <thead>{children}</thead>,
+  tbody: ({ children }) => <tbody>{children}</tbody>,
+  tr: ({ children }) => <tr>{children}</tr>,
+  th: ({ children }) => <th>{children}</th>,
+  td: ({ children }) => <td className="pr-num">{children}</td>,
   code: ({ children, className }) => {
     const isInline = !className
     if (isInline) {
       return (
-        <code className="bg-secondary-system-background rounded px-1.5 py-0.5 text-sm">
-          {children}
-        </code>
+        <code className="rounded bg-[var(--pr-sel)] px-1.5 py-0.5 text-[13px]">{children}</code>
       )
     }
     return (
-      <code className="bg-secondary-system-background block overflow-x-auto rounded-lg p-3 text-sm">
+      <code className="block overflow-x-auto rounded-lg bg-[var(--pr-sel)] p-3 text-[13px]">
         {children}
       </code>
     )
   },
   blockquote: ({ children }) => (
-    <blockquote className="border-purple/30 bg-purple/5 my-3 border-l-4 py-2 pl-4 italic">
+    <blockquote className="text-secondary-label my-3 border-l border-[var(--pr-line-strong)] py-1 pl-4">
       {children}
     </blockquote>
   ),
-  hr: () => <hr className="border-separator my-4" />,
+  hr: () => <hr className="pr-divider my-4" />,
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -113,13 +94,14 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
     return (
       <div className={cn('premium-surface p-6', className)}>
         <div className="mb-4 flex items-center gap-2.5">
-          <div className="bg-label/5 flex h-8 w-8 items-center justify-center rounded-lg">
-            <Sparkles className="text-label/30 h-4 w-4" />
+          <div className="bg-system-fill flex h-8 w-8 items-center justify-center rounded-lg">
+            <Sparkles className="text-secondary-label h-4 w-4" />
           </div>
           <span className="text-label font-medium">AI 跑步分析</span>
         </div>
-        <div className="py-6 text-center">
-          <p className="text-label/50 text-sm">AI 分析生成中，请稍后再查看</p>
+        <div className="py-6">
+          <p className="pr-empty-line">这次训练还没有分析</p>
+          <p className="text-secondary-label mt-2 text-[13.5px]">下次数据同步后会自动出现。</p>
         </div>
       </div>
     )
@@ -134,16 +116,12 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
     >
       {/* Header */}
       <div className="mb-5 flex items-center gap-2.5">
-        <div className="bg-purple/10 flex h-8 w-8 items-center justify-center rounded-lg">
-          <Sparkles className="text-purple h-4 w-4" />
+        <div className="bg-system-fill flex h-8 w-8 items-center justify-center rounded-lg">
+          <Sparkles className="text-secondary-label h-4 w-4" />
         </div>
         <div className="flex items-center gap-2">
           <span className="text-label font-medium">AI 跑步分析</span>
-          {insight.cached && (
-            <span className="bg-label/5 text-label/40 rounded-full px-2 py-0.5 text-xs">
-              已缓存
-            </span>
-          )}
+          {insight.cached && <span className="pr-tag">已缓存</span>}
         </div>
       </div>
 
@@ -156,7 +134,7 @@ export function AIInsight({ activityId, className }: AIInsightProps) {
 
       {/* Footer */}
       {insight.model && (
-        <div className="text-label/30 border-separator mt-5 flex items-center justify-between border-t pt-4 text-xs">
+        <div className="pr-meta border-separator mt-5 flex items-center justify-between border-t pt-4">
           <span>由 {getProviderLabel(insight.model)} 生成</span>
           {insight.generatedAt && (
             <span>{new Date(insight.generatedAt).toLocaleDateString('zh-CN')}</span>
@@ -174,8 +152,8 @@ export function AIInsightSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn('premium-surface p-6', className)}>
       <div className="mb-5 flex items-center gap-2.5">
-        <div className="bg-purple/10 flex h-8 w-8 items-center justify-center rounded-lg">
-          <Sparkles className="text-purple h-4 w-4" />
+        <div className="bg-system-fill flex h-8 w-8 items-center justify-center rounded-lg">
+          <Sparkles className="text-secondary-label h-4 w-4" />
         </div>
         <span className="text-label font-medium">AI 跑步分析</span>
       </div>

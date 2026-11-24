@@ -126,20 +126,21 @@ const TabsList = ({
         listRef.current = node
       }}
       className={cn(
-        'bg-secondary-system-background/70 relative inline-flex items-center gap-0.5 rounded-full p-1',
+        // pr-ui：导航当前项用字重 + 1px 墨线，不用底色块、不用胶囊
+        'border-separator relative inline-flex items-center gap-1 border-b',
         className,
       )}
       {...props}
     >
       {indicatorStyle.width > 0 && (
         <motion.div
-          className="bg-tertiary-system-background absolute top-1 bottom-1 rounded-full shadow-[0_0_0_1px_rgb(var(--color-separator))]"
+          className="absolute -bottom-px h-px bg-[rgb(var(--color-label))]"
           initial={false}
           animate={{
             left: indicatorStyle.left,
             width: indicatorStyle.width,
           }}
-          transition={springs.snappy}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         />
       )}
       {children}
@@ -159,11 +160,11 @@ const TabsTrigger = ({
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'relative z-10 inline-flex items-center justify-center rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+      'relative z-10 inline-flex items-center justify-center px-3 py-2 text-[13px] whitespace-nowrap transition-colors',
       'text-tertiary-label hover:text-secondary-label',
-      'focus-visible:ring-accent/50 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:outline-label focus-visible:outline-2 focus-visible:outline-offset-2',
       'disabled:pointer-events-none disabled:opacity-50',
-      'data-[state=active]:text-label',
+      'data-[state=active]:text-label data-[state=active]:font-medium',
       className,
     )}
     {...props}
@@ -190,7 +191,7 @@ const TabsContent = ({
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'focus-visible:ring-accent/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:outline-label mt-6 focus-visible:outline-2 focus-visible:outline-offset-2',
       className,
     )}
     {...props}
@@ -209,7 +210,7 @@ const AnimatedTabsContent = ({
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'focus-visible:ring-accent/50 mt-4 focus-visible:ring-2 focus-visible:outline-none',
+      'focus-visible:outline-label mt-6 focus-visible:outline-2 focus-visible:outline-offset-2',
       className,
     )}
     {...props}

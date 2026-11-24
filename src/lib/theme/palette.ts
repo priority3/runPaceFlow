@@ -1,51 +1,51 @@
 /**
- * Semantic training colors — Yohaku 和色, muted for paper charts.
+ * Semantic training colors — pr-ui.
+ *
+ * 图表不用彩色图例：一条线用墨色，最多一条用强调色。
+ * 配速 / 心率区间用「同一种墨的不同明度」表达强度，跟字阶的 alpha 分层是同一支笔。
  * Keep in sync with --rpf-* in src/styles/globals.css.
  *
- * 縹 soft  #4a6f94  cool / fast / running
- * 若竹 soft #6a9a80  aerobic / success
- * 朽葉 soft #9a7a4a  warm / cycling / threshold
- * 蘇芳 soft #9a5a62  stress / heart / slow
- * Neutrals  #b0aea6…#403f3a for mid / route mono
+ * 生成艺术（art/）的可选调色板属于「内容用色」，不在此收敛，见 lib/art/colors.ts。
  */
 
+/** 地图路线：跑步深墨、骑行浅墨，靠明度 + 线宽区分，不靠彩色图例 */
 export const SPORT_COLORS = {
-  running: '#4a6f94',
-  cycling: '#9a7a4a',
+  running: '#111114',
+  cycling: '#707072',
 } as const
 
 export const DARK_SPORT_COLORS = {
-  running: '#8aafd0',
-  cycling: '#c4a878',
+  running: '#f2f2f4',
+  cycling: '#969698',
 } as const
 
 export const TRAINING_COLORS = {
-  heart: '#9a5a62',
-  routeMono: '#403f3a',
-  success: '#6a9a80',
+  heart: '#545456',
+  routeMono: '#111114',
+  success: '#a3e635', // 唯一讯号色，只表状态
 } as const
 
 export const DARK_TRAINING_COLORS = {
-  heart: '#c88890',
-  routeMono: '#e8e8ea',
-  success: '#88b8a0',
+  heart: '#b1b1b3',
+  routeMono: '#f2f2f4',
+  success: '#a3e635',
 } as const
 
-/** Pace relative-to-average scale used by charts + map. */
+/** Pace relative-to-average scale：越快越深，纯明度梯度 */
 export const PACE_COLORS = {
-  veryFast: '#4a6f94',
-  fast: '#6a84a0',
-  average: '#9a9890',
-  slow: '#b09060',
-  verySlow: '#9a5a62',
+  veryFast: '#111114',
+  fast: '#3f3f43',
+  average: '#707072',
+  slow: '#9b9b9e',
+  verySlow: '#c2c2c5',
 } as const
 
 export const DARK_PACE_COLORS = {
-  veryFast: '#8aafd0',
-  fast: '#a0bdd8',
-  average: '#a8a8b0',
-  slow: '#c8b080',
-  verySlow: '#c88890',
+  veryFast: '#f2f2f4',
+  fast: '#c8c8cb',
+  average: '#969698',
+  slow: '#6d6d71',
+  verySlow: '#45454a',
 } as const
 
 export const PACE_COLOR_VARS = {
@@ -56,13 +56,13 @@ export const PACE_COLOR_VARS = {
   verySlow: 'var(--rpf-pace-very-slow)',
 } as const
 
-/** Z1 rest → Z5 anaerobic */
+/** Z1 rest → Z5 anaerobic：同一种墨，由浅到深 */
 export const HEART_RATE_ZONE_COLORS = [
-  '#b0aea6',
-  '#6a9a80',
-  '#4a6f94',
-  '#9a7a4a',
-  '#9a5a62',
+  '#c2c2c5',
+  '#a0a0a3',
+  '#7d7d80',
+  '#545456',
+  '#111114',
 ] as const
 
 export const HEART_RATE_ZONE_COLOR_VARS = [
@@ -73,10 +73,13 @@ export const HEART_RATE_ZONE_COLOR_VARS = [
   'var(--rpf-heart-zone-5)',
 ] as const
 
-/** Brand accent — UI chrome only (buttons, focus, links). */
+/**
+ * 品牌色不再有颜色。
+ * pr-ui：主按钮是深色实心、CTA 与焦点是深墨描边，彩色只留给状态。
+ */
 export const BRAND_ACCENT = {
-  light: '#33A6B8',
-  dark: '#F596AA',
+  light: '#111114',
+  dark: '#f2f2f4',
 } as const
 
 export type PaletteMode = 'light' | 'dark'

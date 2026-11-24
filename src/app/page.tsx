@@ -42,7 +42,7 @@ const RunMap = dynamic(
   () => import('@/components/map/RunMap').then((module) => ({ default: module.RunMap })),
   {
     ssr: false,
-    loading: () => <div className="skeleton-shimmer h-full min-h-80 rounded-2xl" />,
+    loading: () => <div className="skeleton-shimmer h-full min-h-80 rounded-lg" />,
   },
 )
 
@@ -85,14 +85,15 @@ const SPORT_CONFIG: Record<
   running: {
     label: '跑步',
     icon: Footprints,
-    accentClassName: 'bg-blue',
-    softClassName: 'bg-blue/10 text-blue',
+    // 图表用墨色，不给每种运动分配一个装饰色
+    accentClassName: 'pr-ink-fill',
+    softClassName: 'bg-system-fill text-secondary-label',
   },
   cycling: {
     label: '骑行',
     icon: Bike,
-    accentClassName: 'bg-orange',
-    softClassName: 'bg-orange/10 text-orange',
+    accentClassName: 'pr-ink-fill',
+    softClassName: 'bg-system-fill text-secondary-label',
   },
 }
 
@@ -101,34 +102,12 @@ const FOCUS_META: Record<
   {
     label: string
     icon: IconComponent
-    colorClassName: string
-    softClassName: string
   }
 > = {
-  goals: {
-    label: '目标',
-    icon: Target,
-    colorClassName: 'bg-accent',
-    softClassName: 'bg-accent/10 text-accent',
-  },
-  recovery: {
-    label: '负荷',
-    icon: Gauge,
-    colorClassName: 'bg-purple',
-    softClassName: 'bg-purple/10 text-purple',
-  },
-  routes: {
-    label: '路线',
-    icon: Route,
-    colorClassName: 'bg-teal',
-    softClassName: 'bg-teal/10 text-teal',
-  },
-  activityLog: {
-    label: '记录',
-    icon: Activity,
-    colorClassName: 'bg-gray',
-    softClassName: 'bg-gray/10 text-gray',
-  },
+  goals: { label: '目标', icon: Target },
+  recovery: { label: '负荷', icon: Gauge },
+  routes: { label: '路线', icon: Route },
+  activityLog: { label: '记录', icon: Activity },
 }
 
 interface TrainingFocus {
@@ -371,11 +350,12 @@ function PaceRibbon({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-secondary-label flex items-center gap-2 text-xs">
-          <span className="bg-green h-2 w-2 rounded-full" aria-hidden="true" />
+        <div className="pr-label flex items-center gap-2">
+          {/* 全屏唯一彩色：只表示「数据已就绪」这一个状态 */}
+          <span className="pr-status-dot" aria-hidden="true" />
           <span>最近活动节奏</span>
         </div>
-        <span className="text-tertiary-label font-data text-[11px] tabular-nums">
+        <span className="pr-meta font-data">
           {isLoading ? 'READING' : `${samples.length} SAMPLES`}
         </span>
       </div>
@@ -391,8 +371,8 @@ function PaceRibbon({
             <motion.span
               key={activity?.id ?? `ribbon-loading-${index}`}
               className={cn(
-                'relative z-10 min-w-1 flex-1 rounded-full',
-                isLoading ? 'skeleton-shimmer' : 'bg-accent',
+                'relative z-10 min-w-1 flex-1 rounded-[2px]',
+                isLoading ? 'skeleton-shimmer' : 'pr-ink-fill',
               )}
               style={{ height: `${height}%`, opacity: 0.28 + (index / 20) * 0.72 }}
               initial={isLoading ? false : { scaleY: 0 }}
@@ -456,12 +436,12 @@ function FocusConsole({
           今日训练焦点
         </div>
 
-        <h2 className="font-display text-label max-w-xl text-[2.35rem] leading-[1.08] font-semibold sm:text-5xl lg:text-[3.25rem]">
+        <h2 className="font-display text-label max-w-xl text-[22px] leading-[1.35] font-medium">
           <span className="block sm:whitespace-nowrap">从最近一次开始，</span>
           <span className="block sm:whitespace-nowrap">找到下一步。</span>
         </h2>
 
-        <p className="text-secondary-label mt-5 text-sm leading-6 sm:text-base">
+        <p className="text-secondary-label mt-4 text-[13.5px] leading-relaxed">
           {latestActivity
             ? `${latestActivity.type === 'cycling' ? '骑行' : '跑步'} · ${formatActivityDate(latestActivity.startTime)} · ${formatDistance(latestActivity.distance)}`
             : '等待第一条训练记录'}
@@ -485,15 +465,14 @@ function FocusConsole({
                 aria-selected={selected}
                 onClick={() => setSelectedId(item.id)}
                 className={cn(
-                  'text-tertiary-label flex min-h-9 items-center gap-2 text-sm font-medium transition-colors',
-                  'focus-visible:outline-accent focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4',
-                  selected ? 'text-label' : 'hover:text-secondary-label',
+                  'text-tertiary-label flex min-h-9 items-center gap-2 text-[13px] font-medium transition-colors',
+                  'focus-visible:outline-label focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4',
+                  selected ? 'text-label font-medium' : 'hover:text-secondary-label',
                 )}
               >
                 <span
                   className={cn(
-                    'h-1.5 w-1.5 rounded-full opacity-0 transition-opacity',
-                    meta.colorClassName,
+                    'pr-status-dot opacity-0 transition-opacity',
                     selected && 'opacity-100',
                   )}
                   aria-hidden="true"
@@ -516,17 +495,15 @@ function FocusConsole({
             className="mt-9 grid items-end gap-6 sm:grid-cols-[minmax(0,1fr)_auto]"
           >
             <div className="min-w-0">
-              <h3 className="text-label text-lg font-semibold">{focus.title}</h3>
-              <p className="text-secondary-label mt-2 max-w-md text-sm leading-6">
+              <h3 className="text-label pr-title">{focus.title}</h3>
+              <p className="text-secondary-label mt-2 max-w-md text-[13.5px] leading-relaxed">
                 {focus.summary}
               </p>
             </div>
 
             <div className="shrink-0 sm:text-right">
-              <div className="font-data text-label text-4xl font-semibold tabular-nums">
-                {focus.metric}
-              </div>
-              <div className="text-tertiary-label mt-1 text-xs">{focus.metricLabel}</div>
+              <div className="font-data text-label pr-kpi">{focus.metric}</div>
+              <div className="pr-kpi-label">{focus.metricLabel}</div>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -535,7 +512,7 @@ function FocusConsole({
       <button
         type="button"
         onClick={scrollToSection}
-        className="text-accent focus-visible:outline-accent mt-9 inline-flex h-10 w-fit items-center gap-2 text-sm font-semibold transition-all hover:gap-3 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4"
+        className="text-label focus-visible:outline-label mt-9 inline-flex h-9 w-fit items-center gap-2 text-[13px] font-medium transition-colors focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4"
       >
         {focus.actionLabel}
         <ArrowDown className="h-4 w-4" />
@@ -547,11 +524,11 @@ function FocusConsole({
 function MetricCell({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-tertiary-label text-xs">{label}</div>
-      <div className="font-data text-label mt-2 truncate text-2xl font-semibold tabular-nums">
+      <div className="pr-label">{label}</div>
+      <div className="font-data text-label mt-2 truncate text-[28px] leading-tight font-medium">
         {value}
       </div>
-      {detail && <div className="text-secondary-label mt-1 text-xs">{detail}</div>}
+      {detail && <div className="pr-meta mt-1">{detail}</div>}
     </div>
   )
 }
@@ -585,22 +562,18 @@ function SportPanel({ sport }: { sport: SportSummary }) {
         <div className="flex items-center gap-3">
           <span
             className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-md',
+              'flex h-8 w-8 items-center justify-center rounded-lg',
               sport.softClassName,
             )}
           >
             <SportIcon className="h-4 w-4" />
           </span>
           <div>
-            <h3 className="text-label text-base font-semibold">{sport.label}</h3>
-            <p className="text-tertiary-label mt-0.5 text-xs">
-              累计 {formatDistance(sport.data.total.distance)}
-            </p>
+            <h3 className="text-label pr-title">{sport.label}</h3>
+            <p className="pr-meta mt-0.5">累计 {formatDistance(sport.data.total.distance)}</p>
           </div>
         </div>
-        <span className="font-data text-secondary-label text-xs tabular-nums">
-          {sport.periodLabel.toUpperCase()}
-        </span>
+        <span className="pr-meta font-data">{sport.periodLabel.toUpperCase()}</span>
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-4">
@@ -624,7 +597,7 @@ function SportPanel({ sport }: { sport: SportSummary }) {
 
       <div className="mt-5 grid gap-5 sm:grid-cols-[1fr_1.4fr] sm:items-end">
         <div>
-          <div className="text-tertiary-label mb-2 flex items-center justify-between text-xs">
+          <div className="pr-meta mb-2 flex items-center justify-between">
             <span>7 天距离</span>
             <span>{sport.compareLabel}</span>
           </div>
@@ -632,13 +605,13 @@ function SportPanel({ sport }: { sport: SportSummary }) {
         </div>
 
         <div>
-          <div className="text-tertiary-label mb-2 flex items-center justify-between text-xs">
+          <div className="pr-meta mb-2 flex items-center justify-between">
             <span>距离目标</span>
-            <span className="font-data tabular-nums">{distanceProgress}%</span>
+            <span className="font-data">{distanceProgress}%</span>
           </div>
-          <div className="bg-quaternary-system-fill h-1.5 overflow-hidden rounded-full">
+          <div className="bg-quaternary-system-fill h-1 overflow-hidden rounded-[2px]">
             <motion.div
-              className={cn('h-full rounded-full', sport.accentClassName)}
+              className={cn('h-full rounded-[2px]', sport.accentClassName)}
               initial={{ width: 0 }}
               whileInView={{ width: `${distanceProgress}%` }}
               viewport={{ once: true }}
@@ -663,14 +636,14 @@ function SectionHeading({
   action?: React.ReactNode
 }) {
   return (
-    <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <div className="text-tertiary-label mb-2 text-xs font-medium">{eyebrow}</div>
-        <h2 className="font-display text-label text-3xl font-semibold sm:text-[2.15rem]">
-          {title}
-        </h2>
+        <div className="pr-label mb-2">{eyebrow}</div>
+        <h2 className="font-display text-label text-[20px] leading-tight font-medium">{title}</h2>
         {description && (
-          <p className="text-secondary-label mt-2 max-w-2xl text-sm leading-6">{description}</p>
+          <p className="text-secondary-label mt-2 max-w-2xl text-[13.5px] leading-relaxed">
+            {description}
+          </p>
         )}
       </div>
       {action}
@@ -778,11 +751,11 @@ export default function HomePage() {
         >
           <div className="mx-auto max-w-[82rem]">
             <div className="mb-10 flex items-center justify-between gap-4">
-              <div className="text-secondary-label flex items-center gap-2 text-sm font-medium">
-                <Activity className="text-accent h-4 w-4" />
+              <div className="text-secondary-label flex items-center gap-2 text-[13px] font-medium">
+                <Activity className="text-tertiary-label h-4 w-4" />
                 <span>今日训练</span>
               </div>
-              <span className="text-tertiary-label text-xs">
+              <span className="pr-meta">
                 最近更新 · {formatActivityDate(latestActivity?.startTime)}
               </span>
             </div>
@@ -811,7 +784,7 @@ export default function HomePage() {
                   {visibleRoutes.length > 0 && <RouteLayer routes={visibleRoutes} />}
                 </RunMap>
 
-                <div className="surface-glass text-label absolute top-3 left-3 z-20 flex items-center gap-1 rounded-full p-1">
+                <div className="surface-glass text-label absolute top-3 left-3 z-20 flex items-center gap-1 rounded-lg p-1">
                   <div className="pointer-events-none flex items-center gap-2 px-2">
                     <Route className="h-4 w-4" />
                     <span className="text-xs font-medium tabular-nums">
@@ -831,7 +804,7 @@ export default function HomePage() {
                           aria-pressed={selected}
                           onClick={() => setRouteFilter(filter)}
                           className={cn(
-                            'flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium transition-colors',
+                            'flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition-colors',
                             selected
                               ? 'bg-system-fill text-label'
                               : 'text-secondary-label hover:bg-tertiary-system-fill hover:text-label',
@@ -845,7 +818,7 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="surface-glass text-secondary-label pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-4 rounded-full px-3 py-2 text-[11px]">
+                <div className="surface-glass pr-meta pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-4 rounded-lg px-3 py-2">
                   {SPORT_TYPES.map((type) => (
                     <span
                       key={type}
@@ -855,7 +828,7 @@ export default function HomePage() {
                       )}
                     >
                       <span
-                        className="h-1.5 w-5 rounded-full"
+                        className="h-[3px] w-5 rounded-[2px]"
                         style={{ backgroundColor: sportRouteColors[type] }}
                       />
                       {SPORT_CONFIG[type].label}
@@ -893,8 +866,8 @@ export default function HomePage() {
                   <div key={item.label} className="flex min-w-0 items-start gap-3">
                     <ItemIcon className="text-tertiary-label mt-1 h-4 w-4 shrink-0" />
                     <div className="min-w-0">
-                      <div className="text-tertiary-label text-[11px]">{item.label}</div>
-                      <div className="font-data text-label mt-1.5 truncate text-xl font-semibold tabular-nums">
+                      <div className="pr-label">{item.label}</div>
+                      <div className="font-data text-label mt-1.5 truncate text-[22px] font-medium">
                         {item.value}
                       </div>
                     </div>
@@ -912,7 +885,7 @@ export default function HomePage() {
               title="跑步与骑行"
               action={
                 <div
-                  className="bg-tertiary-system-fill grid grid-cols-2 rounded-lg p-1"
+                  className="border-separator flex gap-5 border-b"
                   role="group"
                   aria-label="统计周期"
                 >
@@ -923,9 +896,11 @@ export default function HomePage() {
                       aria-pressed={statsPeriod === period}
                       onClick={() => setStatsPeriod(period)}
                       className={cn(
-                        'text-secondary-label min-h-9 rounded-md px-4 text-sm font-medium transition-colors',
-                        'focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2',
-                        statsPeriod === period && 'bg-system-background text-label shadow-sm',
+                        // 当前项用字重 + 1px 线，不用底色块
+                        'text-tertiary-label -mb-px border-b-2 border-transparent pb-2 text-[13px] transition-colors',
+                        'focus-visible:outline-label focus-visible:outline-2 focus-visible:outline-offset-2',
+                        statsPeriod === period &&
+                          'text-label border-[rgb(var(--color-label))] font-medium',
                       )}
                     >
                       {period === 'week' ? '本周' : '本月'}
@@ -974,16 +949,16 @@ export default function HomePage() {
               <div className="grid gap-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-20">
                 <div className="overflow-hidden">
                   <div className="mb-5 flex items-center gap-2">
-                    <CalendarDays className="text-green h-4 w-4" />
-                    <h3 className="text-label text-sm font-semibold">近 12 周训练日历</h3>
+                    <CalendarDays className="text-secondary-label h-4 w-4" />
+                    <h3 className="text-label pr-title">近 12 周训练日历</h3>
                   </div>
                   <ActivityHeatmap activities={activities} className="p-0 sm:p-0" />
                 </div>
 
                 <div className="overflow-hidden">
                   <div className="mb-5 flex items-center gap-2">
-                    <TrendingUp className="text-yellow h-4 w-4" />
-                    <h3 className="text-label text-sm font-semibold">个人最佳</h3>
+                    <TrendingUp className="text-secondary-label h-4 w-4" />
+                    <h3 className="text-label pr-title">个人最佳</h3>
                   </div>
                   <PersonalRecords activities={activities} className="p-0 sm:p-0" />
                 </div>
@@ -1004,10 +979,11 @@ export default function HomePage() {
               }
             />
 
+            {/* 错误：danger 文字 + 描边双信号，不铺警示色底块 */}
             {error && (
-              <div className="border-red/30 bg-red/5 mb-6 rounded-lg border p-5">
-                <p className="text-red text-sm font-semibold">活动读取失败</p>
-                <p className="text-red/75 mt-1 text-sm">{error.message}</p>
+              <div className="border-red/40 mb-6 border-l-2 pl-4">
+                <p className="text-red pr-title">活动读取失败</p>
+                <p className="text-secondary-label mt-1 text-[13.5px]">{error.message}</p>
               </div>
             )}
 
@@ -1031,9 +1007,9 @@ export default function HomePage() {
                   type="button"
                   onClick={() => void fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="text-accent focus-visible:outline-accent inline-flex h-11 items-center gap-2 text-sm font-semibold transition-all hover:gap-3 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="text-label focus-visible:outline-label inline-flex h-9 items-center gap-2 text-[13px] font-medium transition-colors focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <ArrowDown className={cn('h-4 w-4', isFetchingNextPage && 'animate-bounce')} />
+                  <ArrowDown className="h-4 w-4" />
                   <span>{isFetchingNextPage ? '正在加载' : '加载更多'}</span>
                 </button>
               </div>

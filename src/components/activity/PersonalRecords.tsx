@@ -112,7 +112,7 @@ function calculatePersonalRecords(
       unit: '',
       date: new Date(longestDuration.startTime),
       icon: <Clock className="h-5 w-5" />,
-      color: 'text-purple',
+      color: 'text-secondary-label',
       activityId: longestDuration.id,
     })
   }
@@ -202,7 +202,7 @@ export function PersonalRecords({ activities, className }: PersonalRecordsProps)
             <div className="mb-3 flex items-center gap-2">
               <span
                 className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full',
+                  'flex h-7 w-7 items-center justify-center rounded-lg',
                   meta.badgeClassName,
                 )}
               >

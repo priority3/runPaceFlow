@@ -163,11 +163,7 @@ export function SplitsTable({
                           aria-hidden="true"
                         />
                         <span className="tabular-nums">{data.kilometer}</span>
-                        {data.isFastest && (
-                          <span className="bg-accent/12 text-accent rounded-full px-1.5 py-0.5 text-[10px]">
-                            最快
-                          </span>
-                        )}
+                        {data.isFastest && <span className="pr-tag">最快</span>}
                         {active && !selected && (
                           <span className="text-tertiary-label text-[10px]">回放</span>
                         )}

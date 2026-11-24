@@ -66,13 +66,7 @@ const CardTitle = ({
   ...props
 }: React.HTMLAttributes<HTMLHeadingElement> & {
   ref?: React.RefObject<HTMLParagraphElement | null>
-}) => (
-  <h3
-    ref={ref}
-    className={cn('text-label text-lg leading-none font-semibold tracking-tight', className)}
-    {...props}
-  />
-)
+}) => <h3 ref={ref} className={cn('text-label pr-title', className)} {...props} />
 CardTitle.displayName = 'CardTitle'
 
 const CardDescription = ({
@@ -81,7 +75,13 @@ const CardDescription = ({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement> & {
   ref?: React.RefObject<HTMLParagraphElement | null>
-}) => <p ref={ref} className={cn('text-secondary-label text-sm', className)} {...props} />
+}) => (
+  <p
+    ref={ref}
+    className={cn('text-secondary-label text-[13.5px] leading-relaxed', className)}
+    {...props}
+  />
+)
 CardDescription.displayName = 'CardDescription'
 
 const CardContent = ({

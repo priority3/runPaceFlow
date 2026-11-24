@@ -17,7 +17,7 @@ export interface AnimatedButtonProps extends Omit<HTMLMotionProps<'button'>, 're
 }
 
 const variants = {
-  default: 'bg-accent text-accent-content hover:bg-accent/90 shadow-sm',
+  default: 'bg-accent text-accent-content hover:bg-accent/90',
   ghost: 'bg-transparent hover:bg-secondary-system-background',
   outline: 'premium-surface bg-tertiary-system-background hover:bg-secondary-system-background',
 }
@@ -42,7 +42,7 @@ export const AnimatedButton = ({
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
-        'focus-visible:ring-accent/50 focus-visible:ring-2 focus-visible:outline-none',
+        'focus-visible:outline-label focus-visible:outline-2 focus-visible:outline-offset-2',
         'disabled:pointer-events-none disabled:opacity-50',
         variants[variant],
         sizes[size],

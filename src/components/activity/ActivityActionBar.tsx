@@ -146,7 +146,7 @@ export function ActivityActionBar({
           <motion.button
             type="button"
             onClick={handleShare}
-            className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
+            className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-colors"
             whileHover={pressable.whileHover}
             whileTap={pressable.whileTap}
             transition={pressable.transition}
@@ -162,7 +162,7 @@ export function ActivityActionBar({
               setShowExportMenu(!showExportMenu)
               setShowShareMenu(false)
             }}
-            className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-all hover:-translate-y-0.5"
+            className="premium-surface hover:bg-secondary-system-background flex h-12 w-12 items-center justify-center rounded-lg transition-colors"
             whileHover={pressable.whileHover}
             whileTap={pressable.whileTap}
             transition={pressable.transition}
@@ -246,7 +246,7 @@ export function ActivityActionBar({
                 onClick={() => handleExport('image')}
                 className="text-label/80 hover:bg-label/5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
               >
-                <ImageIcon className="text-purple h-4 w-4" />
+                <ImageIcon className="text-secondary-label h-4 w-4" />
                 <div className="text-left">
                   <div>图片分享</div>
                   <div className="text-label/40 text-xs">生成精美分享图</div>

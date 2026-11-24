@@ -44,7 +44,7 @@ const RunMap = dynamic(
   () => import('@/components/map/RunMap').then((m) => ({ default: m.RunMap })),
   {
     ssr: false,
-    loading: () => <div className="skeleton-shimmer h-[320px] rounded-2xl sm:h-[420px]" />,
+    loading: () => <div className="skeleton-shimmer h-[320px] rounded-lg sm:h-[420px]" />,
   },
 )
 
@@ -303,7 +303,7 @@ export default function ActivityDetailPage() {
         >
           <div className="skeleton-shimmer mb-0 h-[300px] rounded-t-2xl sm:h-[400px]" />
           <div className="bg-tertiary-system-background/92 mb-5 rounded-b-2xl border-t border-[rgb(var(--color-separator))] px-4 py-3">
-            <div className="skeleton-shimmer h-8 w-full rounded-full" />
+            <div className="skeleton-shimmer h-8 w-full rounded-md" />
           </div>
           <div className="surface-panel mb-8 px-5 py-5 sm:px-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -323,12 +323,12 @@ export default function ActivityDetailPage() {
           </div>
           <div className="mb-5 flex gap-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={`detail-tab-${index}`} className="skeleton-shimmer h-8 w-20 rounded-full" />
+              <div key={`detail-tab-${index}`} className="skeleton-shimmer h-8 w-20 rounded-md" />
             ))}
           </div>
           <div className="surface-panel p-5 sm:p-6">
             <div className="skeleton-shimmer mb-5 h-3 w-24 rounded-md opacity-70" />
-            <div className="skeleton-shimmer h-56 w-full rounded-xl" />
+            <div className="skeleton-shimmer h-56 w-full rounded-lg" />
           </div>
         </div>
       </div>
@@ -347,8 +347,8 @@ export default function ActivityDetailPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4 }}
           >
-            <p className="text-label text-lg font-medium">加载失败</p>
-            <p className="text-label/50 mt-2 text-center text-sm">
+            <p className="text-label pr-title">加载失败</p>
+            <p className="text-secondary-label mt-2 text-[13.5px]">
               {error?.message || '无法找到该活动'}
             </p>
           </motion.div>
@@ -358,7 +358,6 @@ export default function ActivityDetailPage() {
   }
 
   const { activity, splits: activitySplits } = data
-  const typeEmoji = activity.type === 'running' ? '🏃' : activity.type === 'cycling' ? '🚴' : '🚶'
   const isCycling = activity.type === 'cycling'
   const metricMode = isCycling ? 'speed' : 'pace'
   const metricLabel = isCycling ? '速度' : '配速'
@@ -372,9 +371,9 @@ export default function ActivityDetailPage() {
       : ''
   const primaryMetricUnit = isCycling ? 'km/h' : ''
   const primaryMetricTitle = isCycling ? '均速' : '配速'
-  // Sport semantic colors for metrics (not brand accent)
-  const metricTextClassName = isCycling ? 'text-orange' : 'text-blue'
-  const metricSubTextClassName = isCycling ? 'text-orange/60' : 'text-blue/60'
+  // 主数据用墨色，不给运动类型分配装饰色
+  const metricTextClassName = 'text-label'
+  const metricSubTextClassName = 'text-tertiary-label'
   const bestMetricTitle = isCycling ? '最快速度' : '最快配速'
   const bestMetricUnit = isCycling ? 'km/h' : '/km'
   const noMetricDataText = isCycling ? '暂无速度数据' : '暂无配速数据'
@@ -400,7 +399,7 @@ export default function ActivityDetailPage() {
             transition={springs.smooth}
           >
             {/* Map + controls share one card so the bar never collides with the stats sheet */}
-            <div className="overflow-hidden rounded-2xl ring-1 ring-[rgb(var(--color-separator))]">
+            <div className="overflow-hidden rounded-lg ring-1 ring-[rgb(var(--color-separator))]">
               <div className="relative h-[300px] sm:h-[400px]">
                 <MapErrorBoundary>
                   <RunMap
@@ -462,6 +461,8 @@ export default function ActivityDetailPage() {
                 currentPace={currentPaceInfo?.pace}
                 currentDistanceMeters={currentPoint?.distance ?? 0}
                 currentElapsedSeconds={elapsedSeconds}
+                totalDistanceMeters={activity.distance}
+                totalElapsedSeconds={activity.duration}
                 metric={metricMode}
                 accentColor={currentPaceInfo?.color}
                 onPlayPause={handlePlayPause}
@@ -488,14 +489,14 @@ export default function ActivityDetailPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="flex items-start gap-2">
-                <h1 className="text-label min-w-0 flex-1 truncate text-lg font-medium tracking-tight sm:text-xl">
-                  <span>{`${typeEmoji} ${activity.title || '跑步活动'}`}</span>
+                <h1 className="text-label min-w-0 flex-1 truncate text-[20px] leading-tight font-medium">
+                  <span>{activity.title || '跑步活动'}</span>
                 </h1>
                 <div className="relative shrink-0">
                   <motion.button
                     type="button"
                     onClick={() => setShowShareMenu((open) => !open)}
-                    className="text-secondary-label hover:bg-system-fill hover:text-label flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                    className="text-secondary-label hover:bg-system-fill hover:text-label flex h-8 w-8 items-center justify-center rounded-md transition-colors"
                     whileTap={pressable.whileTap}
                     transition={pressable.transition}
                     aria-label="分享与更多"
@@ -505,7 +506,7 @@ export default function ActivityDetailPage() {
                   <AnimatePresence>
                     {showShareMenu && (
                       <motion.div
-                        className="premium-surface absolute top-9 right-0 z-30 w-48 overflow-hidden rounded-xl"
+                        className="premium-surface absolute top-9 right-0 z-30 w-48 overflow-hidden rounded-lg"
                         initial={{ opacity: 0, y: -6, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -4, scale: 0.98 }}
@@ -519,7 +520,7 @@ export default function ActivityDetailPage() {
                           className="text-label hover:bg-system-fill flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm"
                         >
                           {linkCopied ? (
-                            <Check className="text-green h-4 w-4" />
+                            <Check className="text-label h-4 w-4" />
                           ) : (
                             <Copy className="h-4 w-4" />
                           )}
@@ -538,7 +539,7 @@ export default function ActivityDetailPage() {
                           }}
                           className="text-label hover:bg-system-fill flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm"
                         >
-                          <Share2 className="text-accent h-4 w-4" />
+                          <Share2 className="text-secondary-label h-4 w-4" />
                           系统分享
                         </button>
                       </motion.div>
@@ -546,7 +547,7 @@ export default function ActivityDetailPage() {
                   </AnimatePresence>
                 </div>
               </div>
-              <p className="text-tertiary-label mt-1 text-xs sm:text-sm">
+              <p className="pr-meta mt-1">
                 {formatDate(activity.startTime)} {formatTime(activity.startTime)}
               </p>
             </div>
@@ -557,16 +558,16 @@ export default function ActivityDetailPage() {
                 onClick={() => scrollToSection('splits')}
                 className="hover:bg-system-fill/60 flex min-w-[3.5rem] flex-col rounded-lg px-1 py-0.5 text-left transition-colors"
               >
-                <span className="font-data text-label text-lg font-medium tabular-nums sm:text-xl">
+                <span className="font-data text-label text-[20px] font-medium tabular-nums">
                   {(activity.distance / 1000).toFixed(2)}
                 </span>
-                <span className="text-tertiary-label text-[11px]">公里</span>
+                <span className="pr-label">公里</span>
               </button>
               <div className="flex min-w-[3.5rem] flex-col">
-                <span className="font-data text-label text-lg font-medium tabular-nums sm:text-xl">
+                <span className="font-data text-label text-[20px] font-medium tabular-nums">
                   {formatDuration(activity.duration)}
                 </span>
-                <span className="text-tertiary-label text-[11px]">时长</span>
+                <span className="pr-label">时长</span>
               </div>
               {primaryMetricVisible && (
                 <button
@@ -576,7 +577,7 @@ export default function ActivityDetailPage() {
                 >
                   <span
                     className={cn(
-                      'font-data text-lg font-medium tabular-nums sm:text-xl',
+                      'font-data text-[20px] font-medium tabular-nums',
                       metricTextClassName,
                     )}
                   >
@@ -594,10 +595,10 @@ export default function ActivityDetailPage() {
               )}
               {activity.elevationGain !== null && activity.elevationGain > 0 && (
                 <div className="flex min-w-[3.5rem] flex-col">
-                  <span className="font-data text-label text-lg font-medium tabular-nums sm:text-xl">
+                  <span className="font-data text-label text-[20px] font-medium tabular-nums">
                     ↗{activity.elevationGain.toFixed(0)}
                   </span>
-                  <span className="text-tertiary-label text-[11px]">爬升</span>
+                  <span className="pr-label">爬升</span>
                 </div>
               )}
               {activity.averageHeartRate && (
@@ -606,10 +607,10 @@ export default function ActivityDetailPage() {
                   onClick={() => scrollToSection('heartrate')}
                   className="hover:bg-system-fill/60 flex min-w-[3.5rem] flex-col rounded-lg px-1 py-0.5 text-left transition-colors"
                 >
-                  <span className="font-data text-red text-lg font-medium tabular-nums sm:text-xl">
+                  <span className="font-data text-label text-[20px] font-medium tabular-nums">
                     {activity.averageHeartRate}
                   </span>
-                  <span className="text-red/60 text-[11px]">心率</span>
+                  <span className="pr-label">心率</span>
                 </button>
               )}
               {activity.weatherData && <WeatherInfo weatherDataJson={activity.weatherData} />}
@@ -626,7 +627,7 @@ export default function ActivityDetailPage() {
           >
             {/* Sticky section mini-nav */}
             <nav
-              className="surface-glass sticky top-12 z-30 -mx-1 mb-2 overflow-x-auto rounded-full px-1.5 py-1.5"
+              className="surface-glass border-separator sticky top-12 z-30 -mx-1 mb-2 overflow-x-auto border-b px-1 py-1"
               aria-label="详情分区"
             >
               <div className="flex min-w-max items-center gap-0.5">
@@ -657,9 +658,10 @@ export default function ActivityDetailPage() {
                         type="button"
                         onClick={() => scrollToSection(item.id)}
                         className={cn(
-                          'rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+                          // 当前项用字重 + 1px 线，不用底色块
+                          '-mb-px border-b-2 border-transparent px-3 py-2 text-[13px] whitespace-nowrap transition-colors',
                           active
-                            ? 'bg-tertiary-system-background text-label shadow-[0_0_0_1px_rgb(var(--color-separator))]'
+                            ? 'text-label border-[rgb(var(--color-label))] font-medium'
                             : 'text-tertiary-label hover:text-secondary-label',
                         )}
                         aria-current={active ? 'true' : undefined}
@@ -674,9 +676,7 @@ export default function ActivityDetailPage() {
             {/* Pace / speed */}
             <section id="section-pace" className="scroll-mt-28 space-y-5">
               <div className="surface-panel p-5 sm:p-6">
-                <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
-                  每公里{metricLabel}
-                </h2>
+                <h2 className="pr-label mb-5">每公里{metricLabel}</h2>
                 {chartSplits.length > 0 ? (
                   <PaceChart
                     splits={chartSplits}
@@ -705,9 +705,7 @@ export default function ActivityDetailPage() {
               <section id="section-heartrate" className="scroll-mt-28 space-y-5">
                 {heartRateData.length > 0 && (
                   <div className="surface-panel p-5 sm:p-6">
-                    <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
-                      心率变化
-                    </h2>
+                    <h2 className="pr-label mb-5">心率变化</h2>
                     <HeartRateChart
                       data={heartRateData}
                       averageHeartRate={activity.averageHeartRate ?? undefined}
@@ -727,10 +725,10 @@ export default function ActivityDetailPage() {
             {/* Splits */}
             <section id="section-splits" className="scroll-mt-28">
               <div className="surface-panel p-5 sm:p-6">
-                <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
+                <h2 className="pr-label mb-5">
                   分段数据
                   {selectedKm != null && (
-                    <span className="text-accent ml-2 font-normal normal-case">
+                    <span className="text-tertiary-label ml-2 font-normal">
                       · 第 {selectedKm} 公里
                     </span>
                   )}
@@ -779,23 +777,21 @@ export default function ActivityDetailPage() {
             {(activity.calories || activity.bestPace) && (
               <section id="section-more" className="scroll-mt-28">
                 <div className="surface-panel p-5 sm:p-6">
-                  <h2 className="text-secondary-label mb-5 text-xs font-medium tracking-wide uppercase">
-                    其他数据
-                  </h2>
+                  <h2 className="pr-label mb-5">其他数据</h2>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {activity.calories && (
-                      <div className="bg-secondary-system-background/80 rounded-xl p-4">
-                        <div className="text-tertiary-label text-[11px]">卡路里</div>
-                        <div className="font-data text-label mt-1.5 text-2xl font-medium tabular-nums">
+                      <div className="bg-secondary-system-background/80 rounded-lg p-4">
+                        <div className="pr-label">卡路里</div>
+                        <div className="font-data text-label pr-kpi mt-1.5">
                           {activity.calories}
                           <span className="text-tertiary-label ml-1 text-sm font-normal">kcal</span>
                         </div>
                       </div>
                     )}
                     {activity.bestPace && (
-                      <div className="bg-secondary-system-background/80 rounded-xl p-4">
-                        <div className="text-tertiary-label text-[11px]">{bestMetricTitle}</div>
-                        <div className="font-data text-label mt-1.5 text-2xl font-medium tabular-nums">
+                      <div className="bg-secondary-system-background/80 rounded-lg p-4">
+                        <div className="pr-label">{bestMetricTitle}</div>
+                        <div className="font-data text-label pr-kpi mt-1.5">
                           {isCycling
                             ? paceToSpeed(activity.bestPace).toFixed(1)
                             : formatPace(activity.bestPace)}

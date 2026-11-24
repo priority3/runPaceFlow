@@ -82,7 +82,7 @@ export function PaceFlowField({
       className="space-y-4"
     >
       {/* Canvas container */}
-      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black shadow-[0_0_0_1px_var(--pr-line-strong),0_2px_5px_rgba(0,0,0,0.14)]">
         <FlowFieldCanvas
           coordinates={coordinates}
           paces={paces}
@@ -102,7 +102,7 @@ export function PaceFlowField({
           <div className="text-sm text-white/60">
             {settings.isPlaying ? (
               <span className="flex items-center gap-2">
-                <span className="bg-green h-2 w-2 animate-pulse rounded-full" />
+                <span className="pr-status-dot pr-breathe" />
                 播放中
               </span>
             ) : (

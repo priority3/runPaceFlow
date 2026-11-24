@@ -21,7 +21,7 @@ export function Header() {
       <div className="mx-auto flex h-12 max-w-[82rem] items-center justify-between px-5 sm:px-7 lg:px-10">
         <a
           href="#overview"
-          className="focus-visible:outline-accent flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="focus-visible:outline-label flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2"
           aria-label="返回训练总览"
         >
           <Image
@@ -37,7 +37,7 @@ export function Header() {
             <h1 className="font-display text-label text-sm font-medium tracking-tight">
               RunPaceFlow
             </h1>
-            <span className="font-data text-tertiary-label hidden text-[10px] tracking-[0.08em] sm:inline">
+            <span className="font-data text-tertiary-label hidden text-[11px] tracking-[0.08em] sm:inline">
               TRAINING OS
             </span>
           </div>
@@ -50,19 +50,19 @@ export function Header() {
           >
             <a
               href="#training-volume"
-              className="hover:text-label focus-visible:outline-accent rounded-md px-2.5 py-1.5 transition-colors focus-visible:outline-2"
+              className="hover:text-label focus-visible:outline-label rounded-md px-2.5 py-1.5 font-medium transition-colors focus-visible:outline-2"
             >
               训练量
             </a>
             <a
               href="#training-rhythm"
-              className="hover:text-label focus-visible:outline-accent rounded-md px-2.5 py-1.5 transition-colors focus-visible:outline-2"
+              className="hover:text-label focus-visible:outline-label rounded-md px-2.5 py-1.5 font-medium transition-colors focus-visible:outline-2"
             >
               节奏
             </a>
             <a
               href="#activity-log"
-              className="hover:text-label focus-visible:outline-accent rounded-md px-2.5 py-1.5 transition-colors focus-visible:outline-2"
+              className="hover:text-label focus-visible:outline-label rounded-md px-2.5 py-1.5 font-medium transition-colors focus-visible:outline-2"
             >
               记录
             </a>

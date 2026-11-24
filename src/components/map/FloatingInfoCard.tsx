@@ -67,9 +67,11 @@ export function FloatingInfoCard({
       >
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${isPlaying ? 'bg-green' : 'bg-orange'}`} />
+            <span
+              className={`h-2 w-2 rounded-full ${isPlaying ? 'pr-status-dot pr-breathe' : 'bg-[var(--pr-line-strong)]'}`}
+            />
             <div className="min-w-0">
-              <div className="text-label flex items-baseline gap-2 text-sm font-semibold">
+              <div className="pr-title text-label flex items-baseline gap-2">
                 路线回放
                 <span className="text-tertiary-label text-xs font-medium">
                   {isPlaying ? '回放中' : '已暂停'}

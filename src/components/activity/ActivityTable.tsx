@@ -33,31 +33,15 @@ import { cn } from '@/lib/utils'
 import type { ActivityListItem } from '@/types/activity'
 
 /**
- * WMO weather code → emoji (compact version for list view)
- */
-function getWeatherEmoji(code: number): string {
-  if (code === 0) return '☀️'
-  if (code <= 3) return '⛅'
-  if (code <= 48) return '🌫️'
-  if (code <= 57) return '🌦️'
-  if (code <= 65) return '🌧️'
-  if (code <= 67) return '🧊'
-  if (code <= 77) return '🌨️'
-  if (code <= 82) return '🌧️'
-  if (code <= 86) return '🌨️'
-  if (code >= 95) return '⛈️'
-  return '🌡️'
-}
-
-/**
- * Parse weather JSON and return compact display string
+ * Parse weather JSON and return compact display string.
+ * pr-ui：不用 emoji 装饰，温度本身就是内容。
  */
 function getWeatherLabel(weatherData: string | null): string | null {
   if (!weatherData) return null
   try {
     const w = JSON.parse(weatherData) as { temperature: number; weatherCode: number }
     if (w.temperature == null) return null
-    return `${getWeatherEmoji(w.weatherCode)} ${w.temperature}°`
+    return `${w.temperature}°`
   } catch {
     return null
   }
@@ -118,30 +102,23 @@ function getSmartActivityTitle(activity: ActivityListItem): string {
 
   const distanceKm = activity.distance / 1000
 
-  // Add emoji badge for common race distances (with ±0.5km tolerance)
-  if (Math.abs(distanceKm - 5) <= 0.5) {
-    return '🎯 5K'
-  }
-  if (Math.abs(distanceKm - 10) <= 0.5) {
-    return '🔥 10K'
-  }
-  if (Math.abs(distanceKm - 21.0975) <= 0.5) {
-    return '🏅 半马'
-  }
-  if (Math.abs(distanceKm - 42.195) <= 0.5) {
-    return '🏆 全马'
-  }
+  // 距离本身就是标签，不再加 emoji 徽章
+  if (Math.abs(distanceKm - 5) <= 0.5) return '5K'
+  if (Math.abs(distanceKm - 10) <= 0.5) return '10K'
+  if (Math.abs(distanceKm - 21.0975) <= 0.5) return '半程马拉松'
+  if (Math.abs(distanceKm - 42.195) <= 0.5) return '全程马拉松'
 
   return activity.title || '跑步活动'
 }
 
 function getActivityTypeMeta(type: string) {
+  // 类型标签是元信息，不是彩色装饰；主数据一律用墨色
   if (type === 'cycling') {
     return {
       label: '骑行',
       icon: Bike,
-      className: 'bg-orange/10 text-orange',
-      metricClassName: 'text-orange',
+      className: 'pr-tag',
+      metricClassName: 'text-label',
     }
   }
 
@@ -149,16 +126,16 @@ function getActivityTypeMeta(type: string) {
     return {
       label: '跑步',
       icon: Footprints,
-      className: 'bg-blue/10 text-blue',
-      metricClassName: 'text-blue',
+      className: 'pr-tag',
+      metricClassName: 'text-label',
     }
   }
 
   return {
     label: '运动',
     icon: TrendingUp,
-    className: 'bg-gray/10 text-label/60',
-    metricClassName: 'text-accent',
+    className: 'pr-tag',
+    metricClassName: 'text-label',
   }
 }
 
@@ -212,7 +189,7 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
       type: 'longest',
       label: '最长',
       icon: <Trophy className="h-3 w-3" />,
-      color: 'bg-yellow/20 text-yellow',
+      color: '',
     })
     achievements.set(longestActivity.id, existing)
   }
@@ -223,7 +200,7 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
       type: 'fastest',
       label: '最快',
       icon: <Zap className="h-3 w-3" />,
-      color: 'bg-green/20 text-green',
+      color: '',
     })
     achievements.set(fastestActivity.id, existing)
   }
@@ -234,7 +211,7 @@ function calculateAchievements(activities: ActivityListItem[]): Map<string, Achi
       type: 'mostElevation',
       label: '爬坡王',
       icon: <Flame className="h-3 w-3" />,
-      color: 'bg-orange/20 text-orange',
+      color: '',
     })
     achievements.set(mostElevationActivity.id, existing)
   }
@@ -280,20 +257,19 @@ export function ActivityTable({
   if (activities.length === 0) {
     return (
       <motion.div
-        className="premium-surface flex flex-col items-center justify-center py-16"
+        className={cn(
+          'border-separator/60 flex min-h-40 items-center border-y py-9 sm:min-h-44 sm:py-10',
+          className,
+        )}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="bg-secondary-system-background mb-4 rounded-lg p-4">
-          <TrendingUp className="text-label/40 h-8 w-8" />
+        {/* 空态：一句话 + 下一步，不给插画 */}
+        <div className="pr-empty">
+          <p className="pr-empty-line">还没有可复盘的活动</p>
+          <p>接入数据后，这里会按时间列出每一次训练。</p>
         </div>
-        <p className="text-label text-lg font-medium">还没有活动记录</p>
-        <p className="text-label/50 mt-2 text-center text-sm">
-          后台接入活动后
-          <br />
-          活动将显示在这里
-        </p>
       </motion.div>
     )
   }
@@ -319,53 +295,40 @@ export function ActivityTable({
         className="group"
       >
         <Link href={`/activity/${activity.id}`} onMouseEnter={() => handleMouseEnter(activity.id)}>
-          <RippleContainer className="rounded-lg">
-            <motion.div
-              className="group hover:bg-secondary-system-background rounded-lg px-3 py-5 transition-colors duration-200 sm:px-4"
-              whileHover={{ x: 3 }}
-              whileTap={{ scale: 0.98 }}
-              transition={springs.snappy}
-            >
+          <RippleContainer>
+            {/* 列表用线分隔，hover 底色铺满整行，不做卡片与位移 */}
+            <motion.div className="group px-1 py-4 transition-colors duration-200 hover:bg-[var(--pr-sel)]">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   {/* Title with achievement badges */}
                   <div className="mb-2 flex items-center gap-2">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-label truncate font-medium">
+                      <h3 className="text-label truncate text-[14px] leading-snug">
                         {getSmartActivityTitle(activity)}
                       </h3>
-                      <p className="text-tertiary-label mt-1 text-xs">
+                      <p className="pr-meta mt-1">
                         {formatDateWithWeekday(new Date(activity.startTime))}
                       </p>
                       {/* Show original title as subtitle if using smart title or race name */}
                       {activity.raceName &&
                         activity.title &&
                         activity.raceName !== activity.title && (
-                          <p className="text-label/50 mt-0.5 truncate text-xs">{activity.title}</p>
+                          <p className="pr-meta mt-0.5 truncate">{activity.title}</p>
                         )}
                     </div>
-                    <span
-                      className={cn(
-                        'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                        typeMeta.className,
-                      )}
-                    >
+                    <span className={cn('pr-tag', typeMeta.className)}>
                       <TypeIcon className="h-3 w-3" />
                       {typeMeta.label}
                     </span>
-                    {/* Indoor badge */}
+                    {/* 室内 / 成就：同一枚中性标签，不靠颜色区分 */}
                     {activity.isIndoor && (
-                      <span className="bg-gray/20 text-gray flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                      <span className="pr-tag">
                         <Home className="h-3 w-3" />
                         室内
                       </span>
                     )}
-                    {/* Achievement badges */}
                     {achievements.get(activity.id)?.map((achievement) => (
-                      <span
-                        key={achievement.type}
-                        className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${achievement.color}`}
-                      >
+                      <span key={achievement.type} className={cn('pr-tag', achievement.color)}>
                         {achievement.icon}
                         {achievement.label}
                       </span>
@@ -373,20 +336,20 @@ export function ActivityTable({
                   </div>
 
                   {/* Stats row */}
-                  <div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
+                  <div className="flex flex-wrap items-center gap-3 text-[13px] sm:gap-4">
                     {/* Distance */}
                     <div className="flex items-center gap-1.5">
-                      <TrendingUp className="text-label/30 h-3.5 w-3.5" />
-                      <span className="text-label/80 tabular-nums">
+                      <TrendingUp className="text-tertiary-label h-3.5 w-3.5" />
+                      <span className="text-label tabular-nums">
                         {(activity.distance / 1000).toFixed(2)}
                       </span>
-                      <span className="text-label/50">km</span>
+                      <span className="text-tertiary-label">km</span>
                     </div>
 
                     {/* Duration */}
                     <div className="flex items-center gap-1.5">
-                      <Clock className="text-label/30 h-3.5 w-3.5" />
-                      <span className="text-label/80 tabular-nums">
+                      <Clock className="text-tertiary-label h-3.5 w-3.5" />
+                      <span className="text-label tabular-nums">
                         {formatDuration(activity.duration)}
                       </span>
                     </div>
@@ -407,18 +370,18 @@ export function ActivityTable({
                     {/* Elevation */}
                     {activity.elevationGain && activity.elevationGain > 0 && (
                       <div className="hidden items-center gap-1.5 sm:flex">
-                        <Mountain className="text-label/30 h-3.5 w-3.5" />
-                        <span className="text-label/80 tabular-nums">
+                        <Mountain className="text-tertiary-label h-3.5 w-3.5" />
+                        <span className="text-label tabular-nums">
                           {Math.round(activity.elevationGain)}
                         </span>
-                        <span className="text-label/50">m</span>
+                        <span className="text-tertiary-label">m</span>
                       </div>
                     )}
 
                     {/* Weather */}
                     {activity.weatherData && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-label/80 tabular-nums">
+                        <span className="text-label tabular-nums">
                           {getWeatherLabel(activity.weatherData)}
                         </span>
                       </div>
@@ -427,9 +390,7 @@ export function ActivityTable({
                 </div>
 
                 {/* Arrow with hover animation */}
-                <motion.div initial={false} whileHover={{ x: 4 }} transition={springs.snappy}>
-                  <ChevronRight className="text-label/30 group-hover:text-label/50 h-5 w-5 flex-shrink-0 transition-colors duration-150" />
-                </motion.div>
+                <ChevronRight className="text-tertiary-label group-hover:text-label h-5 w-5 flex-shrink-0 transition-colors duration-150" />
               </div>
             </motion.div>
           </RippleContainer>
@@ -441,7 +402,7 @@ export function ActivityTable({
   if (!virtualized || !scrollRef) {
     return (
       <motion.div
-        className={`grid gap-3 lg:grid-cols-2 ${className}`}
+        className={`divide-separator divide-y ${className}`}
         variants={containerVariants}
         initial="hidden"
         animate="visible"

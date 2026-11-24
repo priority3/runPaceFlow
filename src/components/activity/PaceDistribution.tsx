@@ -152,7 +152,7 @@ export function PaceDistribution({
             </div>
             <div className="bg-quaternary-system-fill h-1.5 overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className="h-full rounded-[2px] transition-[width] duration-500"
                 style={{
                   width: `${maxPercentage > 0 ? (zone.percentage / maxPercentage) * 100 : 0}%`,
                   backgroundColor: zone.color,

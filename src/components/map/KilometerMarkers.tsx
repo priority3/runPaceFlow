@@ -50,10 +50,10 @@ export function KilometerMarkers({ markers, metric = 'pace', onSelect }: Kilomet
                 if (next !== null) onSelect?.(next)
               }}
               className={cn(
-                'flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-[10px] leading-none font-medium transition-transform hover:scale-110',
+                'flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-[11px] leading-none font-medium transition-colors',
                 selected
-                  ? 'bg-accent text-accent-content ring-accent/30 scale-110 shadow-[0_2px_10px_rgba(36,35,31,0.2)] ring-4'
-                  : 'bg-label/90 text-system-background shadow-[0_2px_8px_rgba(36,35,31,0.16)] ring-2 ring-white/90 dark:ring-black/30',
+                  ? 'bg-accent text-accent-content ring-1 ring-[var(--pr-line-strong)]'
+                  : 'bg-label/90 text-system-background ring-2 ring-white/90 dark:ring-black/30',
               )}
             >
               {marker.kilometer}

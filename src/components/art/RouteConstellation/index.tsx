@@ -76,7 +76,7 @@ export function RouteConstellation({
       className="space-y-4"
     >
       {/* Canvas container */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-black shadow-[0_24px_60px_rgba(0,0,0,0.28)]">
+      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-black shadow-[0_0_0_1px_var(--pr-line-strong),0_2px_5px_rgba(0,0,0,0.14)]">
         <ConstellationCanvas
           markers={markers}
           bounds={bounds}

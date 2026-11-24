@@ -40,7 +40,7 @@ export function ThemeToggle() {
     <motion.button
       type="button"
       onClick={cycleTheme}
-      className="text-secondary-label hover:text-label focus-visible:ring-accent flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+      className="text-secondary-label hover:text-label focus-visible:outline-label flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
       whileHover={pressable.whileHover}
       whileTap={pressable.whileTap}
       transition={pressable.transition}

@@ -25,8 +25,9 @@ export function Skeleton({
   const variantClasses = {
     default: 'rounded-md',
     text: 'rounded h-3.5',
+    // 状态点 / 头像保持圆形，其余一律走同一套圆角梯子
     circular: 'rounded-full',
-    rectangular: 'rounded-xl',
+    rectangular: 'rounded-lg',
   }
 
   return (
@@ -94,10 +95,7 @@ export function SportPanelSkeleton({ className }: { className?: string }) {
 /** Compact row placeholder for activity list. */
 export function ActivityRowSkeleton({ className }: { className?: string }) {
   return (
-    <div
-      className={cn('flex items-center gap-4 rounded-xl px-1 py-4 sm:gap-6', className)}
-      aria-hidden="true"
-    >
+    <div className={cn('flex items-center gap-4 px-1 py-4 sm:gap-6', className)} aria-hidden="true">
       <Skeleton variant="circular" className="h-9 w-9 shrink-0" />
       <div className="min-w-0 flex-1 space-y-2">
         <Skeleton className="h-4 w-2/5 max-w-48" />

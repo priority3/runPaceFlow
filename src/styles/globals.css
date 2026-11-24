@@ -2,157 +2,201 @@
 @import 'tailwindcss-uikit-colors/selector.css';
 
 /*
- * Shiro-inspired paper surfaces + brand accent.
- * UIKit semantic names are kept; values are retuned for warm paper / iOS charcoal.
- * Sport / pace / HR data colors stay on --rpf-* (not brand chrome).
+ * pr-ui 底座 —— 把界面减到几乎看不见，让内容成为屏幕上唯一的主角。
+ *
+ * 保留 tailwindcss-uikit-colors 的语义类名（项目约定），只重定变量值：
+ *   1. 整屏只有一个彩色（--pr-accent），且只表状态；品牌装饰色全部收进墨色。
+ *   2. 层级只靠留白、字号、1px 线；墨只有一种颜色，靠 alpha 分层。
+ *   3. 面 = 纯白 + 1px 描边 + 极淡柔影；暗色是同一组变量换值，不写第二套样式链。
+ *
+ * 规范：~/.workbuddy/skills/pr-ui/SKILL.md
+ * 数值：references/design-tokens.md（亮/暗 token 表 + 实测对比度）
  */
 
 @theme inline {
   --color-accent: rgb(var(--color-accent));
   --color-accent-content: rgb(var(--color-accent-content));
+  --color-pr-accent: var(--pr-accent);
+  --color-pr-danger: var(--pr-danger);
 }
 
+:root,
 html,
 html[data-theme='light'] {
-  /* Warm paper neutrals (Shiro / innei.in light) */
-  --color-red: 196 73 83;
-  --color-orange: 185 90 45;
-  --color-yellow: 168 122 61;
-  --color-green: 94 159 126;
-  --color-mint: 51 166 184;
-  --color-teal: 48 150 158;
-  --color-cyan: 61 140 168;
-  --color-blue: 61 104 150;
-  --color-indigo: 88 92 160;
-  --color-purple: 132 108 156;
-  --color-pink: 197 100 115;
-  --color-brown: 138 108 86;
-  --color-gray: 120 118 112;
-  --color-gray2: 148 146 140;
-  --color-gray3: 180 178 172;
-  --color-gray4: 208 206 198;
-  --color-gray5: 227 225 219;
-  --color-gray6: 240 239 235;
-  --color-placeholderText: 148 146 140;
-  --color-separator: 36 35 31 / 0.1;
-  --color-opaqueSeparator: 208 206 198;
-  --color-nonOpaqueSeparator: 36 35 31 / 0.1;
-  --color-link: 51 166 184;
+  /* ---- pr-ui 规范源 ---- */
+  --pr-bg: #ffffff;
+  --pr-canvas: #f4f4f5;
+  --pr-text: #111114; /* 墨 100%  18.9:1 */
+  --pr-text-2: #545456; /* 墨  72%   7.6:1  次级文字、标签 */
+  --pr-muted: #707072; /* 墨  60%   4.9:1  11px 小字下限 */
+  --pr-line: #ececee;
+  --pr-line-strong: #e0e0e3;
+  --pr-sel: #f0f0f2;
+  --pr-card: #f4f4f5;
+  --pr-accent: #a3e635; /* 全站唯一彩色，只表状态 */
+  --pr-accent-ink: #1a2e05;
+  --pr-danger: #d92d20; /* 只在出错时出现 */
+  --pr-glass: rgba(255, 255, 255, 0.78);
+  --pr-shadow-card: 0 0 0 1px #e0e0e3, 0 2px 5px rgba(0, 0, 0, 0.14);
+  --pr-shadow-float: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --pr-r-card: 10px;
+  --pr-r-input: 14px;
+  --pr-r-ctl: 8px;
+  --pr-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --pr-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Paper stack: page → grouped → card */
-  --color-systemBackground: 250 247 240;
-  --color-secondarySystemBackground: 255 253 248;
+  /* ---- 墨：一种颜色，alpha 分层。系统色收敛成灰阶，装饰用色归零 ---- */
+  --color-red: 217 45 32; /* = danger，只用于错误 */
+  --color-orange: 112 112 114;
+  --color-yellow: 112 112 114;
+  --color-green: 112 112 114;
+  --color-mint: 112 112 114;
+  --color-teal: 112 112 114;
+  --color-cyan: 112 112 114;
+  --color-blue: 112 112 114;
+  --color-indigo: 112 112 114;
+  --color-purple: 112 112 114;
+  --color-pink: 112 112 114;
+  --color-brown: 112 112 114;
+  --color-gray: 112 112 114;
+  --color-gray2: 130 130 132;
+  --color-gray3: 160 160 162;
+  --color-gray4: 200 200 202;
+  --color-gray5: 224 224 227;
+  --color-gray6: 240 240 243;
+  --color-placeholderText: 112 112 114;
+  --color-separator: 17 17 20 / 0.1;
+  --color-opaqueSeparator: 224 224 227;
+  --color-nonOpaqueSeparator: 17 17 20 / 0.1;
+  --color-link: 17 17 20;
+
+  /* ---- 纸：纯白，区块之间靠 1px 线与留白，不靠底色深浅 ---- */
+  --color-systemBackground: 255 255 255;
+  --color-secondarySystemBackground: 250 250 251;
   --color-tertiarySystemBackground: 255 255 255;
-  --color-systemGroupedBackground: 250 247 240;
-  --color-secondarySystemGroupedBackground: 255 253 248;
+  --color-systemGroupedBackground: 255 255 255;
+  --color-secondarySystemGroupedBackground: 250 250 251;
   --color-tertiarySystemGroupedBackground: 255 255 255;
 
-  --color-systemFill: 92 90 85 / 0.14;
-  --color-secondarySystemFill: 92 90 85 / 0.11;
-  --color-tertiarySystemFill: 92 90 85 / 0.08;
-  --color-quaternarySystemFill: 92 90 85 / 0.05;
+  --color-systemFill: 17 17 20 / 0.1;
+  --color-secondarySystemFill: 17 17 20 / 0.07;
+  --color-tertiarySystemFill: 17 17 20 / 0.05;
+  --color-quaternarySystemFill: 17 17 20 / 0.045;
 
-  --color-label: 36 35 31;
-  --color-text: 36 35 31;
-  --color-secondaryLabel: 92 90 85 / 0.9;
-  --color-tertiaryLabel: 92 90 85 / 0.62;
-  --color-quaternaryLabel: 92 90 85 / 0.4;
+  --color-label: 17 17 20;
+  --color-text: 17 17 20;
+  --color-secondaryLabel: 84 84 86;
+  --color-tertiaryLabel: 112 112 114;
+  --color-quaternaryLabel: 112 112 114;
 
-  /* Brand accent — 浅葱 */
-  --color-accent: 51 166 184;
+  /* 品牌色不再有颜色：主按钮是深色实心，CTA / 焦点是深墨描边与文字 */
+  --color-accent: 17 17 20;
   --color-accent-content: 255 255 255;
 
-  /* Semantic training data — Yohaku 和色, further muted for paper charts.
-   * Low chroma so bars/lines sit on cream without looking like a dashboard.
-   */
-  --rpf-running: #4a6f94; /* 縹 soft */
-  --rpf-cycling: #9a7a4a; /* 朽葉 soft */
-  --rpf-heart: #9a5a62; /* 蘇芳 soft */
-  --rpf-route-mono: #403f3a; /* n-8 */
-  /* Pace: cool calm → warm stress */
-  --rpf-pace-very-fast: #4a6f94;
-  --rpf-pace-fast: #6a84a0;
-  --rpf-pace-average: #9a9890;
-  --rpf-pace-slow: #b09060;
-  --rpf-pace-very-slow: #9a5a62;
-  /* HR zones Z1→Z5 */
-  --rpf-heart-zone-1: #b0aea6;
-  --rpf-heart-zone-2: #6a9a80;
-  --rpf-heart-zone-3: #4a6f94;
-  --rpf-heart-zone-4: #9a7a4a;
-  --rpf-heart-zone-5: #9a5a62;
+  /* ---- 数据色：墨色明度梯度 + 一条强调线，不用彩色图例 ---- */
+  --rpf-running: #111114;
+  --rpf-cycling: #707072;
+  --rpf-heart: #545456;
+  --rpf-route-mono: #111114;
+  --rpf-pace-very-fast: #111114;
+  --rpf-pace-fast: #3f3f43;
+  --rpf-pace-average: #707072;
+  --rpf-pace-slow: #9b9b9e;
+  --rpf-pace-very-slow: #c2c2c5;
+  --rpf-heart-zone-1: #c2c2c5;
+  --rpf-heart-zone-2: #a0a0a3;
+  --rpf-heart-zone-3: #7d7d80;
+  --rpf-heart-zone-4: #545456;
+  --rpf-heart-zone-5: #111114;
 
-  --rpf-whisper-shadow: 0 4px 24px rgba(36, 35, 31, 0.05);
-  --rpf-header-shadow: 0 8px 30px rgba(36, 35, 31, 0.04);
-  --rpf-glass-bg: 255 253 248 / 0.78;
+  --rpf-whisper-shadow: 0 2px 5px rgba(0, 0, 0, 0.14);
+  --rpf-header-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  --rpf-glass-bg: 255 255 255 / 0.78;
+  color-scheme: light;
 }
 
 html[data-theme='dark'] {
-  --color-red: 232 120 128;
-  --color-orange: 255 160 112;
-  --color-yellow: 232 188 110;
-  --color-green: 110 200 150;
-  --color-mint: 120 210 220;
-  --color-teal: 100 200 210;
-  --color-cyan: 120 200 230;
-  --color-blue: 120 166 220;
-  --color-indigo: 150 155 230;
-  --color-purple: 190 170 215;
-  --color-pink: 245 150 170;
-  --color-brown: 196 160 130;
-  --color-gray: 170 170 175;
-  --color-gray2: 140 140 145;
-  --color-gray3: 100 100 105;
+  /* 暗色不是第二套皮肤，是同一组变量换值 */
+  --pr-bg: #0b0b0d;
+  --pr-canvas: #0b0b0d;
+  --pr-text: #f2f2f4;
+  --pr-text-2: #b1b1b3;
+  --pr-muted: #969698;
+  --pr-line: #232327;
+  --pr-line-strong: #2c2c31;
+  --pr-sel: #1c1c20;
+  --pr-card: #1e1e23;
+  --pr-accent: #a3e635;
+  --pr-accent-ink: #16240a;
+  --pr-danger: #ff6b63;
+  --pr-glass: rgba(11, 11, 13, 0.72);
+  --pr-shadow-card: 0 0 0 1px #232327, 0 2px 5px rgba(0, 0, 0, 0.5);
+  --pr-shadow-float: 0 4px 16px rgba(0, 0, 0, 0.55);
+
+  --color-red: 255 107 99;
+  --color-orange: 150 150 152;
+  --color-yellow: 150 150 152;
+  --color-green: 150 150 152;
+  --color-mint: 150 150 152;
+  --color-teal: 150 150 152;
+  --color-cyan: 150 150 152;
+  --color-blue: 150 150 152;
+  --color-indigo: 150 150 152;
+  --color-purple: 150 150 152;
+  --color-pink: 150 150 152;
+  --color-brown: 150 150 152;
+  --color-gray: 150 150 152;
+  --color-gray2: 130 130 133;
+  --color-gray3: 105 105 108;
   --color-gray4: 72 72 76;
   --color-gray5: 44 44 48;
   --color-gray6: 28 28 30;
-  --color-placeholderText: 140 140 145;
-  --color-separator: 235 235 245 / 0.14;
+  --color-placeholderText: 150 150 152;
+  --color-separator: 242 242 244 / 0.14;
   --color-opaqueSeparator: 56 56 58;
-  --color-nonOpaqueSeparator: 235 235 245 / 0.14;
-  --color-link: 245 150 170;
+  --color-nonOpaqueSeparator: 242 242 244 / 0.14;
+  --color-link: 242 242 244;
 
-  /* iOS charcoal stack (Shiro dark) */
-  --color-systemBackground: 28 28 30;
-  --color-secondarySystemBackground: 36 36 38;
-  --color-tertiarySystemBackground: 44 44 46;
-  --color-systemGroupedBackground: 28 28 30;
-  --color-secondarySystemGroupedBackground: 36 36 38;
-  --color-tertiarySystemGroupedBackground: 44 44 46;
+  --color-systemBackground: 11 11 13;
+  --color-secondarySystemBackground: 17 17 19;
+  --color-tertiarySystemBackground: 17 17 19;
+  --color-systemGroupedBackground: 11 11 13;
+  --color-secondarySystemGroupedBackground: 17 17 19;
+  --color-tertiarySystemGroupedBackground: 17 17 19;
 
-  --color-systemFill: 180 180 190 / 0.22;
-  --color-secondarySystemFill: 180 180 190 / 0.17;
-  --color-tertiarySystemFill: 180 180 190 / 0.12;
-  --color-quaternarySystemFill: 180 180 190 / 0.08;
+  --color-systemFill: 242 242 244 / 0.12;
+  --color-secondarySystemFill: 242 242 244 / 0.09;
+  --color-tertiarySystemFill: 242 242 244 / 0.07;
+  --color-quaternarySystemFill: 242 242 244 / 0.055;
 
-  --color-label: 245 245 247;
-  --color-text: 245 245 247;
-  --color-secondaryLabel: 235 235 245 / 0.72;
-  --color-tertiaryLabel: 235 235 245 / 0.48;
-  --color-quaternaryLabel: 235 235 245 / 0.32;
+  --color-label: 242 242 244;
+  --color-text: 242 242 244;
+  --color-secondaryLabel: 177 177 179;
+  --color-tertiaryLabel: 150 150 152;
+  --color-quaternaryLabel: 150 150 152;
 
-  /* Brand accent — 桃 */
-  --color-accent: 245 150 170;
-  --color-accent-content: 28 28 30;
+  --color-accent: 242 242 244;
+  --color-accent-content: 11 11 13;
 
-  --rpf-running: #8aafd0;
-  --rpf-cycling: #c4a878;
-  --rpf-heart: #c88890;
-  --rpf-route-mono: #e8e8ea;
-  --rpf-pace-very-fast: #8aafd0;
-  --rpf-pace-fast: #a0bdd8;
-  --rpf-pace-average: #a8a8b0;
-  --rpf-pace-slow: #c8b080;
-  --rpf-pace-very-slow: #c88890;
-  --rpf-heart-zone-1: #909098;
-  --rpf-heart-zone-2: #88b8a0;
-  --rpf-heart-zone-3: #8aafd0;
-  --rpf-heart-zone-4: #c4a878;
-  --rpf-heart-zone-5: #c88890;
+  --rpf-running: #f2f2f4;
+  --rpf-cycling: #969698;
+  --rpf-heart: #b1b1b3;
+  --rpf-route-mono: #f2f2f4;
+  --rpf-pace-very-fast: #f2f2f4;
+  --rpf-pace-fast: #c8c8cb;
+  --rpf-pace-average: #969698;
+  --rpf-pace-slow: #6d6d71;
+  --rpf-pace-very-slow: #45454a;
+  --rpf-heart-zone-1: #45454a;
+  --rpf-heart-zone-2: #6d6d71;
+  --rpf-heart-zone-3: #969698;
+  --rpf-heart-zone-4: #c8c8cb;
+  --rpf-heart-zone-5: #f2f2f4;
 
-  --rpf-whisper-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
-  --rpf-header-shadow: 0 8px 30px rgba(0, 0, 0, 0.22);
-  --rpf-glass-bg: 36 36 38 / 0.78;
+  --rpf-whisper-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  --rpf-header-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+  --rpf-glass-bg: 17 17 19 / 0.72;
+  color-scheme: dark;
 }
 
 @layer base {
@@ -163,8 +207,8 @@ html[data-theme='dark'] {
 
   html {
     scroll-behavior: smooth;
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 14px; /* 应用页正文基准 */
+    line-height: 1.78; /* 正文比你以为的松一档 */
   }
 
   body {
@@ -172,34 +216,19 @@ html[data-theme='dark'] {
     font-family:
       -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', Arial,
       sans-serif;
-  }
-
-  /* Soft paper noise — Shiro-like texture, very low opacity */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 180px 180px;
-  }
-
-  html[data-theme='dark'] body::before {
-    opacity: 0.02;
-  }
-
-  body > * {
-    position: relative;
-    z-index: 1;
+    font-variant-numeric: tabular-nums; /* 所有数字等宽，整行不左右抖 */
   }
 
   ::selection {
-    background-color: rgb(var(--color-accent) / 0.28);
+    background-color: rgb(163 230 53 / 0.4);
     color: rgb(var(--color-label));
   }
+}
+
+/* 焦点统一压深一格描边，不发光、不用彩色。裸规则保证不依赖工具类生成 */
+:focus-visible {
+  outline: 2px solid var(--pr-text-2);
+  outline-offset: 2px;
 }
 
 .font-display {
@@ -214,86 +243,62 @@ html[data-theme='dark'] {
 
 .font-data {
   font-family: 'SF Mono', 'Roboto Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 section[id] {
   scroll-margin-top: 4.5rem;
 }
 
-/* Whisper elevation — ring + soft multi-layer, no hard drop shadows */
+/* ---- 面：纯白 + 1px 描边 + 极淡柔影。暗色由 --pr-shadow-card 自动换值 ---- */
 .premium-surface {
-  border-radius: 0.75rem;
+  border-radius: var(--pr-r-card);
   background: rgb(var(--color-tertiarySystemBackground));
-  box-shadow:
-    0 0 0 1px rgb(var(--color-separator)),
-    var(--rpf-whisper-shadow);
+  box-shadow: var(--pr-shadow-card);
 }
 
 .premium-surface-soft {
-  border-radius: 0.75rem;
-  background: rgb(var(--color-secondarySystemBackground));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border-radius: var(--pr-r-card);
+  background: var(--pr-card);
 }
 
-html[data-theme='dark'] .premium-surface {
-  box-shadow:
-    0 0 0 1px rgb(var(--color-separator)),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    var(--rpf-whisper-shadow);
-}
-
-html[data-theme='dark'] .premium-surface-soft {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
-}
-
-/* Frosted chrome for map chips / floating panels */
+/* 毛玻璃只给顶栏与浮层，saturate 避免模糊后发灰发脏 */
 .surface-glass {
   background: rgba(var(--rpf-glass-bg));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: var(--rpf-header-shadow);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: var(--pr-shadow-float);
 }
 
-/*
- * Sticky page chrome: blend into paper — no floating strip.
- * Add .is-scrolled on the header after a few px of scroll.
- */
+/* 顶栏：未滚动时融进纸面，滚动后靠 1px 线立住，不做悬浮条 */
 .surface-header {
   background: transparent;
   border-bottom: 1px solid transparent;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    backdrop-filter 0.2s ease;
+    background-color 0.2s,
+    border-color 0.2s,
+    backdrop-filter 0.2s;
 }
 
 .surface-header.is-scrolled {
-  background: rgb(var(--color-systemBackground) / 0.82);
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  background: var(--pr-glass);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
   border-bottom-color: rgb(var(--color-separator));
 }
 
-/* Chart / data panel — lighter than premium cards */
 .surface-panel {
-  border-radius: 0.75rem;
-  background: rgb(var(--color-tertiarySystemBackground) / 0.72);
-  box-shadow: 0 0 0 1px rgb(var(--color-separator));
+  border-radius: var(--pr-r-card);
+  background: rgb(var(--color-tertiarySystemBackground));
+  box-shadow: 0 0 0 1px var(--pr-line);
 }
 
-html[data-theme='dark'] .surface-panel {
-  background: rgb(var(--color-tertiarySystemBackground) / 0.55);
-}
-
-/*
- * Paper shimmer skeleton — soft fill + slow highlight sweep.
- * Avoids solid white blocks that fight the warm page background.
- */
+/* 骨架屏：形状对齐真实内容，不用实心白块 */
 .skeleton-shimmer {
   position: relative;
   overflow: hidden;
-  background: rgb(var(--color-label) / 0.055);
-  border-radius: 0.375rem;
+  background: rgb(var(--color-label) / 0.06);
+  border-radius: var(--pr-r-ctl);
 }
 
 .skeleton-shimmer::after {
@@ -304,27 +309,12 @@ html[data-theme='dark'] .surface-panel {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgb(var(--color-label) / 0.06) 45%,
-    rgb(var(--color-label) / 0.1) 50%,
-    rgb(var(--color-label) / 0.06) 55%,
-    transparent 100%
-  );
-  animation: skeleton-shimmer 1.6s ease-in-out infinite;
-}
-
-html[data-theme='dark'] .skeleton-shimmer {
-  background: rgb(var(--color-label) / 0.08);
-}
-
-html[data-theme='dark'] .skeleton-shimmer::after {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
     rgb(var(--color-label) / 0.05) 45%,
-    rgb(var(--color-label) / 0.1) 50%,
+    rgb(var(--color-label) / 0.09) 50%,
     rgb(var(--color-label) / 0.05) 55%,
     transparent 100%
   );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
 @keyframes skeleton-shimmer {
@@ -333,23 +323,10 @@ html[data-theme='dark'] .skeleton-shimmer::after {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer::after {
-    animation: none;
-    opacity: 0;
-  }
-}
-
-/*
- * Apple UIKit colors are provided by tailwindcss-uikit-colors.
- * Brand chrome: accent / accent-content (Shiro 浅葱 / 桃).
- * Data chrome: --rpf-* for run / cycle / HR / pace.
- */
-
-/* MapLibre Popup Styles */
+/* MapLibre Popup */
 .maplibregl-popup-content {
   @apply border-separator bg-secondary-system-background rounded-lg border;
-  box-shadow: var(--rpf-whisper-shadow);
+  box-shadow: var(--pr-shadow-card);
   padding: 0 !important;
 }
 
@@ -363,7 +340,7 @@ html[data-theme='dark'] .skeleton-shimmer::after {
   display: none;
 }
 
-/* Hide scrollbar but keep scroll behavior */
+/* 隐藏滚动条但不禁止滚动 */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -373,10 +350,9 @@ html[data-theme='dark'] .skeleton-shimmer::after {
   display: none;
 }
 
-/* Thin, subtle scrollbar for internal list panels */
 .scrollbar-subtle {
   scrollbar-width: thin;
-  scrollbar-color: rgba(36, 35, 31, 0.16) transparent;
+  scrollbar-color: rgb(var(--color-label) / 0.16) transparent;
 }
 
 .scrollbar-subtle::-webkit-scrollbar {
@@ -389,23 +365,377 @@ html[data-theme='dark'] .skeleton-shimmer::after {
 
 .scrollbar-subtle::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background-color: rgba(36, 35, 31, 0.16);
+  background-color: rgb(var(--color-label) / 0.16);
 }
 
 .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(36, 35, 31, 0.26);
+  background-color: rgb(var(--color-label) / 0.26);
 }
 
-:root[data-theme='dark'] .scrollbar-subtle {
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+/* ==========================================================================
+   pr-ui 通用元件（pr- 前缀，无依赖，不与现有工具类打架）
+   同一套 token / 字阶 / 圆角梯子，跨形态共用
+   ========================================================================== */
+
+/* 字阶：基准 14，标签 11，KPI 28–32 */
+.pr-body {
+  font-size: 14px;
+  line-height: 1.78;
+  color: var(--pr-text);
+}
+.pr-title {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.pr-label {
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--pr-text-2);
+}
+.pr-meta {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pr-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+}
+.pr-num {
+  font-variant-numeric: tabular-nums;
+}
+.pr-kpi {
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.pr-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pr-muted);
+  margin-top: 4px;
 }
 
-:root[data-theme='dark'] .scrollbar-subtle::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
+/* 面与画布 */
+.pr-canvas {
+  background: var(--pr-canvas) radial-gradient(#d4d4d8 1px, transparent 1px) 0 0 / 16px 16px;
+}
+.pr-surface {
+  background: var(--pr-bg);
+  border-radius: var(--pr-r-card);
+  box-shadow: var(--pr-shadow-card);
+}
+.pr-divider {
+  height: 1px;
+  background: var(--pr-line);
+  border: 0;
+  margin: 0;
 }
 
-:root[data-theme='dark'] .scrollbar-subtle::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.32);
+/* 输入区：聚焦只把描边压深一格，不发光 */
+.pr-field {
+  background: var(--pr-bg);
+  border: 1px solid var(--pr-line);
+  border-radius: var(--pr-r-input);
+  transition: border-color 0.2s;
+}
+.pr-field:focus-within {
+  border-color: var(--pr-text-2);
+}
+.pr-field ::placeholder {
+  color: var(--pr-muted);
+}
+
+/* 列表：用线分隔，不用卡片 */
+.pr-list {
+  display: flex;
+  flex-direction: column;
+}
+.pr-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--pr-line);
+  border-radius: 0;
+  text-align: left;
+  color: var(--pr-text);
+  background: none;
+  font: inherit;
+  width: 100%;
+  transition: background-color 0.18s;
+}
+.pr-row:last-child {
+  border-bottom: 0;
+}
+a.pr-row:hover,
+button.pr-row:hover {
+  background: var(--pr-sel);
+}
+.pr-row:active {
+  background: var(--pr-sel);
+}
+.pr-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.pr-row-main > .pr-body,
+.pr-row-main > strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pr-row-main > .pr-sub {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--pr-text-2);
+  margin-top: 2px;
+}
+.pr-row-end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 按钮：主按钮是深色实心，不是彩色 */
+.pr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--pr-line-strong);
+  border-radius: var(--pr-r-ctl);
+  background: var(--pr-bg);
+  color: var(--pr-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    transform 0.25s var(--pr-spring);
+}
+.pr-btn:hover {
+  background: var(--pr-sel);
+}
+.pr-btn:active {
+  transform: scale(0.97);
+}
+.pr-btn[disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.pr-btn-primary {
+  background: var(--pr-text);
+  border-color: var(--pr-text);
+  color: var(--pr-bg);
+}
+.pr-btn-primary:hover {
+  background: var(--pr-text);
+  opacity: 0.88;
+}
+.pr-btn-danger {
+  color: var(--pr-danger);
+  border-color: var(--pr-line-strong);
+}
+
+/* 表格：去竖线、数字右对齐等宽、表头 11px */
+.pr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.pr-table th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pr-text-2);
+  text-align: left;
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--pr-line-strong);
+  white-space: nowrap;
+}
+.pr-table td {
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--pr-line);
+  color: var(--pr-text);
+}
+.pr-table tr:last-child td {
+  border-bottom: 0;
+}
+.pr-table th:last-child,
+.pr-table td:last-child {
+  padding-right: 0;
+}
+.pr-table .pr-num,
+.pr-table th.is-num {
+  text-align: right;
+}
+.pr-table td.is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pr-table .is-empty {
+  color: var(--pr-muted);
+}
+.pr-table.is-long tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--pr-sel) 55%, transparent);
+}
+
+/* 空态：一句话 + 一个动作，不给插画 */
+.pr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 40px 0;
+  color: var(--pr-text-2);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.pr-empty .pr-empty-line {
+  color: var(--pr-text);
+}
+
+/* 标签 / 状态点 */
+.pr-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--pr-line-strong);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pr-text-2);
+}
+.pr-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--pr-accent);
+  display: inline-block;
+}
+/* 图表用墨色，不用彩色图例 */
+.pr-ink-fill {
+  background-color: var(--pr-text);
+}
+.pr-ink-soft {
+  background-color: var(--pr-muted);
+}
+
+/* 可勾选条目：一项一个控件，状态有形状差异 */
+.pr-checks {
+  border-top: 1px solid var(--pr-line);
+  margin-top: 14px;
+}
+.pr-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--pr-line);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--pr-text);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+.pr-check:last-of-type {
+  border-bottom: 0;
+}
+.pr-check:active {
+  background: var(--pr-sel);
+}
+.pr-check[aria-pressed='true'] {
+  color: var(--pr-muted);
+}
+.pr-tick {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  border: 1px solid var(--pr-line-strong);
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    transform 0.25s var(--pr-spring);
+}
+.pr-tick svg {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.pr-check[aria-pressed='true'] .pr-tick {
+  background: var(--pr-accent);
+  border-color: var(--pr-accent);
+  transform: scale(1.06);
+}
+.pr-check[aria-pressed='true'] .pr-tick svg {
+  opacity: 1;
+}
+
+/* 动效：只做入场位移与静止呼吸，不叠 scale */
+.pr-enter {
+  animation: prIn 0.5s var(--pr-spring) both;
+}
+@keyframes prIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pr-breathe {
+  animation: prBreath 4.5s ease-in-out infinite;
+}
+@keyframes prBreath {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+.pr-tap {
+  transition:
+    transform 0.25s var(--pr-spring),
+    opacity 0.18s;
+}
+.pr-tap:active {
+  transform: scale(0.9);
+}
+.pr-scroll {
+  scrollbar-width: none;
+}
+.pr-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -420,5 +750,10 @@ html[data-theme='dark'] .skeleton-shimmer::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .skeleton-shimmer::after {
+    animation: none;
+    opacity: 0;
   }
 }

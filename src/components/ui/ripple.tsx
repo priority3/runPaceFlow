@@ -27,8 +27,9 @@ export interface RippleContainerProps {
 export function RippleContainer({
   children,
   className = '',
-  color = 'rgb(var(--color-accent) / 0.12)',
-  duration = 0.6,
+  // 按压反馈只用墨色淡影，不用彩色涟漪
+  color = 'rgb(var(--color-label) / 0.08)',
+  duration = 0.35,
   disabled = false,
 }: RippleContainerProps) {
   const [ripples, setRipples] = React.useState<Ripple[]>([])

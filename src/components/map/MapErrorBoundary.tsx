@@ -49,7 +49,7 @@ export class MapErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="border-separator bg-secondary-system-background flex h-full w-full flex-col items-center justify-center gap-3 rounded-lg border">
-          <div className="bg-orange/10 flex h-12 w-12 items-center justify-center rounded-full">
+          <div className="bg-system-fill flex h-12 w-12 items-center justify-center rounded-lg">
             <AlertTriangle className="text-orange h-6 w-6" />
           </div>
           <div className="text-center">

@@ -1,15 +1,19 @@
 import { cva } from 'class-variance-authority'
 
+/**
+ * pr-ui：主按钮是深色实心（accent 已收敛为墨色），彩色只留给状态。
+ * 焦点是压深一格的描边，不发光；动效指名属性，不用 transition: all。
+ */
 export const buttonVariants = cva(
-  'focus-visible:ring-accent inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'focus-visible:outline-label inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: 'bg-accent text-accent-content shadow-sm hover:bg-accent/90',
-        destructive: 'bg-red text-white shadow-sm hover:bg-red/90',
+        default: 'bg-accent text-accent-content hover:bg-accent/90',
+        destructive: 'border-red/40 text-red hover:bg-red/5',
         outline:
           'premium-surface bg-tertiary-system-background text-label hover:bg-secondary-system-background',
-        secondary: 'bg-secondary-system-fill text-label shadow-sm hover:bg-system-fill',
+        secondary: 'bg-secondary-system-fill text-label hover:bg-system-fill',
         ghost: 'text-label hover:bg-system-fill',
         link: 'text-accent underline-offset-4 hover:underline',
       },
